@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { X } from 'lucide-react';
+import { X, User, ChevronDown } from 'lucide-react';
 import { noticesAPI } from '../../../services/api';
 
 const initialFormState = {
@@ -28,7 +28,7 @@ const mapApiErrorToMessage = (error) => {
   return 'Something went wrong. Please try again.';
 };
 
-const SendNoticeModal = ({ isOpen, onClose, target, onSent }) => {
+const SendNoticeModal = ({ isOpen, onClose, target, onSent, moduleName, kpiName, kpiFigure }) => {
   const [noticeTypes, setNoticeTypes] = useState([]);
   const [loadingTypes, setLoadingTypes] = useState(false);
   const [typesError, setTypesError] = useState(null);
@@ -37,10 +37,51 @@ const SendNoticeModal = ({ isOpen, onClose, target, onSent }) => {
   const [submitError, setSubmitError] = useState(null);
   const [hasLoadedTypes, setHasLoadedTypes] = useState(false);
 
+  // Generate notice body template
+  const generateNoticeBody = useCallback(() => {
+    const module = moduleName || 'Performance';
+    const kpi = kpiName || 'KPI';
+    const figure = kpiFigure || 'N/A';
+    
+    return `You have been notified for poor performance in "${module}" domain. Your "${kpi}" is "${figure}", which needs to be improved. Revert with reason of poor performance and increase your performance within a month to avoid any consequent action.`;
+  }, [moduleName, kpiName, kpiFigure]);
+
+  // Get recipient name based on target type
+  const getRecipientName = useCallback(() => {
+    if (target?.recipient) {
+      return target.recipient;
+    }
+    if (target?.type === 'District') {
+      return 'CEO';
+    } else if (target?.type === 'Block') {
+      return 'BDO';
+    } else if (target?.type === 'GP') {
+      return 'VDO';
+    }
+    return target?.name || 'Recipient';
+  }, [target]);
+
+  // Generate subject
+  const generateSubject = useCallback(() => {
+    if (target?.subject) {
+      return target.subject;
+    }
+    const locationName = target?.name || 'Location';
+    const module = moduleName || 'Performance';
+    return `Notice regarding ${module} - ${locationName}`;
+  }, [target, moduleName]);
+
   const resetForm = useCallback(() => {
-    setForm(initialFormState);
+    const defaultBody = generateNoticeBody();
+    const defaultSubject = generateSubject();
+    
+    setForm({
+      title: defaultSubject,
+      noticeTypeId: '',
+      text: defaultBody,
+    });
     setSubmitError(null);
-  }, []);
+  }, [generateNoticeBody, generateSubject]);
 
   const fetchNoticeTypes = useCallback(async () => {
     try {
@@ -114,6 +155,11 @@ const SendNoticeModal = ({ isOpen, onClose, target, onSent }) => {
       setIsSubmitting(true);
       setSubmitError(null);
 
+      // Get current user info (authority giving notice)
+      const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+      const senderName = currentUser.name || currentUser.username || currentUser.first_name || 'System Admin';
+      const recipientName = getRecipientName();
+
       const payload = {
         district_id: target?.districtId ?? null,
         block_id: target?.blockId ?? null,
@@ -122,6 +168,11 @@ const SendNoticeModal = ({ isOpen, onClose, target, onSent }) => {
         title: form.title.trim(),
         text: form.text.trim(),
         media_urls: [],
+        sender_name: senderName,
+        recipient_name: recipientName,
+        module: moduleName || 'Performance',
+        date: new Date().toISOString().split('T')[0],
+        time: new Date().toTimeString().split(' ')[0]
       };
 
       const response = await noticesAPI.createNotice(payload);
@@ -178,16 +229,33 @@ const SendNoticeModal = ({ isOpen, onClose, target, onSent }) => {
             justifyContent: 'space-between',
           }}
         >
-          <h2
-            style={{
-              fontSize: '20px',
-              fontWeight: '600',
-              color: '#111827',
-              margin: 0,
-            }}
-          >
-            Notice — {locationLabel}
-          </h2>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px'
+          }}>
+            <h2
+              style={{
+                fontSize: '20px',
+                fontWeight: '600',
+                color: '#111827',
+                margin: 0,
+              }}
+            >
+              Notice Location
+            </h2>
+            <div style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '50%',
+              backgroundColor: '#f3f4f6',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <User style={{ width: '18px', height: '18px', color: '#6b7280' }} />
+            </div>
+          </div>
           <button
             onClick={handleOverlayClick}
             style={{
@@ -204,6 +272,17 @@ const SendNoticeModal = ({ isOpen, onClose, target, onSent }) => {
         </div>
 
         <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {/* To: Recipient */}
+          <div style={{
+            padding: '12px',
+            backgroundColor: '#f9fafb',
+            borderRadius: '8px',
+            fontSize: '14px',
+            color: '#374151'
+          }}>
+            <strong>To:</strong> {getRecipientName()}
+          </div>
+
           {typesError && (
             <div
               style={{
@@ -248,7 +327,7 @@ const SendNoticeModal = ({ isOpen, onClose, target, onSent }) => {
               type="text"
               value={form.title}
               onChange={(event) => setForm((prev) => ({ ...prev, title: event.target.value }))}
-              placeholder="Enter subject"
+              placeholder="Enter scheme"
               style={{
                 width: '100%',
                 padding: '12px',
@@ -271,30 +350,55 @@ const SendNoticeModal = ({ isOpen, onClose, target, onSent }) => {
             >
               Category
             </label>
-            <select
-              value={form.noticeTypeId}
-              onChange={(event) => setForm((prev) => ({ ...prev, noticeTypeId: event.target.value }))}
-              style={{
-                width: '100%',
-                padding: '12px',
-                border: '1px solid #d1d5db',
-                borderRadius: '8px',
-                fontSize: '14px',
-                outline: 'none',
-                backgroundColor: loadingTypes ? '#f9fafb' : 'white',
-                color: loadingTypes ? '#9ca3af' : '#111827',
-              }}
-              disabled={loadingTypes || isSubmitting || noticeTypes.length === 0}
-            >
-              <option value="" disabled>
-                {loadingTypes ? 'Loading categories…' : 'Select category'}
-              </option>
-              {noticeTypes.map((type) => (
-                <option key={type.id} value={type.id}>
-                  {type.name}
+            <div style={{ position: 'relative' }}>
+              <select
+                value={form.noticeTypeId}
+                onChange={(event) => setForm((prev) => ({ ...prev, noticeTypeId: event.target.value }))}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  border: '2px solid #3b82f6',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  outline: 'none',
+                  backgroundColor: loadingTypes ? '#f9fafb' : 'white',
+                  color: loadingTypes ? '#9ca3af' : '#111827',
+                  appearance: 'none',
+                }}
+                disabled={loadingTypes || isSubmitting || noticeTypes.length === 0}
+              >
+                <option value="" disabled>
+                  {loadingTypes ? 'Loading categories…' : 'Select'}
                 </option>
-              ))}
-            </select>
+                {noticeTypes.map((type) => (
+                  <option key={type.id} value={type.id}>
+                    {type.name}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown style={{
+                position: 'absolute',
+                right: '12px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                width: '16px',
+                height: '16px',
+                color: '#9ca3af',
+                pointerEvents: 'none'
+              }} />
+            </div>
+            <div style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '50%',
+              backgroundColor: '#f3f4f6',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginTop: '8px'
+            }}>
+              <User style={{ width: '18px', height: '18px', color: '#6b7280' }} />
+            </div>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -321,6 +425,7 @@ const SendNoticeModal = ({ isOpen, onClose, target, onSent }) => {
                 outline: 'none',
                 resize: 'vertical',
                 fontFamily: 'inherit',
+                minHeight: '150px',
               }}
               disabled={isSubmitting}
             />

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { MapPin, ChevronDown, ChevronRight, Calendar, List, Info, Search, Filter, Download, Eye, Edit, Trash2, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { MapPin, ChevronDown, ChevronRight, Calendar, List, Info, Search, Filter, Download, Eye, Edit, Trash2, CheckCircle, XCircle, Clock , Plus, Upload, X, Star, User} from 'lucide-react';
 import Chart from 'react-apexcharts';
-import apiClient from '../../services/api';
+import apiClient, { noticesAPI } from '../../services/api';
 import LocationDisplay from '../common/LocationDisplay';
 import { useLocation } from '../../context/LocationContext';
 
@@ -79,6 +79,43 @@ const ComplaintsContent = () => {
   // Complaints specific state
   const [activeFilter, setActiveFilter] = useState('Open');
   const [searchTerm, setSearchTerm] = useState('');
+
+  // Raise Complaint Modal state
+  const [showComplaintModal, setShowComplaintModal] = useState(false);
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [complaintCategories, setComplaintCategories] = useState([]);
+  const [loadingCategories, setLoadingCategories] = useState(false);
+  const [villages, setVillages] = useState([]);
+  const [loadingVillages, setLoadingVillages] = useState(false);
+  const [submittingComplaint, setSubmittingComplaint] = useState(false);
+
+  // Notice Modal state
+  const [showNoticeModal, setShowNoticeModal] = useState(false);
+  const [selectedComplaintForNotice, setSelectedComplaintForNotice] = useState(null);
+  const [noticeCategories, setNoticeCategories] = useState([]);
+  const [loadingNoticeCategories, setLoadingNoticeCategories] = useState(false);
+  const [sendingNotice, setSendingNotice] = useState(false);
+  
+  // Notice form state
+  const [noticeForm, setNoticeForm] = useState({
+    to: '',
+    subject: '',
+    categoryId: '',
+    categoryName: '',
+    details: ''
+  });
+  
+  // Form state
+  const [complaintForm, setComplaintForm] = useState({
+    complaintTypeId: '',
+    details: '',
+    districtId: '',
+    blockId: '',
+    gpId: '',
+    village: '',
+    wardArea: '',
+    images: []
+  });
 
   // Analytics data state
   const [analyticsData, setAnalyticsData] = useState(null);
@@ -218,6 +255,96 @@ const ComplaintsContent = () => {
       setLoadingGPs(false);
     }
   }, []);
+
+  // Fetch complaint categories
+  const fetchComplaintCategories = useCallback(async () => {
+    try {
+      setLoadingCategories(true);
+      const response = await apiClient.get('/public/complaint-types');
+      console.log('Complaint Categories API Response:', response.data);
+      setComplaintCategories(response.data || []);
+    } catch (error) {
+      console.error('Error fetching complaint categories:', error);
+      setComplaintCategories([]);
+    } finally {
+      setLoadingCategories(false);
+    }
+  }, []);
+
+  // Fetch villages from API for a given GP
+  const fetchVillages = useCallback(async (gpId) => {
+    if (!gpId) {
+      setVillages([]);
+      return;
+    }
+
+    try {
+      setLoadingVillages(true);
+      const response = await apiClient.get('/geography/villages', {
+        params: {
+          gp_id: gpId,
+          skip: 0,
+          limit: 100
+        }
+      });
+      console.log('Villages API Response:', response.data);
+      setVillages(response.data || []);
+    } catch (error) {
+      console.error('Error fetching villages:', error);
+      setVillages([]);
+    } finally {
+      setLoadingVillages(false);
+    }
+  }, []);
+
+  // Fetch notice categories from API
+  const fetchNoticeCategories = useCallback(async () => {
+    try {
+      setLoadingNoticeCategories(true);
+      const response = await noticesAPI.getTypes();
+      console.log('Notice Types API Response:', response.data);
+      if (response.data && Array.isArray(response.data) && response.data.length > 0) {
+        setNoticeCategories(response.data);
+      } else {
+        setNoticeCategories([]);
+      }
+    } catch (error) {
+      console.error('Error fetching notice categories:', error);
+      setNoticeCategories([]);
+    } finally {
+      setLoadingNoticeCategories(false);
+    }
+  }, []);
+
+  // Generate notice body template based on complaint
+  const generateNoticeBody = (complaint) => {
+    const moduleName = 'Complaints';
+    const kpiName = complaint.title || complaint.complaint_type || 'Complaint Type';
+    const kpiFigure = complaint.statusDisplay || complaint.status || complaint.id || 'N/A';
+    
+    return `You have been notified for poor performance in "${moduleName}" domain. Your "${kpiName}" is "${kpiFigure}", which needs to be improved. Revert with reason of poor performance and increase your performance within a month to avoid any consequent action.`;
+  };
+
+  // Open notice modal with complaint data
+  const handleOpenNoticeModal = (complaint) => {
+    setSelectedComplaintForNotice(complaint);
+    
+    // For complaints module, recipient is always VDO
+    const recipient = 'VDO';
+    const subject = `Notice regarding Complaint ${complaint.id}`;
+    const details = generateNoticeBody(complaint);
+    
+    setNoticeForm({
+      to: recipient,
+      subject,
+      categoryId: '',
+      categoryName: '',
+      details
+    });
+    
+    fetchNoticeCategories();
+    setShowNoticeModal(true);
+  };
 
   // Handle scope change
   const handleScopeChange = (scope) => {
@@ -1033,16 +1160,86 @@ const ComplaintsContent = () => {
   ];
   };
 
-  const complaintMetrics = getComplaintMetrics();
+const complaintMetrics = getComplaintMetrics();
+
+const normalizeStatusForFilter = (rawStatus) => {
+  if (!rawStatus) return '';
+
+  let s = String(rawStatus)
+    .toUpperCase()
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  // Handle common variations
+  switch (s) {
+    case 'OPEN':
+    case 'PENDING':
+    case 'PENDING REVIEW':
+    case 'NEW':
+    case 'AWAITING ACTION':
+    case 'AWAITING RESPONSE':
+    case 'OPEN COMPLAINT':
+      return 'OPEN';
+
+    case 'VERIFIED':
+    case 'IN PROGRESS':
+    case 'INPROGRESS':
+    case 'IN PROGRESS WITH DEO':
+    case 'IN PROCESS':
+    case 'VERIFICATION PENDING':
+    case 'PENDING VERIFICATION':
+    case 'UNDER VERIFICATION':
+    case 'VERIFICATION COMPLETED':
+      return 'VERIFIED';
+
+    case 'RESOLVED':
+    case 'RESOLUTION SUBMITTED':
+    case 'RESOLUTION IN PROGRESS':
+    case 'ACTION TAKEN':
+    case 'ADDRESSED':
+      return 'RESOLVED';
+
+    case 'CLOSED':
+    case 'CLOSE':
+    case 'CLOS':
+    case 'DISPOSED':
+    case 'DISPOSED OFF':
+    case 'REJECTED':
+    case 'NOT ACTIONABLE':
+    case 'INVALID COMPLAINT':
+      return 'CLOSED';
+
+    default:
+      // Return uppercase version of original if no match
+      return s.toUpperCase();
+  }
+};
 
   // Use dynamic complaints data from API, or empty array if loading/error
   // Normalize incoming statuses and compute a normalized status + color to use for filtering and display
-  const complaintsData = complaintsListData.map(complaint => {
+  // Deduplicate complaints by ID to avoid duplicate keys
+  const uniqueComplaintsMap = new Map();
+  complaintsListData.forEach((complaint, idx) => {
+    const complaintId = complaint.id;
+    if (!uniqueComplaintsMap.has(complaintId)) {
+      uniqueComplaintsMap.set(complaintId, { ...complaint, _originalIndex: idx });
+    }
+  });
+  const uniqueComplaintsList = Array.from(uniqueComplaintsMap.values());
+
+  const complaintsData = uniqueComplaintsList.map((complaint, idx) => {
     const rawStatus = complaint.status || 'OPEN';
-    const statusNormalized = normalizeStatusForFilter(rawStatus);
-    const statusColor = statusNormalized === 'OPEN' ? '#ef4444' :
-                         statusNormalized === 'VERIFIED' ? '#f97316' :
-                         statusNormalized === 'RESOLVED' ? '#8b5cf6' : '#10b981';
+    const statusNormalized = normalizeStatusForFilter(rawStatus) || 'OPEN';
+    const statusDisplay = statusNormalized === 'OPEN' ? 'Open'
+      : statusNormalized === 'VERIFIED' ? 'Verified'
+      : statusNormalized === 'RESOLVED' ? 'Resolved'
+      : statusNormalized === 'CLOSED' ? 'Closed' : rawStatus;
+
+    const statusColor = statusNormalized === 'OPEN' ? '#ef4444'
+      : statusNormalized === 'VERIFIED' ? '#f97316'
+      : statusNormalized === 'RESOLVED' ? '#8b5cf6'
+      : '#10b981';
 
     return {
       id: `COMP-${complaint.id}`,
@@ -1050,6 +1247,7 @@ const ComplaintsContent = () => {
       description: complaint.description || 'No description',
       status: rawStatus,
       statusNormalized,
+      statusDisplay,
       priority: 'Medium', // API doesn't provide priority, using default
       location: complaint.location || `${complaint.village_name}, ${complaint.block_name}`,
       submittedBy: complaint.mobile_number || 'N/A',
@@ -1100,44 +1298,73 @@ const ComplaintsContent = () => {
     }
   };
 
-  const normalizeStatusForFilter = (rawStatus) => {
-    if (!rawStatus) return '';
-    let s = String(rawStatus).toUpperCase().trim();
-    if (s === 'DISPOSED') s = 'CLOSED';
-    if (s === 'IN PROGRESS') s = 'VERIFIED';
-    // accept a few common synonyms
-    if (s === 'CLOSE' || s === 'CLOS') s = 'CLOSED';
-    return s;
-  };
+  // Normalize the active filter once
+  const normalizedFilterStatus = activeFilter && activeFilter.trim().length > 0
+    ? normalizeStatusForFilter(activeFilter).trim().toUpperCase()
+    : null;
 
   const filteredComplaints = complaintsData.filter(complaint => {
-    const complaintStatusForFilter = complaint.statusNormalized || normalizeStatusForFilter(complaint.status);
-    const normalizedFilterStatus = normalizeStatusForFilter(activeFilter);
-
-    const matchesFilter = normalizedFilterStatus
-      ? complaintStatusForFilter === normalizedFilterStatus
-      : true; // if filter is empty/null, don't filter
+    // Get normalized status from complaint (already normalized during mapping)
+    const complaintStatusNormalized = (complaint.statusNormalized || normalizeStatusForFilter(complaint.status || 'OPEN'))
+      .trim()
+      .toUpperCase();
+    
+    // Only filter if we have a valid filter selection
+    const matchesFilter = normalizedFilterStatus && normalizedFilterStatus.length > 0
+      ? complaintStatusNormalized === normalizedFilterStatus
+      : true; // if no filter selected, show all
 
     const q = searchTerm?.toLowerCase() || '';
-    const matchesSearch = complaint.title.toLowerCase().includes(q) ||
-                         complaint.description.toLowerCase().includes(q) ||
-                         complaint.id.toLowerCase().includes(q);
+    const matchesSearch = 
+      complaint.title.toLowerCase().includes(q) ||
+      complaint.description.toLowerCase().includes(q) ||
+      complaint.id.toLowerCase().includes(q) ||
+      (complaint.location || '').toLowerCase().includes(q) ||
+      (complaint.submittedBy || '').toLowerCase().includes(q) ||
+      (complaint.submittedDate || '').toLowerCase().includes(q) ||
+      (complaint.statusDisplay || complaint.status || '').toLowerCase().includes(q) ||
+      (complaint.assignedTo || '').toLowerCase().includes(q) ||
+      (complaint.village || '').toLowerCase().includes(q) ||
+      (complaint.block || '').toLowerCase().includes(q) ||
+      (complaint.district || '').toLowerCase().includes(q);
 
     return matchesFilter && matchesSearch;
   });
 
-  // Debug logging
+  // Debug logging with detailed filter analysis
+  const sampleRawStatuses = complaintsListData.slice(0, 5).map(c => c.status);
   console.log('🔍 Complaints Data Debug:', {
     rawDataLength: complaintsListData.length,
     transformedDataLength: complaintsData.length,
     loadingComplaints,
     complaintsError,
-    sampleTransformed: complaintsData.slice(0, 2),
+    sampleRawStatusesFromAPI: sampleRawStatuses,
+    sampleTransformed: complaintsData.slice(0, 3).map(c => ({
+      id: c.id,
+      rawStatus: c.status,
+      normalized: c.statusNormalized,
+      display: c.statusDisplay
+    })),
     filteredComplaintsLength: filteredComplaints.length,
     activeFilter,
+    normalizedFilterStatus,
     searchTerm,
     uniqueStatuses: [...new Set(complaintsData.map(c => c.status))],
-    uniqueNormalized: [...new Set(complaintsData.map(c => c.statusNormalized))]
+    uniqueNormalized: [...new Set(complaintsData.map(c => c.statusNormalized))],
+    filterBreakdown: {
+      open: complaintsData.filter(c => (c.statusNormalized || normalizeStatusForFilter(c.status)).toUpperCase() === 'OPEN').length,
+      verified: complaintsData.filter(c => (c.statusNormalized || normalizeStatusForFilter(c.status)).toUpperCase() === 'VERIFIED').length,
+      resolved: complaintsData.filter(c => (c.statusNormalized || normalizeStatusForFilter(c.status)).toUpperCase() === 'RESOLVED').length,
+      closed: complaintsData.filter(c => (c.statusNormalized || normalizeStatusForFilter(c.status)).toUpperCase() === 'CLOSED').length
+    },
+    filteredByStatus: normalizedFilterStatus ? filteredComplaints.length : 'N/A (showing all)',
+    filterTest: normalizedFilterStatus ? {
+      lookingFor: normalizedFilterStatus,
+      foundCount: complaintsData.filter(c => {
+        const normalized = (c.statusNormalized || normalizeStatusForFilter(c.status || 'OPEN')).trim().toUpperCase();
+        return normalized === normalizedFilterStatus;
+      }).length
+    } : null
   });
 
   const activeHierarchyDistrict = selectedDistrictForHierarchy ||
@@ -1850,98 +2077,28 @@ const ComplaintsContent = () => {
         {/* Metrics Cards */}
         <div style={{
           display: 'flex',
-          gap: '24px'
+          gap: '48px',
+          width: '100%',
+          justifyContent: 'flex-start',
+          flexWrap: 'nowrap'
         }}>
-          {/* Total Complaints - Large Card */}
-          <div style={{
-            width: '70%',
-            backgroundColor: 'white',
-            padding: '20px',
-            borderRadius: '8px',
-            border: '1px solid #e5e7eb',
-            position: 'relative'
-          }}>
-            {/* Info icon */}
-            <div style={{
-              position: 'absolute',
-              top: '12px',
-              right: '12px'
-            }}>
-              <Info style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
-            </div>
-
-            {/* Card content */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              marginBottom: '16px'
-            }}>
-              <div style={{
-                width: '8px',
-                height: '8px',
-                borderRadius: '50%',
-                backgroundColor: complaintMetrics[0].color
-              }}></div>
-              <div style={{
+          {complaintMetrics.map((item, index) => (
+            <div
+              key={`${item.title}-${index}`}
+              style={{
+                flex: '0 1 17%',
+                maxWidth: '250px',
+                backgroundColor: 'white',
+                padding: '18px',
+                borderRadius: '8px',
+                border: '1px solid #e5e7eb',
+                position: 'relative',
                 display: 'flex',
-                alignItems: 'center',
-                gap: '6px'
-              }}>
-                <span style={{
-                  fontSize: '14px',
-                  color: '#6b7280',
-                  fontWeight: '500'
-                }}>
-                  {complaintMetrics[0].title}
-                </span>
-              </div>
-            </div>
-
-            {/* Value */}
-            <div style={{
-              fontSize: '32px',
-              fontWeight: '700',
-              color: '#111827',
-              marginBottom: '16px'
-            }}>
-              {complaintMetrics[0].value}
-            </div>
-
-            {/* Chart */}
-            <div style={{ height: '60%' }}>
-              <Chart
-                options={complaintMetrics[0].chartData.options}
-                series={complaintMetrics[0].chartData.series}
-                type="area"
-                height="100%"
-              />
-            </div>
-          </div>
-
-          {/* Right Side - Cards Layout */}
-          <div style={{
-            width: '28%',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '12px'
-          }}>
-            {/* Top Row - Open and Verified */}
-            <div style={{
-              display: 'flex',
-              gap: '12px',
-              width: '98%',
-              marginBottom: '12px'
-            }}>
-              {complaintMetrics.slice(1, 3).map((item, index) => (
-                <div key={index} style={{
-              backgroundColor: 'white',
-              padding: '16px',
-              borderRadius: '8px',
-              border: '1px solid #e5e7eb',
-                  position: 'relative',
-                  width: '50%'
-            }}>
+                flexDirection: 'column',
+                minHeight: '220px',
+                overflow: 'hidden'
+              }}
+            >
               {/* Info icon */}
               <div style={{
                 position: 'absolute',
@@ -1956,13 +2113,13 @@ const ComplaintsContent = () => {
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
-                marginBottom: '12px'
+                marginBottom: '16px'
               }}>
                 <div style={{
                   width: '8px',
                   height: '8px',
                   borderRadius: '50%',
-                      backgroundColor: item.color
+                  backgroundColor: item.color
                 }}></div>
                 <div style={{
                   display: 'flex',
@@ -1974,7 +2131,7 @@ const ComplaintsContent = () => {
                     color: '#6b7280',
                     fontWeight: '500'
                   }}>
-                        {item.title}
+                    {item.title}
                   </span>
                 </div>
               </div>
@@ -1984,99 +2141,33 @@ const ComplaintsContent = () => {
                 fontSize: '24px',
                 fontWeight: '700',
                 color: '#111827',
-                marginBottom: '12px'
+                marginBottom: '16px'
               }}>
-                    {item.value}
+                {item.value}
               </div>
 
-              {/* Mini chart */}
-              <div style={{ height: '40px' }}>
-                <Chart
-                      options={item.chartData.options}
-                      series={item.chartData.series}
-                  type="area"
-                  height={40}
-                />
+              {/* Chart */}
+              <div style={{
+                flexGrow: 1,
+                display: 'flex',
+                alignItems: 'flex-end',
+                width: '100%',
+                paddingRight: '16px',
+                paddingBottom: '12px',
+                boxSizing: 'border-box'
+              }}>
+                <div style={{ width: '100%' }}>
+                  <Chart
+                    options={item.chartData.options}
+                    series={item.chartData.series}
+                    type="area"
+                    height={80}
+                    width="100%"
+                  />
+                </div>
               </div>
-                </div>
-              ))}
             </div>
-
-            {/* Bottom Row - Resolved and Disposed */}
-            <div style={{
-              display: 'flex',
-              gap: '12px',
-              width: '98%'
-            }}>
-              {complaintMetrics.slice(3).map((item, index) => (
-                <div key={index} style={{
-                  backgroundColor: 'white',
-                  padding: '16px',
-                  borderRadius: '8px',
-                  border: '1px solid #e5e7eb',
-                  position: 'relative',
-                  width: '50%'
-                }}>
-                  {/* Info icon */}
-                  <div style={{
-                    position: 'absolute',
-                    top: '12px',
-                    right: '12px'
-                  }}>
-                    <Info style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
-                  </div>
-
-                  {/* Card content */}
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    marginBottom: '12px'
-                  }}>
-                    <div style={{
-                      width: '8px',
-                      height: '8px',
-                      borderRadius: '50%',
-                      backgroundColor: item.color
-                    }}></div>
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px'
-                    }}>
-                      <span style={{
-                        fontSize: '14px',
-                        color: '#6b7280',
-                        fontWeight: '500'
-                      }}>
-                        {item.title}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Value */}
-                  <div style={{
-                    fontSize: '24px',
-                    fontWeight: '700',
-                    color: '#111827',
-                    marginBottom: '12px'
-                  }}>
-                    {item.value}
-                  </div>
-
-                  {/* Mini chart */}
-                  <div style={{ height: '40px' }}>
-                    <Chart
-                      options={item.chartData.options}
-                      series={item.chartData.series}
-                      type="area"
-                      height={40}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+          ))}
         </div>
       </div>
 
@@ -2100,7 +2191,7 @@ const ComplaintsContent = () => {
           <div style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '12px'
+            gap: '16px'
           }}>
             <h2 style={{
               fontSize: '20px',
@@ -2116,19 +2207,13 @@ const ComplaintsContent = () => {
             }}>
               {getDateDisplayText()}
             </span>
-          </div>
 
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '16px'
-          }}>
             {/* Status Filter */}
             <div 
               data-filter-dropdown
               style={{
                 position: 'relative',
-                minWidth: '120px'
+                minWidth: '140px'
               }}
             >
               <button 
@@ -2150,7 +2235,7 @@ const ComplaintsContent = () => {
                 <span>{activeFilter}</span>
                 <ChevronDown style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
               </button>
-              
+
               {/* Filter Dropdown */}
               {showFilterDropdown && (
                 <div style={{
@@ -2169,6 +2254,7 @@ const ComplaintsContent = () => {
                     <div
                       key={filter}
                       onClick={() => {
+                        console.log('🎯 Filter clicked:', filter, 'Normalized:', normalizeStatusForFilter(filter));
                         setActiveFilter(filter);
                         setShowFilterDropdown(false);
                       }}
@@ -2187,7 +2273,13 @@ const ComplaintsContent = () => {
                 </div>
               )}
             </div>
+          </div>
 
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '16px'
+          }}>
             {/* Search Bar */}
             <div style={{
               position: 'relative',
@@ -2222,21 +2314,28 @@ const ComplaintsContent = () => {
             </div>
 
             {/* Export Button */}
-            <button style={{
-              padding: '8px 16px',
-              backgroundColor: '#10b981',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: '500',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}>
-              <Download style={{ width: '16px', height: '16px' }} />
-              Export data
+            <button 
+              onClick={() => {
+                setShowComplaintModal(true);
+                fetchComplaintCategories();
+                fetchDistricts();
+              }}
+              style={{
+                padding: '8px 16px',
+                backgroundColor: 'black',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '500',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+            >
+              <Plus style={{ width: '16px', height: '16px' }} />
+              Add complaint
             </button>
           </div>
         </div>
@@ -2364,7 +2463,7 @@ const ComplaintsContent = () => {
                 </th>
               </tr>
             </thead>
-            <tbody>
+            <tbody key={`complaints-${activeFilter}-${filteredComplaints.length}`}>
               {loadingComplaints ? (
                 <tr>
                   <td colSpan="5" style={{
@@ -2398,9 +2497,10 @@ const ComplaintsContent = () => {
                     No complaints found
                   </td>
                 </tr>
-              ) : (
-                filteredComplaints.map((complaint, index) => (
-                  <tr key={complaint.id || index} style={{
+              ) : (() => {
+                console.log('📊 Rendering table with', filteredComplaints.length, 'complaints. Active filter:', activeFilter, 'Sample statuses:', filteredComplaints.slice(0, 3).map(c => ({ id: c.id, status: c.statusDisplay })));
+                return filteredComplaints.map((complaint, index) => (
+                  <tr key={complaint.id || `complaint-${index}`} style={{
                     borderBottom: '1px solid #f3f4f6'
                   }}>
                     <td style={{
@@ -2465,24 +2565,27 @@ const ComplaintsContent = () => {
                           fontSize: '12px',
                           fontWeight: '500'
                         }} title={complaint.status || 'N/A'}>
-                          {complaint.statusNormalized || complaint.status || 'N/A'}
+                          {complaint.statusDisplay || complaint.status || 'N/A'}
                         </div>
-                        <button style={{
-                          padding: '6px 12px',
-                          backgroundColor: 'transparent',
-                          border: '1px solid #d1d5db',
-                          borderRadius: '6px',
-                          fontSize: '12px',
-                          color: '#374151',
-                          cursor: 'pointer'
-                        }}>
+                        <button 
+                          onClick={() => handleOpenNoticeModal(complaint)}
+                          style={{
+                            padding: '6px 12px',
+                            backgroundColor: 'transparent',
+                            border: '1px solid #d1d5db',
+                            borderRadius: '6px',
+                            fontSize: '12px',
+                            color: '#374151',
+                            cursor: 'pointer'
+                          }}
+                        >
                           Send notice
                         </button>
                       </div>
                     </td>
                   </tr>
-                ))
-              )}
+                ));
+              })()}
             </tbody>
           </table>
         </div>
@@ -2524,6 +2627,1001 @@ const ComplaintsContent = () => {
           </div>
         )}
       </div>
+
+      {/* Raise Complaint Modal */}
+      {showComplaintModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 10000,
+          padding: '20px'
+        }}
+        onClick={(e) => {
+          if (e.target === e.currentTarget) {
+            setShowComplaintModal(false);
+          }
+        }}
+        >
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '12px',
+            width: '100%',
+            maxWidth: '800px',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            padding: '24px',
+            position: 'relative'
+          }}
+          onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: '24px'
+            }}>
+              <h2 style={{
+                fontSize: '20px',
+                fontWeight: '600',
+                color: '#111827',
+                margin: 0
+              }}>
+                Raise Complaint
+              </h2>
+              <button
+                onClick={() => setShowComplaintModal(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '4px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <X style={{ width: '20px', height: '20px', color: '#6b7280' }} />
+              </button>
+            </div>
+
+            {/* Image Upload Section */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '16px',
+              marginBottom: '24px'
+            }}>
+              {/* Uploaded Image Preview */}
+              {complaintForm.images.length > 0 && (
+                <div style={{
+                  position: 'relative',
+                  width: '100%',
+                  height: '150px',
+                  borderRadius: '8px',
+                  overflow: 'hidden',
+                  border: '1px solid #e5e7eb'
+                }}>
+                  <img 
+                    src={URL.createObjectURL(complaintForm.images[0])} 
+                    alt="Uploaded"
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover'
+                    }}
+                  />
+                  <button
+                    onClick={() => {
+                      setComplaintForm(prev => ({ ...prev, images: [] }));
+                    }}
+                    style={{
+                      position: 'absolute',
+                      top: '8px',
+                      right: '8px',
+                      width: '24px',
+                      height: '24px',
+                      borderRadius: '50%',
+                      backgroundColor: '#ef4444',
+                      border: 'none',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: 0
+                    }}
+                  >
+                    <X style={{ width: '14px', height: '14px', color: 'white' }} />
+                  </button>
+                </div>
+              )}
+
+              {/* Upload Area */}
+              <div
+                onClick={() => document.getElementById('image-upload').click()}
+                style={{
+                  width: '100%',
+                  height: '150px',
+                  border: '2px dashed #d1d5db',
+                  borderRadius: '8px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  backgroundColor: '#f9fafb',
+                  transition: 'background-color 0.2s',
+                  gap: '8px'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
+              >
+                <Upload style={{ width: '32px', height: '32px', color: '#6b7280' }} />
+                <span style={{
+                  fontSize: '14px',
+                  color: '#6b7280',
+                  textAlign: 'center',
+                  padding: '0 16px'
+                }}>
+                  Drag and drop your image or click to upload
+                </span>
+              </div>
+              <input
+                id="image-upload"
+                type="file"
+                accept="image/*"
+                style={{ display: 'none' }}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    setComplaintForm(prev => ({ ...prev, images: [file] }));
+                  }
+                }}
+              />
+            </div>
+
+            {/* Complaint Type */}
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{
+                display: 'block',
+                fontSize: '14px',
+                fontWeight: '500',
+                color: '#374151',
+                marginBottom: '8px'
+              }}>
+                Select Type of Complaint
+              </label>
+              <div style={{ position: 'relative' }}>
+                <select
+                  value={complaintForm.complaintTypeId}
+                  onChange={(e) => setComplaintForm(prev => ({ ...prev, complaintTypeId: e.target.value }))}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    color: '#374151',
+                    backgroundColor: 'white',
+                    appearance: 'none',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <option value="">Select option</option>
+                  {complaintCategories.map(category => (
+                    <option key={category.id} value={category.id}>
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown style={{
+                  position: 'absolute',
+                  right: '12px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  width: '16px',
+                  height: '16px',
+                  color: '#9ca3af',
+                  pointerEvents: 'none'
+                }} />
+              </div>
+            </div>
+
+            {/* Details */}
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{
+                display: 'block',
+                fontSize: '14px',
+                fontWeight: '500',
+                color: '#374151',
+                marginBottom: '8px'
+              }}>
+                Details
+              </label>
+              <textarea
+                value={complaintForm.details}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value.length <= 100) {
+                    setComplaintForm(prev => ({ ...prev, details: value }));
+                  }
+                }}
+                placeholder="Details"
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  color: '#374151',
+                  minHeight: '80px',
+                  resize: 'vertical',
+                  fontFamily: 'inherit'
+                }}
+              />
+              <div style={{
+                fontSize: '12px',
+                color: '#6b7280',
+                marginTop: '4px',
+                textAlign: 'right'
+              }}>
+                {complaintForm.details.length}/100
+              </div>
+            </div>
+
+            {/* District and Block */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '16px',
+              marginBottom: '20px'
+            }}>
+              {/* District */}
+              <div>
+                <label style={{
+                  display: 'block',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: '#374151',
+                  marginBottom: '8px'
+                }}>
+                  District
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <select
+                    value={complaintForm.districtId}
+                    onChange={(e) => {
+                      const districtId = e.target.value;
+                      setComplaintForm(prev => ({
+                        ...prev,
+                        districtId,
+                        blockId: '',
+                        gpId: '',
+                        village: ''
+                      }));
+                      if (districtId) {
+                        fetchBlocks(districtId);
+                      }
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '10px 12px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                      color: '#374151',
+                      backgroundColor: 'white',
+                      appearance: 'none',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <option value="">Select District</option>
+                    {districts.map(district => (
+                      <option key={district.id} value={district.id}>
+                        {district.name}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown style={{
+                    position: 'absolute',
+                    right: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    width: '16px',
+                    height: '16px',
+                    color: '#9ca3af',
+                    pointerEvents: 'none'
+                  }} />
+                </div>
+              </div>
+
+              {/* Block */}
+              <div>
+                <label style={{
+                  display: 'block',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: '#374151',
+                  marginBottom: '8px'
+                }}>
+                  Block
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <select
+                    value={complaintForm.blockId}
+                    onChange={(e) => {
+                      const blockId = e.target.value;
+                      setComplaintForm(prev => ({
+                        ...prev,
+                        blockId,
+                        gpId: '',
+                        village: ''
+                      }));
+                      if (blockId && complaintForm.districtId) {
+                        fetchGramPanchayats(complaintForm.districtId, blockId);
+                      }
+                    }}
+                    disabled={!complaintForm.districtId}
+                    style={{
+                      width: '100%',
+                      padding: '10px 12px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                      color: complaintForm.districtId ? '#374151' : '#9ca3af',
+                      backgroundColor: complaintForm.districtId ? 'white' : '#f9fafb',
+                      appearance: 'none',
+                      cursor: complaintForm.districtId ? 'pointer' : 'not-allowed'
+                    }}
+                  >
+                    <option value="">Select Block</option>
+                    {blocks.filter(b => b.district_id === parseInt(complaintForm.districtId)).map(block => (
+                      <option key={block.id} value={block.id}>
+                        {block.name}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown style={{
+                    position: 'absolute',
+                    right: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    width: '16px',
+                    height: '16px',
+                    color: '#9ca3af',
+                    pointerEvents: 'none'
+                  }} />
+                </div>
+              </div>
+            </div>
+
+            {/* Gram Panchayat */}
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{
+                display: 'block',
+                fontSize: '14px',
+                fontWeight: '500',
+                color: '#374151',
+                marginBottom: '8px'
+              }}>
+                Gram Panchayat
+              </label>
+              <div style={{ position: 'relative' }}>
+                <select
+                  value={complaintForm.gpId}
+                  onChange={(e) => {
+                    const gpId = e.target.value;
+                    setComplaintForm(prev => ({
+                      ...prev,
+                      gpId,
+                      village: ''
+                    }));
+                    if (gpId) {
+                      fetchVillages(gpId);
+                    }
+                  }}
+                  disabled={!complaintForm.blockId}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    color: complaintForm.blockId ? '#374151' : '#9ca3af',
+                    backgroundColor: complaintForm.blockId ? 'white' : '#f9fafb',
+                    appearance: 'none',
+                    cursor: complaintForm.blockId ? 'pointer' : 'not-allowed'
+                  }}
+                >
+                  <option value="">Select Gram Panchayat</option>
+                  {gramPanchayats.filter(gp => gp.block_id === parseInt(complaintForm.blockId)).map(gp => (
+                    <option key={gp.id} value={gp.id}>
+                      {gp.name}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown style={{
+                  position: 'absolute',
+                  right: '12px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  width: '16px',
+                  height: '16px',
+                  color: '#9ca3af',
+                  pointerEvents: 'none'
+                }} />
+              </div>
+            </div>
+
+            {/* Village and Ward/Area */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '16px',
+              marginBottom: '24px'
+            }}>
+              {/* Village */}
+              <div>
+                <label style={{
+                  display: 'block',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: '#374151',
+                  marginBottom: '8px'
+                }}>
+                  Village
+                </label>
+                <input
+                  type="text"
+                  value={complaintForm.village}
+                  onChange={(e) => setComplaintForm(prev => ({ ...prev, village: e.target.value }))}
+                  placeholder="Enter Village"
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    color: '#374151'
+                  }}
+                />
+              </div>
+
+              {/* Ward/Area */}
+              <div>
+                <label style={{
+                  display: 'block',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: '#374151',
+                  marginBottom: '8px'
+                }}>
+                  Ward/Area
+                </label>
+                <input
+                  type="text"
+                  value={complaintForm.wardArea}
+                  onChange={(e) => setComplaintForm(prev => ({ ...prev, wardArea: e.target.value }))}
+                  placeholder="Enter Ward/Area"
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    color: '#374151'
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'flex-end',
+              gap: '12px',
+              marginTop: '24px'
+            }}>
+              <button
+                onClick={() => {
+                  setShowComplaintModal(false);
+                  setComplaintForm({
+                    complaintTypeId: '',
+                    details: '',
+                    districtId: '',
+                    blockId: '',
+                    gpId: '',
+                    village: '',
+                    wardArea: '',
+                    images: []
+                  });
+                }}
+                style={{
+                  padding: '10px 20px',
+                  backgroundColor: '#f3f4f6',
+                  color: '#374151',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  try {
+                    setSubmittingComplaint(true);
+                    
+                    // Create FormData for file upload
+                    const formData = new FormData();
+                    formData.append('complaint_type_id', complaintForm.complaintTypeId);
+                    formData.append('description', complaintForm.details);
+                    formData.append('district_id', complaintForm.districtId);
+                    formData.append('block_id', complaintForm.blockId);
+                    formData.append('gp_id', complaintForm.gpId);
+                    formData.append('village', complaintForm.village);
+                    formData.append('ward_area', complaintForm.wardArea);
+                    
+                    // Append image if available
+                    if (complaintForm.images.length > 0) {
+                      formData.append('image', complaintForm.images[0]);
+                    }
+                    
+                    // Submit complaint
+                    await apiClient.post('/complaints', formData, {
+                      headers: {
+                        'Content-Type': 'multipart/form-data'
+                      }
+                    });
+                    
+                    // Reset form and close modal
+                    setComplaintForm({
+                      complaintTypeId: '',
+                      details: '',
+                      districtId: '',
+                      blockId: '',
+                      gpId: '',
+                      village: '',
+                      wardArea: '',
+                      images: []
+                    });
+                    setShowComplaintModal(false);
+                    
+                    // Show success dialog
+                    setShowSuccessDialog(true);
+                    
+                    // Refresh complaints list
+                    fetchComplaintsData();
+                  } catch (error) {
+                    console.error('Error submitting complaint:', error);
+                    alert('Failed to submit complaint. Please try again.');
+                  } finally {
+                    setSubmittingComplaint(false);
+                  }
+                }}
+                disabled={submittingComplaint || !complaintForm.complaintTypeId || !complaintForm.details}
+                style={{
+                  padding: '10px 20px',
+                  backgroundColor: (submittingComplaint || !complaintForm.complaintTypeId || !complaintForm.details) ? '#d1d5db' : '#10b981',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: (submittingComplaint || !complaintForm.complaintTypeId || !complaintForm.details) ? 'not-allowed' : 'pointer',
+                  opacity: (submittingComplaint || !complaintForm.complaintTypeId || !complaintForm.details) ? 0.6 : 1
+                }}
+              >
+                {submittingComplaint ? 'Submitting...' : 'Add'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Success Dialog */}
+      {showSuccessDialog && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 10001,
+          padding: '20px'
+        }}
+        onClick={(e) => {
+          if (e.target === e.currentTarget) {
+            setShowSuccessDialog(false);
+          }
+        }}
+        >
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '12px',
+            padding: '32px',
+            maxWidth: '400px',
+            width: '100%',
+            textAlign: 'center',
+            boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)'
+          }}
+          onClick={(e) => e.stopPropagation()}
+          >
+            {/* Star Icon */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'center',
+              marginBottom: '20px'
+            }}>
+              <Star style={{
+                width: '48px',
+                height: '48px',
+                color: '#f97316',
+                fill: '#f97316'
+              }} />
+            </div>
+
+            {/* Success Message */}
+            <div style={{
+              fontSize: '18px',
+              fontWeight: '700',
+              color: '#374151',
+              marginBottom: '24px',
+              lineHeight: '1.4'
+            }}>
+              Your Complaint has been
+              <br />
+              submitted successfully
+            </div>
+
+            {/* Close Button */}
+            <button
+              onClick={() => setShowSuccessDialog(false)}
+              style={{
+                padding: '12px 32px',
+                backgroundColor: '#10b981',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '16px',
+                fontWeight: '500',
+                cursor: 'pointer',
+                width: '100%',
+                maxWidth: '200px'
+              }}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Notice Location Modal */}
+      {showNoticeModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 10000,
+          padding: '20px'
+        }}
+        onClick={(e) => {
+          if (e.target === e.currentTarget) {
+            setShowNoticeModal(false);
+          }
+        }}
+        >
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '12px',
+            width: '100%',
+            maxWidth: '700px',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            padding: '24px',
+            position: 'relative'
+          }}
+          onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: '20px'
+            }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px'
+              }}>
+                <h2 style={{
+                  fontSize: '20px',
+                  fontWeight: '600',
+                  color: '#111827',
+                  margin: 0
+                }}>
+                  Notice Location
+                </h2>
+                <div style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '50%',
+                  backgroundColor: '#f3f4f6',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <User style={{ width: '18px', height: '18px', color: '#6b7280' }} />
+                </div>
+              </div>
+              <button
+                onClick={() => setShowNoticeModal(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '4px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <X style={{ width: '20px', height: '20px', color: '#6b7280' }} />
+              </button>
+            </div>
+
+            {/* To: Recipient */}
+            <div style={{
+              marginBottom: '20px',
+              padding: '12px',
+              backgroundColor: '#f9fafb',
+              borderRadius: '8px',
+              fontSize: '14px',
+              color: '#374151'
+            }}>
+              <strong>To:</strong> {noticeForm.to}
+            </div>
+
+            {/* Subject Field */}
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{
+                display: 'block',
+                fontSize: '14px',
+                fontWeight: '500',
+                color: '#374151',
+                marginBottom: '8px'
+              }}>
+                Subject
+              </label>
+              <input
+                type="text"
+                value={noticeForm.subject}
+                onChange={(e) => setNoticeForm(prev => ({ ...prev, subject: e.target.value }))}
+                placeholder="Enter scheme"
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  color: '#374151'
+                }}
+              />
+            </div>
+
+            {/* Category Field */}
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{
+                display: 'block',
+                fontSize: '14px',
+                fontWeight: '500',
+                color: '#374151',
+                marginBottom: '8px'
+              }}>
+                Category
+              </label>
+              <div style={{ position: 'relative' }}>
+                <select
+                  value={noticeForm.categoryId}
+                  onChange={(e) => {
+                    const selectedCategory = noticeCategories.find(cat => cat.id.toString() === e.target.value);
+                    setNoticeForm(prev => ({
+                      ...prev,
+                      categoryId: e.target.value,
+                      categoryName: selectedCategory ? selectedCategory.name : ''
+                    }));
+                  }}
+                  disabled={loadingNoticeCategories || noticeCategories.length === 0}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    border: '2px solid #3b82f6',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    color: loadingNoticeCategories || noticeCategories.length === 0 ? '#9ca3af' : '#374151',
+                    backgroundColor: loadingNoticeCategories || noticeCategories.length === 0 ? '#f9fafb' : 'white',
+                    appearance: 'none',
+                    cursor: loadingNoticeCategories || noticeCategories.length === 0 ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  <option value="">
+                    {loadingNoticeCategories ? 'Loading categories...' : 'Select'}
+                  </option>
+                  {noticeCategories.map(category => (
+                    <option key={category.id} value={category.id}>
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown style={{
+                  position: 'absolute',
+                  right: '12px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  width: '16px',
+                  height: '16px',
+                  color: '#9ca3af',
+                  pointerEvents: 'none'
+                }} />
+              </div>
+              <div style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '50%',
+                backgroundColor: '#f3f4f6',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginTop: '8px'
+              }}>
+                <User style={{ width: '18px', height: '18px', color: '#6b7280' }} />
+              </div>
+            </div>
+
+            {/* Details Field */}
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{
+                display: 'block',
+                fontSize: '14px',
+                fontWeight: '500',
+                color: '#374151',
+                marginBottom: '8px'
+              }}>
+                Details
+              </label>
+              <textarea
+                value={noticeForm.details}
+                onChange={(e) => setNoticeForm(prev => ({ ...prev, details: e.target.value }))}
+                placeholder="Enter notice details"
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  color: '#374151',
+                  minHeight: '150px',
+                  resize: 'vertical',
+                  fontFamily: 'inherit'
+                }}
+              />
+            </div>
+
+            {/* Action Buttons */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'flex-end',
+              gap: '12px'
+            }}>
+              <button
+                onClick={() => {
+                  setShowNoticeModal(false);
+                  setNoticeForm({
+                    to: '',
+                    subject: '',
+                    categoryId: '',
+                    categoryName: '',
+                    details: ''
+                  });
+                  setSelectedComplaintForNotice(null);
+                }}
+                style={{
+                  padding: '10px 20px',
+                  backgroundColor: '#f3f4f6',
+                  color: '#374151',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  try {
+                    setSendingNotice(true);
+                    
+                    // Get current user info (authority giving notice)
+                    const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+                    const senderName = currentUser.name || currentUser.username || 'System Admin';
+                    
+                    // Create notice payload
+                    const noticeData = {
+                      recipient: noticeForm.to,
+                      title: noticeForm.subject,
+                      notice_type_id: parseInt(noticeForm.categoryId),
+                      text: noticeForm.details,
+                      module: 'Complaints',
+                      complaint_id: selectedComplaintForNotice?.id,
+                      sender_name: senderName,
+                      recipient_name: noticeForm.to,
+                      date: new Date().toISOString().split('T')[0],
+                      time: new Date().toTimeString().split(' ')[0]
+                    };
+                    
+                    await noticesAPI.createNotice(noticeData);
+                    
+                    // Close modal and reset form
+                    setShowNoticeModal(false);
+                    setNoticeForm({
+                      to: '',
+                      subject: '',
+                      categoryId: '',
+                      categoryName: '',
+                      details: ''
+                    });
+                    setSelectedComplaintForNotice(null);
+                    
+                    // Show success message
+                    alert('Notice sent successfully!');
+                  } catch (error) {
+                    console.error('Error sending notice:', error);
+                    alert('Failed to send notice. Please try again.');
+                  } finally {
+                    setSendingNotice(false);
+                  }
+                }}
+                disabled={!noticeForm.to || !noticeForm.subject || !noticeForm.categoryId || !noticeForm.details || sendingNotice || loadingNoticeCategories}
+                style={{
+                  padding: '10px 20px',
+                  backgroundColor: (!noticeForm.to || !noticeForm.subject || !noticeForm.categoryId || !noticeForm.details || sendingNotice || loadingNoticeCategories) ? '#d1d5db' : '#10b981',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: (!noticeForm.to || !noticeForm.subject || !noticeForm.categoryId || !noticeForm.details || sendingNotice || loadingNoticeCategories) ? 'not-allowed' : 'pointer',
+                  opacity: (!noticeForm.to || !noticeForm.subject || !noticeForm.categoryId || !noticeForm.details || sendingNotice || loadingNoticeCategories) ? 0.6 : 1
+                }}
+              >
+                {sendingNotice ? 'Sending...' : 'Send'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

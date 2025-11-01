@@ -3,6 +3,27 @@ import { Search, Bell, ChevronDown, Menu, Loader2 } from 'lucide-react';
 import apiClient from '../../services/api';
 import { useLocation } from '../../context/LocationContext';
 
+const buildSubtitle = (typeLabel, meta) => {
+  if (typeLabel === 'District') {
+    return 'District';
+  }
+  if (typeLabel === 'Block') {
+    const district = meta?.districtName ? `District: ${meta.districtName}` : null;
+    return district ? `Block · ${district}` : 'Block';
+  }
+  if (typeLabel === 'Gram Panchayat') {
+    const parts = [];
+    if (meta?.blockName) {
+      parts.push(`Block: ${meta.blockName}`);
+    }
+    if (meta?.districtName) {
+      parts.push(`District: ${meta.districtName}`);
+    }
+    return parts.length > 0 ? `Gram Panchayat · ${parts.join(' · ')}` : 'Gram Panchayat';
+  }
+  return typeLabel;
+};
+
 const Header = ({ onMenuClick, onNotificationsClick }) => {
   const {
     updateLocationSelection,
@@ -31,27 +52,6 @@ const Header = ({ onMenuClick, onNotificationsClick }) => {
       clearTimeout(searchTimeoutRef.current);
       searchTimeoutRef.current = null;
     }
-  };
-
-  const buildSubtitle = (typeLabel, meta) => {
-    if (typeLabel === 'District') {
-      return 'District';
-    }
-    if (typeLabel === 'Block') {
-      const district = meta?.districtName ? `District: ${meta.districtName}` : null;
-      return district ? `Block · ${district}` : 'Block';
-    }
-    if (typeLabel === 'Gram Panchayat') {
-      const parts = [];
-      if (meta?.blockName) {
-        parts.push(`Block: ${meta.blockName}`);
-      }
-      if (meta?.districtName) {
-        parts.push(`District: ${meta.districtName}`);
-      }
-      return parts.length > 0 ? `Gram Panchayat · ${parts.join(' · ')}` : 'Gram Panchayat';
-    }
-    return typeLabel;
   };
 
   const fetchGeographySuggestions = useCallback(async (term) => {
@@ -226,7 +226,7 @@ const Header = ({ onMenuClick, onNotificationsClick }) => {
         setIsSearching(false);
       }
     }
-  }, [buildSubtitle]);
+  }, []);
 
   useEffect(() => {
     clearSearchTimeout();

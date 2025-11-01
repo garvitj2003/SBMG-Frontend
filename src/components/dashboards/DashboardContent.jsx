@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { MapPin, ChevronDown, ChevronRight, Calendar, List, Info, TrendingUp } from 'lucide-react';
 import Chart from 'react-apexcharts';
 import number1 from '../../assets/images/number1.png';
@@ -8,6 +8,11 @@ import apiClient from '../../services/api';
 import { useLocation } from '../../context/LocationContext';
 import LocationDisplay from '../common/LocationDisplay';
 import SendNoticeModal from './common/SendNoticeModal';
+
+const MONTH_NAMES = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'
+];
 
 const SegmentedGauge = ({ complaintData, percentage, label = "Complaints closed" }) => {
   // Calculate total complaints for percentage calculation
@@ -233,6 +238,60 @@ const DashboardContent = () => {
   const [loadingAnalytics, setLoadingAnalytics] = useState(false);
   const [analyticsError, setAnalyticsError] = useState(null);
 
+  // Utility helpers
+  const formatDate = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const getCurrentMonthDateRange = () => {
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    return {
+      start: formatDate(monthStart),
+      end: formatDate(monthEnd)
+    };
+  };
+
+  const getPerformanceDateRange = () => {
+    const now = new Date();
+    const target = new Date(now.getFullYear(), performanceMonth, 1);
+    const start = new Date(target.getFullYear(), target.getMonth(), 1);
+    const end = new Date(target.getFullYear(), target.getMonth() + 1, 0);
+    return {
+      start: formatDate(start),
+      end: formatDate(end)
+    };
+  };
+
+  const getPerformanceGeoLabel = () => {
+    if (activeScope === 'State') {
+      return 'District';
+    }
+    if (activeScope === 'Districts') {
+      return 'Block';
+    }
+    if (activeScope === 'Blocks' || activeScope === 'GPs') {
+      return 'GP';
+    }
+    return 'District';
+  };
+
+  const performancePrimaryLabel = getPerformanceGeoLabel();
+
+  const getPerformanceRangeLabel = () => {
+    const now = new Date();
+    return `${MONTH_NAMES[performanceMonth]} ${now.getFullYear()}`;
+  };
+
+  const getTop3RangeLabel = () => {
+    const now = new Date();
+    return `${MONTH_NAMES[top3Month]} ${now.getFullYear()}`;
+  };
+
   // Complaints chart data state
   const [complaintsChartData, setComplaintsChartData] = useState(null);
   const [loadingComplaintsChart, setLoadingComplaintsChart] = useState(false);
@@ -243,12 +302,19 @@ const DashboardContent = () => {
   const [loadingPerformance, setLoadingPerformance] = useState(false);
   const [performanceError, setPerformanceError] = useState(null);
   const [activePerformanceTab, setActivePerformanceTab] = useState('starPerformers');
+  const [performanceMonth, setPerformanceMonth] = useState(() => new Date().getMonth());
+  const [showPerformanceRangePicker, setShowPerformanceRangePicker] = useState(false);
   const [top3Scope, setTop3Scope] = useState('District');
+  const [top3Month, setTop3Month] = useState(() => new Date().getMonth());
   const [showTop3Dropdown, setShowTop3Dropdown] = useState(false);
+  const [showTop3MonthPicker, setShowTop3MonthPicker] = useState(false);
   const [top3ApiData, setTop3ApiData] = useState(null);
   const [loadingTop3, setLoadingTop3] = useState(false);
   const [top3Error, setTop3Error] = useState(null);
+  const top3MonthRef = useRef(null);
   
+  const performanceRangeRef = useRef(null);
+
 
   // Log current location info whenever it changes
   useEffect(() => {
@@ -279,6 +345,48 @@ const DashboardContent = () => {
       event.preventDefault();
     }
   };
+
+  const handlePerformanceRangeButtonClick = () => {
+    setShowPerformanceRangePicker((prev) => !prev);
+  };
+
+  const handleTop3MonthButtonClick = () => {
+    setShowTop3MonthPicker((prev) => !prev);
+  };
+
+  useEffect(() => {
+    if (!showPerformanceRangePicker) {
+      return;
+    }
+
+    const handleClickOutside = (event) => {
+      if (performanceRangeRef.current && !performanceRangeRef.current.contains(event.target)) {
+        setShowPerformanceRangePicker(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showPerformanceRangePicker]);
+
+  useEffect(() => {
+    if (!showTop3MonthPicker) {
+      return;
+    }
+
+    const handleClickOutside = (event) => {
+      if (top3MonthRef.current && !top3MonthRef.current.contains(event.target)) {
+        setShowTop3MonthPicker(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showTop3MonthPicker]);
   
   // Complaints year selection state
   const [selectedComplaintsYear, setSelectedComplaintsYear] = useState(() => {
@@ -292,6 +400,11 @@ const DashboardContent = () => {
   // Send Notice Modal state
   const [showSendNoticeModal, setShowSendNoticeModal] = useState(false);
   const [selectedNoticeTarget, setSelectedNoticeTarget] = useState(null);
+  const [noticeModuleData, setNoticeModuleData] = useState({
+    moduleName: '',
+    kpiName: '',
+    kpiFigure: ''
+  });
 
   const buildNoticeTarget = useCallback((item) => {
     if (!item) {
@@ -329,6 +442,20 @@ const DashboardContent = () => {
     if (!target) {
       return;
     }
+
+    // Set recipient based on type (CEO for District, BDO for Block)
+    if (target.type === 'District') {
+      target.recipient = 'CEO';
+    } else if (target.type === 'Block') {
+      target.recipient = 'BDO';
+    }
+
+    // Set module data for notice template
+    setNoticeModuleData({
+      moduleName: 'Performance',
+      kpiName: item.name || 'Performance Metric',
+      kpiFigure: item.completion ? `${item.completion}%` : 'N/A'
+    });
 
     setSelectedNoticeTarget(target);
     setShowSendNoticeModal(true);
@@ -1137,16 +1264,9 @@ const DashboardContent = () => {
         console.log('🏡 GP ID:', selectedGPId);
       }
 
-      // Calculate current month date range
-      const now = new Date();
-      const currentYear = now.getFullYear();
-      const currentMonth = now.getMonth() + 1; // getMonth() returns 0-11, so add 1
-      const currentDay = now.getDate();
-      
-      const currentStartDate = `${currentYear}-${currentMonth.toString().padStart(2, '0')}-01`;
-      const currentEndDate = `${currentYear}-${currentMonth.toString().padStart(2, '0')}-${currentDay.toString().padStart(2, '0')}`;
-      
-      console.log('📅 Current Month Range:', currentStartDate, 'to', currentEndDate);
+      // Determine performance date range
+      const { start: currentStartDate, end: currentEndDate } = getPerformanceDateRange();
+      console.log('📅 Performance Range:', currentStartDate, 'to', currentEndDate);
 
       // Fetch current month data
       const currentParams = new URLSearchParams(params);
@@ -1175,7 +1295,7 @@ const DashboardContent = () => {
     } finally {
       setLoadingPerformance(false);
     }
-  }, [activeScope, selectedDistrictId, selectedBlockId, selectedGPId]);
+  }, [activeScope, selectedDistrictId, selectedBlockId, selectedGPId, performanceMonth]);
 
   // Fetch Top 3 data from dedicated API
   const fetchTop3Data = useCallback(async () => {
@@ -1193,12 +1313,9 @@ const DashboardContent = () => {
 
       // Calculate current month date range
       const now = new Date();
-      const currentYear = now.getFullYear();
-      const currentMonth = now.getMonth() + 1;
-      const lastDayOfMonth = new Date(currentYear, currentMonth, 0).getDate();
-      
-      const startDate = `${currentYear}-${currentMonth.toString().padStart(2, '0')}-01`;
-      const endDate = `${currentYear}-${currentMonth.toString().padStart(2, '0')}-${lastDayOfMonth}`;
+      const target = new Date(now.getFullYear(), top3Month, 1);
+      const startDate = formatDate(new Date(target.getFullYear(), target.getMonth(), 1));
+      const endDate = formatDate(new Date(target.getFullYear(), target.getMonth() + 1, 0));
       
       // Map scope to API level
       let level = 'DISTRICT';
@@ -1247,7 +1364,7 @@ const DashboardContent = () => {
     } finally {
       setLoadingTop3(false);
     }
-  }, [top3Scope, selectedDistrictId, selectedBlockId, selectedGPId]);
+  }, [top3Scope, selectedDistrictId, selectedBlockId, selectedGPId, top3Month]);
 
   // Fetch analytics data for overview section when scope, location, or date range changes
   useEffect(() => {
@@ -1304,17 +1421,17 @@ const DashboardContent = () => {
     }
     
     fetchPerformanceData();
-  }, [activeScope, selectedDistrictId, selectedBlockId, selectedGPId, districts, blocks, gramPanchayats]);
+  }, [activeScope, selectedDistrictId, selectedBlockId, selectedGPId, districts, blocks, gramPanchayats, performanceMonth]);
 
-  // Fetch Top 3 data when scope changes
+  // Fetch Top 3 data when scope or month changes
   useEffect(() => {
     console.log('🔄 Top 3 useEffect triggered:', {
-      top3Scope
+      top3Scope,
+      top3Month
     });
     
-    // Always fetch data based on top3Scope - API works independently
     fetchTop3Data();
-  }, [top3Scope, fetchTop3Data]);
+  }, [top3Scope, top3Month, fetchTop3Data]);
 
 
   // Update selected location when districts are loaded
@@ -2978,14 +3095,15 @@ const DashboardContent = () => {
               Performance
             </h2>
             
-            {/* Toggle Buttons */}
-            <div style={{
-              display: 'flex',
-              backgroundColor: '#f3f4f6',
-              borderRadius: '12px',
-              padding: '4px',
-              gap: '2px'
-            }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              {/* Toggle Buttons */}
+              <div style={{
+                display: 'flex',
+                backgroundColor: '#f3f4f6',
+                borderRadius: '12px',
+                padding: '4px',
+                gap: '2px'
+              }}>
               <button 
                 onClick={() => setActivePerformanceTab('starPerformers')}
                 style={{
@@ -2997,7 +3115,7 @@ const DashboardContent = () => {
                 fontWeight: '500',
                   backgroundColor: activePerformanceTab === 'starPerformers' ? '#10b981' : 'transparent',
                   color: activePerformanceTab === 'starPerformers' ? 'white' : '#6b7280'
-              }}>
+                }}>
                 Star Performers
               </button>
               <button 
@@ -3011,9 +3129,87 @@ const DashboardContent = () => {
                 fontWeight: '500',
                   backgroundColor: activePerformanceTab === 'underperformers' ? '#10b981' : 'transparent',
                   color: activePerformanceTab === 'underperformers' ? 'white' : '#6b7280'
-              }}>
+                }}>
                 Underperformers
               </button>
+              </div>
+
+              {/* Range Selector */}
+              <div ref={performanceRangeRef} style={{ position: 'relative' }}>
+                <button
+                  type="button"
+                  onClick={handlePerformanceRangeButtonClick}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '6px 12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '10px',
+                    backgroundColor: 'white',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    color: '#374151',
+                    minWidth: '140px',
+                    justifyContent: 'space-between'
+                  }}
+                >
+                  <span>{getPerformanceRangeLabel()}</span>
+                  <ChevronDown style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
+                </button>
+
+                {showPerformanceRangePicker && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: 'calc(100% + 8px)',
+                      right: 0,
+                      width: '220px',
+                      backgroundColor: 'white',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '12px',
+                      boxShadow: '0 20px 45px -20px rgba(15, 23, 42, 0.35)',
+                      padding: '8px',
+                      zIndex: 1200
+                    }}
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      {[
+                        'January', 'February', 'March', 'April', 'May', 'June',
+                        'July', 'August', 'September', 'October', 'November', 'December'
+                      ].map((monthName, index) => (
+                        <button
+                          key={monthName}
+                          type="button"
+                          onClick={() => {
+                            setPerformanceMonth(index);
+                            setShowPerformanceRangePicker(false);
+                          }}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            width: '100%',
+                            padding: '6px 8px',
+                            borderRadius: '8px',
+                            border: 'none',
+                            backgroundColor: performanceMonth === index ? '#f0fdf4' : 'transparent',
+                            color: performanceMonth === index ? '#059669' : '#111827',
+                            cursor: 'pointer',
+                            fontSize: '14px'
+                          }}
+                        >
+                          <span>{monthName}</span>
+                          {performanceMonth === index && (
+                            <span style={{ fontSize: '12px', color: '#059669' }}>Active</span>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -3054,7 +3250,7 @@ const DashboardContent = () => {
                     fontWeight: '600',
                     color: '#374151'
                   }}>
-                    District
+                    {performancePrimaryLabel}
                   </th>
                   <th style={{
                     padding: '12px',
@@ -3197,68 +3393,143 @@ const DashboardContent = () => {
               </h2>
               <Info style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
             </div>
-            <div 
-              data-top3-dropdown
-              style={{
-              position: 'relative',
-              minWidth: '100px'
-            }}>
-              <button 
-                onClick={() => setShowTop3Dropdown(!showTop3Dropdown)}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div 
+                data-top3-dropdown
                 style={{
-                width: '100%',
-                padding: '6px 12px',
-                border: '1px solid #d1d5db',
-                borderRadius: '8px',
-                backgroundColor: 'white',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                cursor: 'pointer',
-                fontSize: '14px',
-                color: '#6b7280'
+                position: 'relative',
+                minWidth: '100px'
               }}>
-                <span>{top3Scope}</span>
-                <ChevronDown style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
-              </button>
-              
-              {showTop3Dropdown && (
-                <div style={{
-                  position: 'absolute',
-                  top: '100%',
-                  left: 0,
-                  right: 0,
-                  backgroundColor: 'white',
+                <button 
+                  onClick={() => setShowTop3Dropdown(!showTop3Dropdown)}
+                  style={{
+                  width: '100%',
+                  padding: '6px 12px',
                   border: '1px solid #d1d5db',
                   borderRadius: '8px',
-                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                  zIndex: 10,
-                  marginTop: '4px'
+                  backgroundColor: 'white',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  color: '#6b7280'
                 }}>
-                  {['District', 'Block', 'GP'].map((option) => (
-                    <button
-                      key={option}
-                      onClick={() => {
-                        setTop3Scope(option);
-                        setShowTop3Dropdown(false);
-                      }}
-                      style={{
-                        width: '100%',
-                        padding: '8px 12px',
-                        border: 'none',
-                        backgroundColor: top3Scope === option ? '#f3f4f6' : 'transparent',
-                        color: top3Scope === option ? '#111827' : '#6b7280',
-                        fontSize: '14px',
-                        textAlign: 'left',
-                        cursor: 'pointer',
-                        borderRadius: '4px',
-                        margin: '2px'
-                      }}>
-                      {option}
-                    </button>
-                  ))}
-                </div>
-              )}
+                  <span>{top3Scope}</span>
+                  <ChevronDown style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
+                </button>
+                
+                {showTop3Dropdown && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: 0,
+                    right: 0,
+                    backgroundColor: 'white',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                    zIndex: 10,
+                    marginTop: '4px'
+                  }}>
+                    {['District', 'Block', 'GP'].map((option) => (
+                      <button
+                        key={option}
+                        onClick={() => {
+                          setTop3Scope(option);
+                          setShowTop3Dropdown(false);
+                        }}
+                        style={{
+                          width: '100%',
+                          padding: '8px 12px',
+                          border: 'none',
+                          backgroundColor: top3Scope === option ? '#f3f4f6' : 'transparent',
+                          color: top3Scope === option ? '#111827' : '#6b7280',
+                          fontSize: '14px',
+                          textAlign: 'left',
+                          cursor: 'pointer',
+                          borderRadius: '4px',
+                          margin: '2px'
+                        }}>
+                        {option}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div ref={top3MonthRef} style={{ position: 'relative' }}>
+                <button
+                  type="button"
+                  onClick={handleTop3MonthButtonClick}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '6px 12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '10px',
+                    backgroundColor: 'white',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    color: '#374151',
+                    minWidth: '130px',
+                    justifyContent: 'space-between'
+                  }}
+                >
+                  <span>{getTop3RangeLabel()}</span>
+                  <ChevronDown style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
+                </button>
+
+                {showTop3MonthPicker && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: 'calc(100% + 8px)',
+                      right: 0,
+                      width: '220px',
+                      backgroundColor: 'white',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '12px',
+                      boxShadow: '0 20px 45px -20px rgba(15, 23, 42, 0.35)',
+                      padding: '8px',
+                      zIndex: 1200
+                    }}
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      {MONTH_NAMES.map((monthName, index) => (
+                        <button
+                          key={monthName}
+                          type="button"
+                          onClick={() => {
+                            setTop3Month(index);
+                            setShowTop3MonthPicker(false);
+                          }}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            width: '100%',
+                            padding: '6px 8px',
+                            borderRadius: '8px',
+                            border: 'none',
+                            backgroundColor: top3Month === index ? '#f0fdf4' : 'transparent',
+                            color: top3Month === index ? '#059669' : '#111827',
+                            cursor: 'pointer',
+                            fontSize: '14px'
+                          }}
+                        >
+                          <span>{monthName}</span>
+                          {top3Month === index && (
+                            <span style={{ fontSize: '12px', color: '#059669' }}>Active</span>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -3379,6 +3650,10 @@ const DashboardContent = () => {
         isOpen={showSendNoticeModal}
         onClose={handleCloseNoticeModal}
         target={selectedNoticeTarget}
+        onSent={handleCloseNoticeModal}
+        moduleName={noticeModuleData.moduleName}
+        kpiName={noticeModuleData.kpiName}
+        kpiFigure={noticeModuleData.kpiFigure}
       />
     </div>
   );

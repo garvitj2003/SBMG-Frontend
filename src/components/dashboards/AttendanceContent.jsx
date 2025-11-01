@@ -6,34 +6,6 @@ import { useLocation } from '../../context/LocationContext';
 import SendNoticeModal from './common/SendNoticeModal';
 
 const SegmentedGauge = ({ percentage, label = "Present", absentDays = 0 }) => {
-  // Calculate which segments should be filled based on percentage
-  const getSegmentColor = (segmentIndex) => {
-    // First segment (0-50%): Green for present
-    // Second segment (50-100%): Red for absent
-    const segmentThreshold = (segmentIndex + 1) * 50; // Each segment represents 50%
-    
-    if (segmentIndex === 0) {
-      // First segment: Green for present percentage
-    if (percentage >= segmentThreshold) {
-        return '#10b981'; // Fully green
-      } else if (percentage > 0) {
-        return '#10b981'; // Partially green
-    }
-    return '#f3f4f6'; // Gray (unfilled)
-    } else {
-      // Second segment: Red for absent percentage - only show if there are actual absent days
-      const absentPercentage = 100 - percentage;
-      if (absentDays > 0) {
-        if (absentPercentage >= 50) {
-          return '#ef4444'; // Fully red
-        } else if (absentPercentage > 0) {
-          return '#ef4444'; // Partially red
-        }
-      }
-      return '#f3f4f6'; // Gray (unfilled) - no absent days
-    }
-  };
-
   // Calculate the arc path for percentage fill with circular ends
   const getArcPath = (startAngle, endAngle, radius, strokeWidth) => {
     const innerRadius = radius - strokeWidth;
@@ -63,14 +35,31 @@ const SegmentedGauge = ({ percentage, label = "Present", absentDays = 0 }) => {
     };
   };
 
-  // Segment angles (200° total, divided into 2 segments with gap)
-  const gapSize = 20; // degrees
-  const totalAngle = 200;
-  const segmentAngle = (totalAngle - gapSize) / 2;
+  // Calculate segment angles based on actual percentages
+  const gapSize = 20; // degrees gap between segments
+  const totalAngle = 180; // total arc angle (semicircle)
+  const usableAngle = totalAngle - gapSize; // 160 degrees for data
   
+  // Calculate angles proportional to percentages
+  const presentPercentage = Math.max(0, Math.min(100, percentage)); // Clamp between 0-100
+  const absentPercentage = 100 - presentPercentage;
+  
+  // Convert percentages to angles
+  const presentAngle = (presentPercentage / 100) * usableAngle;
+  const absentAngle = (absentPercentage / 100) * usableAngle;
+  
+  // Define segments with proportional angles
   const segments = [
-    { start: -90, end: -90 + segmentAngle, color: getSegmentColor(0) },
-    { start: -90 + segmentAngle + gapSize, end: 90, color: getSegmentColor(1) }
+    { 
+      start: -90, 
+      end: -90 + presentAngle, 
+      color: presentPercentage > 0 ? '#10b981' : '#f3f4f6' // Green for present
+    },
+    { 
+      start: -90 + presentAngle + gapSize, 
+      end: -90 + presentAngle + gapSize + absentAngle, 
+      color: absentPercentage > 0 && absentDays > 0 ? '#ef4444' : '#f3f4f6' // Red for absent
+    }
   ];
 
   return (
@@ -189,10 +178,17 @@ const AttendanceContent = () => {
     const [activeFilter, setActiveFilter] = useState('All');
     const [searchTerm, setSearchTerm] = useState('');
     const [activePerformance, setActivePerformance] = useState('Time');
+    const [performanceSelectedYear, setPerformanceSelectedYear] = useState(new Date().getFullYear());
+    const [showPerformanceYearDropdown, setShowPerformanceYearDropdown] = useState(false);
 
   // Send Notice Modal state
   const [showSendNoticeModal, setShowSendNoticeModal] = useState(false);
   const [selectedNoticeTarget, setSelectedNoticeTarget] = useState(null);
+  const [noticeModuleData, setNoticeModuleData] = useState({
+    moduleName: '',
+    kpiName: '',
+    kpiFigure: ''
+  });
 
   const buildNoticeTarget = useCallback((item) => {
     if (!item) {
@@ -236,6 +232,25 @@ const AttendanceContent = () => {
       return;
     }
 
+    // Set recipient based on selected level
+    // For attendance, recipient is determined by the active scope level
+    if (target.type === 'District') {
+      target.recipient = 'CEO';
+    } else if (target.type === 'Block') {
+      target.recipient = 'BDO';
+    } else if (target.type === 'GP') {
+      target.recipient = 'VDO';
+    } else {
+      target.recipient = target.name || 'Recipient';
+    }
+
+    // Set module data for notice template
+    setNoticeModuleData({
+      moduleName: 'Attendance',
+      kpiName: item.name || 'Attendance Metric',
+      kpiFigure: item.attendancePercentage ? `${item.attendancePercentage}%` : 'N/A'
+    });
+
     setSelectedNoticeTarget(target);
     setShowSendNoticeModal(true);
   }, [buildNoticeTarget]);
@@ -256,6 +271,10 @@ const AttendanceContent = () => {
   const [loadingTop3, setLoadingTop3] = useState(false);
   const [top3Error, setTop3Error] = useState(null);
   const [showTop3Dropdown, setShowTop3Dropdown] = useState(false);
+  const [top3Period, setTop3Period] = useState('Month');
+  const [top3SelectedMonth, setTop3SelectedMonth] = useState(new Date().getMonth() + 1);
+  const [top3SelectedYear, setTop3SelectedYear] = useState(new Date().getFullYear());
+  const [showTop3PeriodDropdown, setShowTop3PeriodDropdown] = useState(false);
 
   // Refs to prevent duplicate API calls
   const analyticsCallInProgress = useRef(false);
@@ -289,6 +308,7 @@ const AttendanceContent = () => {
     const performanceButtons = ['Time', 'Location'];
     const filterButtons = ['All', 'Present', 'Absent', 'Leave', 'Holiday'];
   const top3ScopeOptions = ['District', 'Block', 'GP'];
+  const top3PeriodButtons = ['Month', 'Year'];
 
   // Predefined date ranges
   const dateRanges = [
@@ -315,6 +335,10 @@ const AttendanceContent = () => {
     { value: 11, name: 'November' },
     { value: 12, name: 'December' }
   ];
+
+  // Years array (from 2020 to current year + 1)
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: currentYear - 2020 + 2 }, (_, i) => 2020 + i);
 
   // Helper functions for location management
   const trackTabChange = useCallback((scope) => {
@@ -543,11 +567,11 @@ const AttendanceContent = () => {
     }
   };
 
-  // Fetch attendance analytics data from API
+  // Fetch attendance overview data from API
   const fetchAnalyticsData = useCallback(async () => {
     // Prevent duplicate calls
     if (analyticsCallInProgress.current) {
-      console.log('⏸️ Analytics API call already in progress, skipping...');
+      console.log('⏸️ Overview API call already in progress, skipping...');
       return;
     }
     
@@ -556,7 +580,7 @@ const AttendanceContent = () => {
       setLoadingAnalytics(true);
       setAnalyticsError(null);
 
-      console.log('🔄 ===== ATTENDANCE ANALYTICS API CALL =====');
+      console.log('🔄 ===== ATTENDANCE OVERVIEW API CALL =====');
       console.log('📍 Current State:', {
         activeScope,
         selectedLocation,
@@ -570,19 +594,17 @@ const AttendanceContent = () => {
       // Build query parameters based on selected scope
       const params = new URLSearchParams();
 
-      // Determine level based on active scope
-      let level = 'DISTRICT'; // Default for State scope
-      if (activeScope === 'Districts') {
-        level = 'BLOCK';
-      } else if (activeScope === 'Blocks') {
-        level = 'VILLAGE';
-      } else if (activeScope === 'GPs') {
-        level = 'VILLAGE';
+      // Add date range (required)
+      if (startDate) {
+        params.append('start_date', startDate);
+        console.log('📅 Start Date:', startDate);
       }
-      params.append('level', level);
-      console.log('📊 Level:', level);
+      if (endDate) {
+        params.append('end_date', endDate);
+        console.log('📅 End Date:', endDate);
+      }
 
-      // Add geography IDs based on selection
+      // Add geography IDs based on selection (conditional)
       if (activeScope === 'Districts' && selectedDistrictId) {
         params.append('district_id', selectedDistrictId);
         console.log('🏙️  District ID:', selectedDistrictId);
@@ -594,20 +616,7 @@ const AttendanceContent = () => {
         console.log('🏡 GP ID:', selectedGPId);
       }
 
-      // Add date range if available
-      if (startDate) {
-        params.append('start_date', startDate);
-        console.log('📅 Start Date:', startDate);
-      }
-      if (endDate) {
-        params.append('end_date', endDate);
-        console.log('📅 End Date:', endDate);
-      }
-
-      // Add limit
-      params.append('limit', '500');
-
-      const url = `/attendance/analytics?${params.toString()}`;
+      const url = `/attendance/overview?${params.toString()}`;
       console.log('🌐 Full API URL:', url);
       console.log('🔗 Complete URL:', `${apiClient.defaults.baseURL}${url}`);
       
@@ -620,42 +629,28 @@ const AttendanceContent = () => {
       
       const response = await apiClient.get(url);
       
-      console.log('✅ Attendance Analytics API Response:', {
+      console.log('✅ Attendance Overview API Response:', {
         status: response.status,
         statusText: response.statusText,
         data: response.data
       });
       
       console.log('📦 Response Data Structure:', {
-        geo_type: response.data?.geo_type,
-        response_count: response.data?.response?.length,
-        sample_data: response.data?.response?.slice(0, 2)
+        total_contractors: response.data?.total_contractors,
+        attendance_rate: response.data?.attendance_rate,
+        present: response.data?.present,
+        absent: response.data?.absent
       });
       
       setAnalyticsData(response.data);
       
-      // Calculate and log aggregated counts
-      const aggregated = {
-        total_contractors: 0,
-        present_count: 0,
-        absent_count: 0,
-        attendance_rate: 0
-      };
-      
-      response.data?.response?.forEach(item => {
-        aggregated.total_contractors += item.total_contractors || 0;
-        aggregated.present_count += item.present_count || 0;
-        aggregated.absent_count += item.absent_count || 0;
-        aggregated.attendance_rate += item.attendance_rate || 0;
+      console.log('📈 Overview Data:', {
+        total_contractors: response.data?.total_contractors || 0,
+        present: response.data?.present || 0,
+        absent: response.data?.absent || 0,
+        attendance_rate: response.data?.attendance_rate || 0
       });
-      
-      // Calculate average attendance rate
-      if (response.data?.response?.length > 0) {
-        aggregated.attendance_rate = aggregated.attendance_rate / response.data.response.length;
-      }
-      
-      console.log('📈 Aggregated Counts:', aggregated);
-      console.log('🔄 ===== END ATTENDANCE ANALYTICS API CALL =====\n');
+      console.log('🔄 ===== END ATTENDANCE OVERVIEW API CALL =====\n');
       
     } catch (error) {
       console.error('❌ ===== ATTENDANCE ANALYTICS API ERROR =====');
@@ -686,24 +681,33 @@ const AttendanceContent = () => {
       setLoadingTop3(true);
       setTop3Error(null);
 
-      // Calculate current month's date range for monthly score
-      const currentDate = new Date();
-      const year = currentDate.getFullYear();
-      const month = currentDate.getMonth();
+      // Calculate date range based on selected period (Month or Year)
+      let periodStartDate, periodEndDate;
       
-      // First day of current month
-      const firstDayOfMonth = new Date(year, month, 1);
-      // Last day of current month
-      const lastDayOfMonth = new Date(year, month + 1, 0);
-      
-      const monthStartDate = firstDayOfMonth.toISOString().split('T')[0];
-      const monthEndDate = lastDayOfMonth.toISOString().split('T')[0];
+      if (top3Period === 'Month') {
+        // Use selected month and current year
+        const year = top3SelectedYear;
+        const month = top3SelectedMonth - 1; // Month is 0-indexed in Date
+        
+        // First day of selected month
+        const firstDayOfMonth = new Date(year, month, 1);
+        // Last day of selected month
+        const lastDayOfMonth = new Date(year, month + 1, 0);
+        
+        periodStartDate = firstDayOfMonth.toISOString().split('T')[0];
+        periodEndDate = lastDayOfMonth.toISOString().split('T')[0];
+      } else {
+        // Year selected - use first and last day of selected year
+        periodStartDate = `${top3SelectedYear}-01-01`;
+        periodEndDate = `${top3SelectedYear}-12-31`;
+      }
 
       console.log('🔄 ===== TOP 3 API CALL =====');
       console.log('📍 Top 3 Scope:', top3Scope);
-      console.log('📅 Monthly Date Range:', { monthStartDate, monthEndDate });
+      console.log('📅 Top 3 Period:', top3Period);
+      console.log('📅 Date Range:', { periodStartDate, periodEndDate });
 
-      // Build query parameters based on selected scope
+      // Build query parameters
       const params = new URLSearchParams();
 
       // Determine level based on top3Scope
@@ -716,16 +720,28 @@ const AttendanceContent = () => {
       params.append('level', level);
       console.log('📊 Top 3 Level:', level);
 
-      // Add current month's date range for monthly score calculation
-      params.append('start_date', monthStartDate);
-      params.append('end_date', monthEndDate);
-      console.log('📅 Monthly Start Date:', monthStartDate);
-      console.log('📅 Monthly End Date:', monthEndDate);
+      // Add geography IDs based on selection (conditional)
+      if (activeScope === 'Districts' && selectedDistrictId) {
+        params.append('district_id', selectedDistrictId);
+        console.log('🏙️  District ID:', selectedDistrictId);
+      } else if (activeScope === 'Blocks' && selectedBlockId) {
+        params.append('block_id', selectedBlockId);
+        console.log('🏘️  Block ID:', selectedBlockId);
+      } else if (activeScope === 'GPs' && selectedGPId) {
+        params.append('gp_id', selectedGPId);
+        console.log('🏡 GP ID:', selectedGPId);
+      }
 
-      // Add limit
-      params.append('limit', '500');
+      // Add date range
+      params.append('start_date', periodStartDate);
+      params.append('end_date', periodEndDate);
+      console.log('📅 Start Date:', periodStartDate);
+      console.log('📅 End Date:', periodEndDate);
 
-      const url = `/attendance/analytics?${params.toString()}`;
+      // Add n=3 for top 3 results
+      params.append('n', '3');
+
+      const url = `/attendance/top-n-geo?${params.toString()}`;
       console.log('🌐 Top 3 API URL:', url);
       
       const response = await apiClient.get(url);
@@ -755,64 +771,45 @@ const AttendanceContent = () => {
       setLoadingTop3(false);
       top3CallInProgress.current = false;
     }
-  }, [top3Scope, startDate, endDate]);
+  }, [top3Scope, top3Period, top3SelectedMonth, top3SelectedYear, activeScope, selectedDistrictId, selectedBlockId, selectedGPId]);
 
   // Process and rank Top 3 data
   const processTop3Data = (apiData) => {
-    if (!apiData?.response) {
+    if (!apiData || !Array.isArray(apiData)) {
       return [];
     }
 
-    // Calculate monthly score for each item using current month's date range
-    const processedItems = apiData.response.map(item => {
-      // Use current month's date range for monthly score calculation
-      const currentDate = new Date();
-      const year = currentDate.getFullYear();
-      const month = currentDate.getMonth();
-      
-      // First day of current month
-      const firstDayOfMonth = new Date(year, month, 1);
-      // Last day of current month
-      const lastDayOfMonth = new Date(year, month + 1, 0);
-      
-      const monthStartDate = firstDayOfMonth.toISOString().split('T')[0];
-      const monthEndDate = lastDayOfMonth.toISOString().split('T')[0];
-      
-      const totalWorkingDays = calculateWorkingDaysForRange(monthStartDate, monthEndDate);
-      const monthlyScore = totalWorkingDays > 0 
-        ? Math.round((item.present_count / totalWorkingDays) * 100)
-        : 0;
-
-      console.log('📅 Monthly Score Calculation for Top 3:', {
-        itemName: item.geography_name,
-        monthStartDate,
-        monthEndDate,
-        totalWorkingDays,
-        presentCount: item.present_count,
-        monthlyScore
-      });
-
+    // Map API data to our format
+    const processedItems = apiData.map((item) => {
       return {
-        id: item.geography_id,
-        name: item.geography_name,
-        monthlyScore: Math.min(monthlyScore, 100), // Cap at 100%
-        presentCount: item.present_count,
-        absentCount: item.absent_count,
-        totalContractors: item.total_contractors,
+        id: item.geo_id,
+        name: item.geo_name,
+        monthlyScore: Math.round(item.attendance_rate), // attendance_rate is already a percentage
+        presentCount: item.present || 0,
+        absentCount: item.absent || 0,
+        totalContractors: item.total_contractors || 0,
         attendanceRate: item.attendance_rate
       };
     });
 
-    // Sort by monthly score (highest first) and take top 3
-    const sortedItems = processedItems
-      .sort((a, b) => b.monthlyScore - a.monthlyScore)
-      .slice(0, 3);
+    // Sort by attendance_rate in descending order (highest first)
+    const sortedItems = processedItems.sort((a, b) => b.attendanceRate - a.attendanceRate);
 
-    // Add rank numbers
-    return sortedItems.map((item, index) => ({
-      ...item,
-      rank: index + 1
-    }));
+    // Assign ranks based on sorted order
+    const rankedItems = sortedItems.map((item, index) => {
+      console.log('📅 Top 3 Item:', {
+        itemName: item.name,
+        attendanceRate: item.attendanceRate,
+        rank: index + 1
+      });
+
+      return {
+        ...item,
+        rank: index + 1
+      };
+    });
+
+    return rankedItems;
   };
 
   // Date range functions
@@ -977,10 +974,14 @@ const AttendanceContent = () => {
       if (!event.target.closest('[data-location-dropdown]') && 
           !event.target.closest('[data-date-dropdown]') &&
           !event.target.closest('[data-top3-dropdown]') &&
+          !event.target.closest('[data-top3-period-dropdown]') &&
+          !event.target.closest('[data-performance-year-dropdown]') &&
           !event.target.closest('[data-history-date-dropdown]')) {
         setShowLocationDropdown(false);
         setShowDateDropdown(false);
         setShowTop3Dropdown(false);
+        setShowTop3PeriodDropdown(false);
+        setShowPerformanceYearDropdown(false);
         setShowHistoryDateDropdown(false);
       }
     };
@@ -1066,18 +1067,21 @@ const AttendanceContent = () => {
     fetchAnalyticsData();
   }, [activeScope, selectedDistrictId, selectedBlockId, selectedGPId, startDate, endDate, districts.length]);
 
-  // Fetch Top 3 data when scope changes (uses current month, not selected date range)
+  // Fetch Top 3 data when scope, period, or date selection changes
   useEffect(() => {
     console.log('🔄 Top 3 useEffect triggered:', {
-      top3Scope
+      top3Scope,
+      top3Period,
+      top3SelectedMonth,
+      top3SelectedYear
     });
     
     fetchTop3Data();
-  }, [top3Scope]);
+  }, [top3Scope, top3Period, top3SelectedMonth, top3SelectedYear, fetchTop3Data]);
 
   // Helper function to calculate attendance metrics from API data
   const calculateAttendanceMetrics = () => {
-    if (!analyticsData?.response) {
+    if (!analyticsData) {
       return {
         total_contractors: 0,
         present_count: 0,
@@ -1086,26 +1090,13 @@ const AttendanceContent = () => {
       };
     }
 
-    const metrics = {
-      total_contractors: 0,
-      present_count: 0,
-      absent_count: 0,
-      attendance_rate: 0
+    // New API returns direct object with total_contractors, present, absent, attendance_rate
+    return {
+      total_contractors: analyticsData.total_contractors || 0,
+      present_count: analyticsData.present || 0,
+      absent_count: analyticsData.absent || 0,
+      attendance_rate: analyticsData.attendance_rate || 0
     };
-
-    analyticsData.response.forEach(item => {
-      metrics.total_contractors += item.total_contractors || 0;
-      metrics.present_count += item.present_count || 0;
-      metrics.absent_count += item.absent_count || 0;
-      metrics.attendance_rate += item.attendance_rate || 0;
-    });
-
-    // Calculate average attendance rate
-    if (analyticsData.response.length > 0) {
-      metrics.attendance_rate = metrics.attendance_rate / analyticsData.response.length;
-    }
-
-    return metrics;
   };
 
   // Helper function to format numbers
@@ -1168,7 +1159,7 @@ const AttendanceContent = () => {
 
   // Helper function to calculate attendance percentage and working days
   const calculateAttendancePercentage = () => {
-    if (!analyticsData?.response) {
+    if (!analyticsData) {
       return {
         presentPercentage: 0,
         totalWorkingDays: 0,
@@ -1179,27 +1170,19 @@ const AttendanceContent = () => {
 
     const metrics = calculateAttendanceMetrics();
     
-    // Calculate total working days for the selected date range
-    const currentStartDate = startDate || new Date().toISOString().split('T')[0];
-    const currentEndDate = endDate || new Date().toISOString().split('T')[0];
-    const totalWorkingDays = calculateWorkingDaysForRange(currentStartDate, currentEndDate);
+    // Use attendance_rate directly from API (it's already a percentage)
+    const presentPercentage = Math.round(metrics.attendance_rate);
     
-    console.log('📅 Working Days Calculation:', {
-      startDate: currentStartDate,
-      endDate: currentEndDate,
-      totalWorkingDays,
+    console.log('📅 Attendance Calculation:', {
+      attendance_rate: metrics.attendance_rate,
+      presentPercentage,
       presentCount: metrics.present_count,
       absentCount: metrics.absent_count
     });
-    
-    // Calculate present percentage
-    const presentPercentage = totalWorkingDays > 0 
-      ? Math.round((metrics.present_count / totalWorkingDays) * 100)
-      : 0;
 
     return {
       presentPercentage: Math.min(presentPercentage, 100), // Cap at 100%
-      totalWorkingDays,
+      totalWorkingDays: metrics.total_contractors, // Total contractors as baseline
       presentDays: metrics.present_count,
       absentDays: metrics.absent_count
     };
@@ -1228,6 +1211,8 @@ const AttendanceContent = () => {
   const [attendanceHistoryData, setAttendanceHistoryData] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [historyError, setHistoryError] = useState(null);
+  const [historySearchTerm, setHistorySearchTerm] = useState('');
+  const [historySortOrder, setHistorySortOrder] = useState('asc'); // 'asc' or 'desc'
 
   // Fetch chart data from analytics API
   const fetchChartData = useCallback(async () => {
@@ -1235,34 +1220,102 @@ const AttendanceContent = () => {
       setLoadingChartData(true);
       setChartError(null);
 
-      console.log('🔄 Fetching chart data for:', { activePerformance });
+      console.log('🔄 Fetching chart data for:', { activePerformance, performanceSelectedYear, activeScope });
 
-      // Get current year date range
-      const now = new Date();
-      const year = now.getFullYear();
+      // Use selected year
+      const year = performanceSelectedYear;
       
-      console.log('📅 Current Year Info:', { 
-        now: now.toISOString(), 
+      console.log('📅 Selected Year Info:', { 
         year
       });
-      
-      // Get first and last day of current year
-      const startDate = `${year}-01-01`; // January 1st
-      const endDate = `${year}-12-31`;   // December 31st
 
-      // Build query parameters - ALWAYS use district level with current year date range
-      const params = new URLSearchParams();
-      params.append('level', 'DISTRICT');
-      params.append('start_date', startDate);
-      params.append('end_date', endDate);
-      params.append('limit', '500');
+      let url, response;
 
-      const url = `/attendance/analytics?${params.toString()}`;
-      console.log('🌐 Chart API URL:', url);
-      console.log('📅 Date Range:', { startDate, endDate });
+      if (activePerformance === 'Location') {
+        // Location tab - Use new performance/annual API
+        const params = new URLSearchParams();
+        
+        // Determine level based on active scope
+        let level = 'DISTRICT';
+        if (activeScope === 'Districts') {
+          level = 'BLOCK';
+        } else if (activeScope === 'Blocks') {
+          level = 'VILLAGE';
+        } else if (activeScope === 'GPs') {
+          level = 'VILLAGE';
+        }
+        params.append('level', level);
+        params.append('year', year);
 
-      const response = await apiClient.get(url);
-      console.log('✅ Chart API Response:', response.data);
+        // Add geography IDs based on selection (conditional)
+        if (activeScope === 'Districts' && selectedDistrictId) {
+          params.append('district_id', selectedDistrictId);
+          console.log('🏙️  District ID:', selectedDistrictId);
+        } else if (activeScope === 'Blocks' && selectedBlockId) {
+          params.append('block_id', selectedBlockId);
+          console.log('🏘️  Block ID:', selectedBlockId);
+        } else if (activeScope === 'GPs' && selectedGPId) {
+          params.append('gp_id', selectedGPId);
+          console.log('🏡 GP ID:', selectedGPId);
+        }
+
+        url = `/attendance/performance/annual?${params.toString()}`;
+        console.log('🌐 Performance Annual API URL:', url);
+        
+        response = await apiClient.get(url);
+        console.log('✅ Performance Annual API Response:', response.data);
+      } else {
+        // Time tab
+        if (activeScope === 'State') {
+          // State scope + Time tab - Use aggregated/monthly API
+          const params = new URLSearchParams();
+          params.append('year', year);
+
+          url = `/attendance/aggregated/monthly?${params.toString()}`;
+          console.log('🌐 Aggregated Monthly API URL:', url);
+
+          response = await apiClient.get(url);
+          console.log('✅ Aggregated Monthly API Response:', response.data);
+        } else {
+          // Districts/Blocks/GPs + Time tab - Use performance/months API
+          const startDate = `${year}-01-01`; // January 1st
+          const endDate = `${year}-12-31`;   // December 31st
+
+          const params = new URLSearchParams();
+          
+          // Determine level based on active scope
+          let level = 'DISTRICT';
+          if (activeScope === 'Districts') {
+            level = 'BLOCK';
+          } else if (activeScope === 'Blocks') {
+            level = 'VILLAGE';
+          } else if (activeScope === 'GPs') {
+            level = 'VILLAGE';
+          }
+          params.append('level', level);
+          params.append('start_date', startDate);
+          params.append('end_date', endDate);
+
+          // Add geography IDs based on selection (conditional)
+          if (activeScope === 'Districts' && selectedDistrictId) {
+            params.append('district_id', selectedDistrictId);
+            console.log('🏙️  District ID:', selectedDistrictId);
+          } else if (activeScope === 'Blocks' && selectedBlockId) {
+            params.append('block_id', selectedBlockId);
+            console.log('🏘️  Block ID:', selectedBlockId);
+          } else if (activeScope === 'GPs' && selectedGPId) {
+            params.append('gp_id', selectedGPId);
+            console.log('🏡 GP ID:', selectedGPId);
+          }
+
+          url = `/attendance/performance/months?${params.toString()}`;
+          console.log('🌐 Performance Months API URL:', url);
+          console.log('📅 Date Range:', { startDate, endDate });
+
+          response = await apiClient.get(url);
+          console.log('✅ Performance Months API Response:', response.data);
+        }
+      }
 
       // Process the data
       const { chartData: processedData, averageRate } = processChartData(response.data);
@@ -1276,16 +1329,21 @@ const AttendanceContent = () => {
     } finally {
       setLoadingChartData(false);
     }
-  }, [activePerformance]);
+  }, [activePerformance, performanceSelectedYear, activeScope, selectedDistrictId, selectedBlockId, selectedGPId]);
 
-  // Fetch chart data when performance tab changes
+  // Fetch chart data when performance tab, year, or scope changes
   useEffect(() => {
     console.log('🔄 Chart data useEffect triggered:', {
-      activePerformance
+      activePerformance,
+      performanceSelectedYear,
+      activeScope,
+      selectedDistrictId,
+      selectedBlockId,
+      selectedGPId
     });
     
     fetchChartData();
-  }, [activePerformance, fetchChartData]);
+  }, [activePerformance, performanceSelectedYear, activeScope, selectedDistrictId, selectedBlockId, selectedGPId, fetchChartData]);
 
   // Fetch attendance history data from analytics API
   const fetchAttendanceHistory = useCallback(async () => {
@@ -1382,8 +1440,8 @@ const AttendanceContent = () => {
         ? item.attendanceRates.reduce((sum, rate) => sum + rate, 0) / item.attendanceRates.length
         : 0;
       
-      // Cap attendance percentage to 100% maximum
-      const attendancePercentage = Math.min(Math.round(avgAttendanceRate * 100), 100);
+      // attendance_rate from API is already a percentage, so just round it
+      const attendancePercentage = Math.min(Math.round(avgAttendanceRate), 100);
       
       return {
         id: item.id,
@@ -1397,6 +1455,49 @@ const AttendanceContent = () => {
 
     // Sort by attendance percentage (highest first)
     return processedItems.sort((a, b) => b.attendancePercentage - a.attendancePercentage);
+  };
+
+  // Filter and sort attendance history data
+  const getFilteredAndSortedHistoryData = () => {
+    let filteredData = [...attendanceHistoryData];
+
+    // Apply search filter
+    if (historySearchTerm.trim()) {
+      const searchLower = historySearchTerm.toLowerCase();
+      filteredData = filteredData.filter(item =>
+        item.name.toLowerCase().includes(searchLower)
+      );
+    }
+
+    // Apply sorting
+    filteredData.sort((a, b) => {
+      if (historySortOrder === 'asc') {
+        return a.name.localeCompare(b.name);
+      } else {
+        return b.name.localeCompare(a.name);
+      }
+    });
+
+    return filteredData;
+  };
+
+  // Toggle sort order
+  const toggleHistorySortOrder = () => {
+    setHistorySortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
+  };
+
+  // Check if date range spans more than one day
+  const isMultiDayRange = () => {
+    if (!startDate || !endDate) return false;
+    
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    
+    // Calculate difference in days
+    const diffTime = Math.abs(end - start);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    return diffDays > 0;
   };
 
   // Fetch attendance history when scope, location, or date range changes
@@ -1426,40 +1527,59 @@ const AttendanceContent = () => {
 
   // Process chart data from API response and match with x-axis entities
   const processChartData = (apiData) => {
-    if (!apiData?.response) {
+    // Check if it's the new API format (array directly) or old format (wrapped in response)
+    const isNewAPIFormat = Array.isArray(apiData);
+    const dataArray = isNewAPIFormat ? apiData : apiData?.response;
+    
+    if (!dataArray || dataArray.length === 0) {
       return { chartData: generateEmptyChartData(), averageRate: 65 };
     }
 
     // Calculate average attendance rate from all API data
-    const allAttendanceRates = apiData.response.map(item => item.attendance_rate || 0);
+    const allAttendanceRates = dataArray.map(item => item.attendance_rate || 0);
     console.log('🔍 Raw Attendance Rates:', allAttendanceRates);
     
-    // API data is in decimal format (0.42 = 0.42%), need to multiply by 100 to get percentage
+    // For new API, attendance_rate is already a percentage, for old API it's decimal
     const averageRate = allAttendanceRates.length > 0 
-      ? Math.round(allAttendanceRates.reduce((sum, rate) => sum + rate, 0) / allAttendanceRates.length * 100)
+      ? Math.round(allAttendanceRates.reduce((sum, rate) => sum + rate, 0) / allAttendanceRates.length * (isNewAPIFormat ? 1 : 100))
       : 65;
     
     console.log('📊 Average Attendance Rate:', averageRate + '%');
 
     if (activePerformance === 'Time') {
-      // Time tab - get all months of current year
-      const currentDate = new Date();
-      const year = currentDate.getFullYear();
+      // Time tab - check if data has month field (new APIs) or date field (old API)
+      const hasMonthField = dataArray.length > 0 && dataArray[0].hasOwnProperty('month');
       
       // Create map of API data by month
       const monthMap = new Map();
-      apiData.response.forEach(item => {
-        const date = new Date(item.date);
-        const month = date.getMonth(); // 0-indexed (0 = January, 11 = December)
-        const monthKey = month;
-        
-        console.log('📅 API Date:', item.date, 'Month:', month + 1, 'Geography:', item.geography_name, 'Rate:', item.attendance_rate);
-        
-        if (!monthMap.has(monthKey)) {
-          monthMap.set(monthKey, []);
-        }
-        monthMap.get(monthKey).push(item);
-      });
+      
+      if (hasMonthField) {
+        // New API format - data has month field directly
+        dataArray.forEach(item => {
+          const monthKey = item.month - 1; // Convert to 0-indexed (1=Jan becomes 0)
+          
+          console.log('📅 API Month:', item.month, 'Year:', item.year, 'Geography:', item.geo_name || 'State', 'Rate:', item.attendance_rate);
+          
+          if (!monthMap.has(monthKey)) {
+            monthMap.set(monthKey, []);
+          }
+          monthMap.get(monthKey).push(item);
+        });
+      } else {
+        // Old API format - extract month from date
+        dataArray.forEach(item => {
+          const date = new Date(item.date);
+          const month = date.getMonth(); // 0-indexed (0 = January, 11 = December)
+          const monthKey = month;
+          
+          console.log('📅 API Date:', item.date, 'Month:', month + 1, 'Geography:', item.geography_name, 'Rate:', item.attendance_rate);
+          
+          if (!monthMap.has(monthKey)) {
+            monthMap.set(monthKey, []);
+          }
+          monthMap.get(monthKey).push(item);
+        });
+      }
       
       console.log('📊 MonthMap keys:', Array.from(monthMap.keys()));
 
@@ -1478,7 +1598,8 @@ const AttendanceContent = () => {
         if (monthData && monthData.length > 0) {
           // Calculate average attendance rate for this month
           const avgAttendanceRate = monthData.reduce((sum, item) => sum + (item.attendance_rate || 0), 0) / monthData.length;
-          const attendancePercentage = Math.min(Math.round(avgAttendanceRate * 100), 100);
+          // New APIs already have percentages, old API uses decimals
+          const attendancePercentage = Math.min(Math.round(hasMonthField ? avgAttendanceRate : avgAttendanceRate * 100), 100);
           
           chartItems.push({
             x: monthLabel,
@@ -1497,44 +1618,60 @@ const AttendanceContent = () => {
       
       return { chartData: chartItems, averageRate };
     } else {
-      // Location tab - ALWAYS show all districts (State Performance)
-      let entities = districts.map(d => ({ id: d.id, name: d.name }));
-      
-      // Create map of API data by geography_id
-      const geoMap = new Map();
-      apiData.response.forEach(item => {
-        const key = item.geography_id;
-        if (!geoMap.has(key)) {
-          geoMap.set(key, []);
-        }
-        geoMap.get(key).push(item);
-      });
-      
-      // Match entities with API data
-      const chartItems = entities.map(entity => {
-        const entityData = geoMap.get(entity.id);
-        
-        if (entityData && entityData.length > 0) {
-          // Calculate average attendance rate
-          const avgAttendanceRate = entityData.reduce((sum, item) => sum + (item.attendance_rate || 0), 0) / entityData.length;
-          const attendancePercentage = Math.min(Math.round(avgAttendanceRate * 100), 100);
+      // Location tab
+      if (isNewAPIFormat) {
+        // New API - data is already in array format with geo_id, geo_name
+        const chartItems = dataArray.map(item => {
+          const attendancePercentage = Math.round(item.attendance_rate); // Already a percentage
           
           return {
-            x: entity.name,
+            x: item.geo_name,
             y: attendancePercentage,
             fillColor: attendancePercentage >= averageRate ? '#10b981' : '#ef4444'
           };
-        } else {
-          // No data for this entity
-          return {
-            x: entity.name,
-            y: 0,
-            fillColor: '#d1d5db' // Gray for no data
-          };
-        }
-      });
-      
-      return { chartData: chartItems, averageRate };
+        });
+        
+        return { chartData: chartItems, averageRate };
+      } else {
+        // Old API - ALWAYS show all districts (State Performance)
+        let entities = districts.map(d => ({ id: d.id, name: d.name }));
+        
+        // Create map of API data by geography_id
+        const geoMap = new Map();
+        dataArray.forEach(item => {
+          const key = item.geography_id;
+          if (!geoMap.has(key)) {
+            geoMap.set(key, []);
+          }
+          geoMap.get(key).push(item);
+        });
+        
+        // Match entities with API data
+        const chartItems = entities.map(entity => {
+          const entityData = geoMap.get(entity.id);
+          
+          if (entityData && entityData.length > 0) {
+            // Calculate average attendance rate
+            const avgAttendanceRate = entityData.reduce((sum, item) => sum + (item.attendance_rate || 0), 0) / entityData.length;
+            const attendancePercentage = Math.min(Math.round(avgAttendanceRate * 100), 100);
+            
+            return {
+              x: entity.name,
+              y: attendancePercentage,
+              fillColor: attendancePercentage >= averageRate ? '#10b981' : '#ef4444'
+            };
+          } else {
+            // No data for this entity
+            return {
+              x: entity.name,
+              y: 0,
+              fillColor: '#d1d5db' // Gray for no data
+            };
+          }
+        });
+        
+        return { chartData: chartItems, averageRate };
+      }
     }
   };
 
@@ -2390,7 +2527,7 @@ const AttendanceContent = () => {
               borderRadius: '8px',
               border: '1px solid #e5e7eb',
               position: 'relative',
-              minHeight: '140px'
+              minHeight: isMultiDayRange() ? '315px' : '140px'
             }}>
               {/* Info icon */}
               <div style={{
@@ -2456,7 +2593,8 @@ const AttendanceContent = () => {
               )}
             </div>
 
-            {/* Present and Absent - In Same Row */}
+            {/* Present and Absent - In Same Row - Only show for single day */}
+            {!isMultiDayRange() && (
             <div style={{
               display: 'flex',
               gap: '12px',
@@ -2541,6 +2679,7 @@ const AttendanceContent = () => {
                 </div>
               ))}
             </div>
+            )}
           </div>
 
           {/* Right Side - Attendance Gauge */}
@@ -2608,17 +2747,19 @@ const AttendanceContent = () => {
             </div>
           </div>
         </div>
-
+      </div>
 
         {/* Top 3 and State Performance Section */}
         <div style={{
           display: 'flex',
           gap: '16px',
-          marginTop: '20px'
+          marginLeft: '16px',
+          marginRight: '16px',
+          marginTop: '16px'
         }}>
         {/* Top 3 Section */}
         <div style={{
-          flex: 0.8,
+          flex: 1.2,
           backgroundColor: 'white',
           padding: '16px',
           borderRadius: '8px',
@@ -2630,7 +2771,7 @@ const AttendanceContent = () => {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            marginBottom: '12px'
+            marginBottom: '16px'
           }}>
             <h2 style={{
               fontSize: '20px',
@@ -2640,73 +2781,210 @@ const AttendanceContent = () => {
             }}>
               Top 3
             </h2>
-            <div 
-              data-top3-dropdown
-              style={{
-              position: 'relative',
-              minWidth: '100px'
-              }}
-            >
-              <button 
-                onClick={() => setShowTop3Dropdown(!showTop3Dropdown)}
+            
+            {/* Right side controls in same row */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px'
+            }}>
+              {/* District/Block/GP Dropdown */}
+              <div 
+                data-top3-dropdown
                 style={{
-                width: '100%',
-                padding: '6px 12px',
-                border: '1px solid #d1d5db',
-                borderRadius: '8px',
-                backgroundColor: 'white',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                cursor: 'pointer',
-                fontSize: '14px',
-                color: '#6b7280'
+                  position: 'relative',
+                  minWidth: '100px'
                 }}
               >
-                <span>{top3Scope}</span>
-                <ChevronDown style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
-              </button>
-              
-              {/* Top 3 Dropdown Menu */}
-              {showTop3Dropdown && (
-                <div 
-                  onClick={(e) => e.stopPropagation()}
+                <button 
+                  onClick={() => setShowTop3Dropdown(!showTop3Dropdown)}
                   style={{
-                    position: 'absolute',
-                    top: '100%',
-                    left: 0,
-                    right: 0,
-                    backgroundColor: 'white',
+                    width: '100%',
+                    padding: '6px 12px',
                     border: '1px solid #d1d5db',
                     borderRadius: '8px',
-                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                    zIndex: 1000,
-                    marginTop: '4px',
-                    maxHeight: '200px',
-                    overflowY: 'auto'
+                    backgroundColor: 'white',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    color: '#6b7280'
                   }}
                 >
-                  {top3ScopeOptions.map((option) => (
-                    <div
-                      key={option}
-                      onClick={() => {
-                        setTop3Scope(option);
-                        setShowTop3Dropdown(false);
-                      }}
-                      style={{
-                        padding: '8px 12px',
-                        cursor: 'pointer',
-                        fontSize: '14px',
-                        color: '#374151',
-                        backgroundColor: top3Scope === option ? '#f3f4f6' : 'transparent',
-                        borderBottom: '1px solid #f3f4f6'
-                      }}
-                    >
-                      {option}
-                    </div>
-                  ))}
-                </div>
-              )}
+                  <span>{top3Scope}</span>
+                  <ChevronDown style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
+                </button>
+                
+                {/* Top 3 Dropdown Menu */}
+                {showTop3Dropdown && (
+                  <div 
+                    onClick={(e) => e.stopPropagation()}
+                    style={{
+                      position: 'absolute',
+                      top: '100%',
+                      left: 0,
+                      right: 0,
+                      backgroundColor: 'white',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '8px',
+                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                      zIndex: 1000,
+                      marginTop: '4px',
+                      maxHeight: '200px',
+                      overflowY: 'auto'
+                    }}
+                  >
+                    {top3ScopeOptions.map((option) => (
+                      <div
+                        key={option}
+                        onClick={() => {
+                          setTop3Scope(option);
+                          setShowTop3Dropdown(false);
+                        }}
+                        style={{
+                          padding: '8px 12px',
+                          cursor: 'pointer',
+                          fontSize: '14px',
+                          color: '#374151',
+                          backgroundColor: top3Scope === option ? '#f3f4f6' : 'transparent',
+                          borderBottom: '1px solid #f3f4f6'
+                        }}
+                      >
+                        {option}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Month/Year Tabs */}
+              <div style={{
+                display: 'flex',
+                backgroundColor: '#f3f4f6',
+                borderRadius: '12px',
+                padding: '4px',
+                gap: '2px'
+              }}>
+                {top3PeriodButtons.map((period) => (
+                  <button
+                    key={period}
+                    onClick={() => setTop3Period(period)}
+                    style={{
+                      padding: '3px 10px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      fontWeight: '500',
+                      backgroundColor: top3Period === period ? '#10b981' : 'transparent',
+                      color: top3Period === period ? 'white' : '#6b7280',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    {period}
+                  </button>
+                ))}
+              </div>
+
+              {/* Conditional Month/Year Dropdown */}
+              <div 
+                data-top3-period-dropdown
+                style={{
+                  position: 'relative',
+                  minWidth: '120px'
+                }}
+              >
+                <button 
+                  onClick={() => setShowTop3PeriodDropdown(!showTop3PeriodDropdown)}
+                  style={{
+                    width: '100%',
+                    padding: '6px 12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    backgroundColor: 'white',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    color: '#374151',
+                    fontWeight: '500'
+                  }}
+                >
+                  <span>
+                    {top3Period === 'Month' 
+                      ? months.find(m => m.value === top3SelectedMonth)?.name 
+                      : top3SelectedYear}
+                  </span>
+                  <ChevronDown style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
+                </button>
+                
+                {/* Month/Year Dropdown Menu */}
+                {showTop3PeriodDropdown && (
+                  <div 
+                    onClick={(e) => e.stopPropagation()}
+                    style={{
+                      position: 'absolute',
+                      top: '100%',
+                      left: 0,
+                      right: 0,
+                      backgroundColor: 'white',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '8px',
+                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                      zIndex: 1000,
+                      marginTop: '4px',
+                      maxHeight: '250px',
+                      overflowY: 'auto'
+                    }}
+                  >
+                    {top3Period === 'Month' ? (
+                      // Show months
+                      months.map((month) => (
+                        <div
+                          key={month.value}
+                          onClick={() => {
+                            setTop3SelectedMonth(month.value);
+                            setShowTop3PeriodDropdown(false);
+                          }}
+                          style={{
+                            padding: '10px 16px',
+                            cursor: 'pointer',
+                            fontSize: '14px',
+                            color: '#374151',
+                            backgroundColor: top3SelectedMonth === month.value ? '#f3f4f6' : 'transparent',
+                            borderBottom: '1px solid #f3f4f6'
+                          }}
+                        >
+                          {month.name}
+                        </div>
+                      ))
+                    ) : (
+                      // Show years
+                      years.map((year) => (
+                        <div
+                          key={year}
+                          onClick={() => {
+                            setTop3SelectedYear(year);
+                            setShowTop3PeriodDropdown(false);
+                          }}
+                          style={{
+                            padding: '10px 16px',
+                            cursor: 'pointer',
+                            fontSize: '14px',
+                            color: '#374151',
+                            backgroundColor: top3SelectedYear === year ? '#f3f4f6' : 'transparent',
+                            borderBottom: '1px solid #f3f4f6'
+                          }}
+                        >
+                          {year}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -2729,7 +3007,9 @@ const AttendanceContent = () => {
                     fontWeight: '600',
                     color: '#374151'
                   }}>
-                    {top3Scope}
+                    {activeScope === 'State' ? 'District' : 
+                     activeScope === 'Districts' ? 'Block' : 
+                     activeScope === 'Blocks' ? 'GP' : 'GP'}
                   </th>
                   <th style={{
                     padding: '12px',
@@ -2738,7 +3018,7 @@ const AttendanceContent = () => {
                     fontWeight: '600',
                     color: '#374151'
                   }}>
-                    Monthly Score
+                    {top3Period === 'Month' ? 'Monthly Score' : 'Yearly Score'}
                   </th>
                   <th style={{
                     padding: '12px',
@@ -2749,21 +3029,12 @@ const AttendanceContent = () => {
                   }}>
                     Rank
                   </th>
-                  <th style={{
-                    padding: '12px',
-                    textAlign: 'center',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    color: '#374151',
-                    width: '50px'
-                  }}>
-                  </th>
                 </tr>
               </thead>
               <tbody>
                 {loadingTop3 ? (
                   <tr>
-                    <td colSpan="4" style={{
+                    <td colSpan="3" style={{
                       padding: '40px',
                       textAlign: 'center',
                       fontSize: '14px',
@@ -2774,7 +3045,7 @@ const AttendanceContent = () => {
                   </tr>
                 ) : top3Error ? (
                   <tr>
-                    <td colSpan="4" style={{
+                    <td colSpan="3" style={{
                       padding: '40px',
                       textAlign: 'center',
                       fontSize: '14px',
@@ -2785,7 +3056,7 @@ const AttendanceContent = () => {
                   </tr>
                 ) : top3Data.length === 0 ? (
                   <tr>
-                    <td colSpan="4" style={{
+                    <td colSpan="3" style={{
                       padding: '40px',
                       textAlign: 'center',
                       fontSize: '14px',
@@ -2836,45 +3107,6 @@ const AttendanceContent = () => {
                         {item.rank}
                       </div>
                     </td>
-                    <td style={{
-                      padding: '12px',
-                      fontSize: '14px',
-                      color: '#374151'
-                    }}>
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        width: '24px',
-                        height: '24px',
-                        cursor: 'pointer'
-                      }}>
-                        <div style={{
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: '2px'
-                        }}>
-                          <div style={{
-                            width: '4px',
-                            height: '4px',
-                            backgroundColor: '#6b7280',
-                            borderRadius: '50%'
-                          }}></div>
-                          <div style={{
-                            width: '4px',
-                            height: '4px',
-                            backgroundColor: '#6b7280',
-                            borderRadius: '50%'
-                          }}></div>
-                          <div style={{
-                            width: '4px',
-                            height: '4px',
-                            backgroundColor: '#6b7280',
-                            borderRadius: '50%'
-                          }}></div>
-                        </div>
-                      </div>
-                    </td>
                   </tr>
                   ))
                 )}
@@ -2910,36 +3142,115 @@ const AttendanceContent = () => {
                 color: '#111827',
                 margin: 0
               }}>
-                State performance score
+                {activeScope === 'State' ? 'State performance score' : 
+                 activeScope === 'Districts' ? 'District performance score' : 
+                 activeScope === 'Blocks' ? 'Block performance score' : 'GP performance score'}
               </h2>
               <Info style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
             </div>
             <div style={{
               display: 'flex',
-              backgroundColor: '#f3f4f6',
-              borderRadius: '12px',
-              padding: '4px',
-              gap: '2px'
+              alignItems: 'center',
+              gap: '12px'
             }}>
-              {performanceButtons.map((scope) => (
-                <button
-                  key={scope}
-                  onClick={() => setActivePerformance(scope)}
+              {/* Time/Location Tabs */}
+              <div style={{
+                display: 'flex',
+                backgroundColor: '#f3f4f6',
+                borderRadius: '12px',
+                padding: '4px',
+                gap: '2px'
+              }}>
+                {performanceButtons.map((scope) => (
+                  <button
+                    key={scope}
+                    onClick={() => setActivePerformance(scope)}
+                    style={{
+                      padding: '3px 10px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      fontWeight: '500',
+                      backgroundColor: activePerformance === scope ? '#10b981' : 'transparent',
+                      color: activePerformance === scope ? 'white' : '#6b7280',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    {scope}
+                  </button>
+                ))}
+              </div>
+
+              {/* Year Dropdown */}
+              <div 
+                data-performance-year-dropdown
+                style={{
+                  position: 'relative',
+                  minWidth: '100px'
+                }}
+              >
+                <button 
+                  onClick={() => setShowPerformanceYearDropdown(!showPerformanceYearDropdown)}
                   style={{
-                    padding: '3px 10px',
+                    width: '100%',
+                    padding: '6px 12px',
+                    border: '1px solid #d1d5db',
                     borderRadius: '8px',
-                    border: 'none',
+                    backgroundColor: 'white',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
                     cursor: 'pointer',
                     fontSize: '14px',
-                    fontWeight: '500',
-                    backgroundColor: activePerformance === scope ? '#10b981' : 'transparent',
-                    color: activePerformance === scope ? 'white' : '#6b7280',
-                    transition: 'all 0.2s'
+                    color: '#374151',
+                    fontWeight: '500'
                   }}
                 >
-                  {scope}
+                  <span>{performanceSelectedYear}</span>
+                  <ChevronDown style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
                 </button>
-              ))}
+                
+                {/* Year Dropdown Menu */}
+                {showPerformanceYearDropdown && (
+                  <div 
+                    onClick={(e) => e.stopPropagation()}
+                    style={{
+                      position: 'absolute',
+                      top: '100%',
+                      right: 0,
+                      backgroundColor: 'white',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '8px',
+                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                      zIndex: 1000,
+                      marginTop: '4px',
+                      maxHeight: '250px',
+                      overflowY: 'auto'
+                    }}
+                  >
+                    {years.map((year) => (
+                      <div
+                        key={year}
+                        onClick={() => {
+                          setPerformanceSelectedYear(year);
+                          setShowPerformanceYearDropdown(false);
+                        }}
+                        style={{
+                          padding: '10px 16px',
+                          cursor: 'pointer',
+                          fontSize: '14px',
+                          color: '#374151',
+                          backgroundColor: performanceSelectedYear === year ? '#f3f4f6' : 'transparent',
+                          borderBottom: '1px solid #f3f4f6'
+                        }}
+                      >
+                        {year}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -3137,8 +3448,6 @@ const AttendanceContent = () => {
           </div>
         </div>
       </div>
-      
-    </div>
 
         {/* Attendance History Section */}
         <div style={{
@@ -3290,6 +3599,7 @@ const AttendanceContent = () => {
             }}>
               {/* Sort Button */}
               <button
+                onClick={toggleHistorySortOrder}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -3298,11 +3608,12 @@ const AttendanceContent = () => {
                   border: '1px solid #d1d5db',
                   borderRadius: '6px',
                   backgroundColor: 'white',
-                  color: '#374151'
+                  color: '#374151',
+                  cursor: 'pointer'
                 }}
               >
                 <Filter style={{ width: '16px', height: '16px' }} />
-                A-Z
+                {historySortOrder === 'asc' ? 'A-Z' : 'Z-A'}
               </button>
 
               {/* Search Bar */}
@@ -3322,6 +3633,8 @@ const AttendanceContent = () => {
                 <input
                   type="text"
                   placeholder="Search"
+                  value={historySearchTerm}
+                  onChange={(e) => setHistorySearchTerm(e.target.value)}
                   style={{
                     width: '100%',
                     paddingLeft: '40px',
@@ -3436,7 +3749,7 @@ const AttendanceContent = () => {
                       {historyError}
                     </td>
                   </tr>
-                ) : attendanceHistoryData.length === 0 ? (
+                ) : getFilteredAndSortedHistoryData().length === 0 ? (
                   <tr>
                     <td colSpan="3" style={{
                       padding: '40px',
@@ -3444,11 +3757,13 @@ const AttendanceContent = () => {
                       fontSize: '14px',
                       color: '#6b7280'
                     }}>
-                      No attendance data available for the selected period
+                      {attendanceHistoryData.length === 0 
+                        ? 'No attendance data available for the selected period'
+                        : 'No results found for your search'}
                     </td>
                   </tr>
                 ) : (
-                  attendanceHistoryData.map((item, index) => (
+                  getFilteredAndSortedHistoryData().map((item, index) => (
                     <tr key={item.id || index} style={{
                       borderBottom: '1px solid #f3f4f6'
                     }}>
@@ -3496,6 +3811,10 @@ const AttendanceContent = () => {
         isOpen={showSendNoticeModal}
         onClose={handleCloseNoticeModal}
         target={selectedNoticeTarget}
+        onSent={handleCloseNoticeModal}
+        moduleName={noticeModuleData.moduleName}
+        kpiName={noticeModuleData.kpiName}
+        kpiFigure={noticeModuleData.kpiFigure}
       />
     </div>
   );
