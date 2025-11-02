@@ -36,6 +36,8 @@ const Login = () => {
         navigate('/dashboard');
       } else if (result?.role === ROLES.CEO) {
         navigate('/dashboard/ceo');
+      } else if (result?.role === ROLES.BDO) {
+        navigate('/dashboard/bdo');
       } else if (result?.role) {
         navigate(`/dashboard/${result.role}`);
       } else {

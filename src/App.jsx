@@ -2,9 +2,11 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import { LocationProvider } from './context/LocationContext';
 import { CEOLocationProvider } from './context/CEOLocationContext';
+import { BDOLocationProvider } from './context/BDOLocationContext';
 import Login from './pages/Login';
 import UnifiedDashboard from './components/dashboards/UnifiedDashboard';
 import UnifiedDashboardCEO from './components/dashboards/ceo/UnifiedDashboardCEO';
+import UnifiedDashboardBDO from './components/dashboards/bdo/UnifiedDashboardBDO';
 import { ROLES } from './utils/roleConfig';
 
 import './App.css';
@@ -52,6 +54,8 @@ const PublicRoute = ({ children }) => {
   if (user) {
     if (role === ROLES.CEO) {
       return <Navigate to="/dashboard/ceo" replace />;
+    } else if (role === ROLES.BDO) {
+      return <Navigate to="/dashboard/bdo" replace />;
     } else if (role === ROLES.SMD) {
       return <Navigate to="/dashboard" replace />;
     }
@@ -91,6 +95,16 @@ function App() {
               <CEOLocationProvider>
                 <UnifiedDashboardCEO />
               </CEOLocationProvider>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dashboard/bdo"
+          element={
+            <ProtectedRoute allowedRoles={[ROLES.BDO]}>
+              <BDOLocationProvider>
+                <UnifiedDashboardBDO />
+              </BDOLocationProvider>
             </ProtectedRoute>
           }
         />

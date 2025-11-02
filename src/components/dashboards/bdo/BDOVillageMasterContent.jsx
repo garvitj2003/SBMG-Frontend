@@ -2,11 +2,11 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { MapPin, ChevronDown, ChevronRight, Calendar, List, Info, Search, Filter, Download, Eye, Edit, Trash2, CheckCircle, XCircle, Clock, Users, UserCheck, UserX, DollarSign, Target, TrendingUp, Database, BarChart3, ArrowUpDown } from 'lucide-react';
 import Chart from 'react-apexcharts';
 import apiClient from '../../../services/api';
-import { useCEOLocation } from '../../../context/CEOLocationContext';
+import { useBDOLocation } from '../../../context/BDOLocationContext';
 import SendNoticeModal from '../common/SendNoticeModal';
 import NoDataFound from '../common/NoDataFound';
 
-const CEOVillageMasterContent = () => {
+const BDOVillageMasterContent = () => {
     // Refs to prevent duplicate API calls
     const hasFetchedInitialData = useRef(false);
 
@@ -15,30 +15,33 @@ const CEOVillageMasterContent = () => {
         activeScope,
         selectedLocation,
         selectedLocationId,
-        selectedBlockId,
         selectedGPId,
         dropdownLevel,
-        selectedBlockForHierarchy,
+        selectedGPForHierarchy,
         setActiveScope,
         setSelectedLocation,
         setSelectedLocationId,
-        setSelectedBlockId,
         setSelectedGPId,
         setDropdownLevel,
-        setSelectedBlockForHierarchy,
+        setSelectedGPForHierarchy,
         updateLocationSelection: contextUpdateLocationSelection,
         trackTabChange: contextTrackTabChange,
         trackDropdownChange: contextTrackDropdownChange,
         getCurrentLocationInfo: contextGetCurrentLocationInfo,
-    ceoDistrictId,
-    ceoDistrictName,
-    loadingCEOData
-    } = useCEOLocation();
+        bdoDistrictId,
+        bdoDistrictName,
+        bdoBlockId,
+        bdoBlockName,
+        loadingBDOData
+    } = useBDOLocation();
   
-  // CEO always uses their district ID from /me API
-  const selectedDistrictId = ceoDistrictId || null;
-  const selectedDistrictForHierarchy = ceoDistrictId ? { id: ceoDistrictId, name: ceoDistrictName } : null;
-  const setSelectedDistrictForHierarchy = () => {}; // No-op for CEO
+  // BDO always uses their district ID and block ID from /me API
+  const selectedDistrictId = bdoDistrictId || null;
+  const selectedBlockId = bdoBlockId || null;
+  const selectedDistrictForHierarchy = bdoDistrictId ? { id: bdoDistrictId, name: bdoDistrictName } : null;
+  const selectedBlockForHierarchy = bdoBlockId ? { id: bdoBlockId, name: bdoBlockName } : null;
+  const setSelectedDistrictForHierarchy = () => {}; // No-op for BDO
+  const setSelectedBlockForHierarchy = () => {}; // No-op for BDO
     
     // UI controls state
     const [showLocationDropdown, setShowLocationDropdown] = useState(false);
@@ -156,7 +159,7 @@ const CEOVillageMasterContent = () => {
     setSelectedNoticeTarget(null);
   }, []);
 
-    const scopeButtons = ['Blocks', 'GPs']; // CEO can only view Blocks and GPs
+    const scopeButtons = ['GPs']; // BDO can only view GPs
     const performanceButtons = ['Time', 'Location'];
 
     // Predefined date ranges
@@ -433,10 +436,10 @@ const CEOVillageMasterContent = () => {
         };
     };
 
-    // CEO: Districts are not fetched - district is fixed from /me API
+    // BDO: Districts are not fetched - district is fixed from /me API
   const fetchDistricts = () => {
-    // No-op for CEO - district ID comes from /me API (ceoDistrictId)
-    console.log('CEO: Skipping fetchDistricts - using ceoDistrictId:', ceoDistrictId);
+    // No-op for CEO - district ID comes from /me API (bdoDistrictId)
+    console.log('BDO: Skipping fetchDistricts - using bdoDistrictId:', bdoDistrictId);
   };
 
     // Fetch blocks from API for a specific district
@@ -616,7 +619,7 @@ const CEOVillageMasterContent = () => {
             // Districts tab selected - ensure districts loaded then set first district
             if (districts.length === 0) {
                 console.log('⏳ Loading districts first...');
-                // CEO: Skipped await fetchDistricts
+                // BDO: Skipped await fetchDistricts
             }
             if (districts.length > 0) {
                 const firstDistrict = districts[0];
@@ -630,7 +633,7 @@ const CEOVillageMasterContent = () => {
             // Blocks tab selected - wait for district selection before fetching blocks
             if (districts.length === 0) {
                 console.log('⏳ Loading districts first...');
-                // CEO: Skipped await fetchDistricts
+                // BDO: Skipped await fetchDistricts
             }
             setBlocks([]);
             setGramPanchayats([]);
@@ -642,7 +645,7 @@ const CEOVillageMasterContent = () => {
             // GPs tab selected - wait for district/block selection before fetching GPs
             if (districts.length === 0) {
                 console.log('⏳ Loading districts first...');
-                // CEO: Skipped await fetchDistricts
+                // BDO: Skipped await fetchDistricts
             }
             setBlocks([]);
             setGramPanchayats([]);
@@ -772,22 +775,11 @@ const CEOVillageMasterContent = () => {
     };
 
     const handleGPClick = (gp) => {
-        const block = blocks.find(b => b.id === (gp.block_id || selectedBlockForHierarchy?.id || selectedBlockId)) || selectedBlockForHierarchy;
-        const blockId = block?.id || gp.block_id || null;
-        const district = districts.find(d => d.id === (block?.district_id || selectedDistrictForHierarchy?.id || selectedDistrictId)) || selectedDistrictForHierarchy;
-        const districtId = district?.id || null;
-
-        trackDropdownChange(gp.name);
-        updateLocationSelection('GPs', gp.name, gp.id, districtId, blockId, gp.id, 'dropdown_change');
-        if (district) {
-            setSelectedDistrictForHierarchy(district);
-        }
-        if (block) {
-            setSelectedBlockForHierarchy(block);
-        }
-        fetchGramPanchayats(districtId, blockId);
-        setShowLocationDropdown(false);
-    };
+    // BDO: Use fixed district and block from /me API
+    trackDropdownChange(gp.name, gp.id, bdoDistrictId, bdoBlockId, gp.id);
+    updateLocationSelection('GPs', gp.name, gp.id, bdoDistrictId, bdoBlockId, gp.id, 'dropdown_change');
+    setShowLocationDropdown(false);
+  };
 
     useEffect(() => {
         if (!showLocationDropdown) {
@@ -1094,7 +1086,7 @@ const CEOVillageMasterContent = () => {
             color: '#374151',
             margin: 0
           }}>
-            Village Master
+            GP Master
           </h1>
         </div>
 
@@ -1169,8 +1161,8 @@ const CEOVillageMasterContent = () => {
       }} />
             </button>
     
-    {/* Location Dropdown Menu */}
-    {showLocationDropdown && activeScope !== 'State' && (
+    {/* Location Dropdown Menu - BDO: GPs ONLY (no districts or blocks) */}
+    {showLocationDropdown && (
       <div
         key={`dropdown-${activeScope}`}
         style={{
@@ -1184,89 +1176,40 @@ const CEOVillageMasterContent = () => {
           boxShadow: '0 12px 24px rgba(15, 23, 42, 0.12)',
           zIndex: 1000,
           marginTop: '6px',
-          display: 'flex',
-          overflow: 'hidden',
-          minWidth: activeScope === 'Districts' ? '280px' : activeScope === 'Blocks' ? '520px' : '780px'
+          minWidth: '280px'
         }}
       >
-        {/* CEO: First column is BLOCKS (no districts!) */}
-          <div
-            style={{
-              minWidth: '240px',
-              maxHeight: '280px',
-              overflowY: 'auto',
-              borderRight: activeScope === 'GPs' ? '1px solid #f3f4f6' : 'none'
-            }}
-          >
-            {loadingBlocks ? (
-              <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
-                Loading blocks...
-              </div>
-            ) : blocksForActiveDistrict.length === 0 ? (
-              <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
-                No blocks found
-              </div>
-            ) : (
-              blocksForActiveDistrict.map((block) => {
-                const isActiveBlock = activeHierarchyBlock?.id === block.id;
-                const isSelectedBlock = activeScope === 'Blocks' && selectedLocation === block.name;
-                const showArrow = activeScope === 'GPs';
-
-                return (
-                  <div
-                    key={`block-${block.id}`}
-                    onClick={() => handleBlockClick(block)}
-                    onMouseEnter={() => handleBlockHover(block)}
-                    style={getMenuItemStyles(isActiveBlock || isSelectedBlock)}
-                  >
-                    <span>{block.name}</span>
-                    {showArrow && (
-                      <ChevronRight style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
-                    )}
-                  </div>
-                );
-              })
-            )}
-          </div>
-        )}
-
-        {activeScope === 'GPs' && (
-          <div
-            style={{
-              minWidth: '240px',
-              maxHeight: '280px',
-              overflowY: 'auto'
-            }}
-          >
-            {loadingGPs ? (
-              <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
-                Loading GPs...
-              </div>
-            ) : !activeHierarchyBlock ? (
-              <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
-                Select a block to view GPs
-              </div>
-            ) : gpsForActiveBlock.length === 0 ? (
-              <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
-                No GPs found
-              </div>
-            ) : (
-              gpsForActiveBlock.map((gp) => {
-                const isSelectedGP = activeScope === 'GPs' && selectedLocation === gp.name;
-
-                return (
-                  <div
-                    key={`gp-${gp.id}`}
-                    onClick={() => handleGPClick(gp)}
-                    style={getMenuItemStyles(isSelectedGP)}
-                  >
-                    <span>{gp.name}</span>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        )}
+        {/* BDO: Simple GP list from assigned block */}
+        <div
+          style={{
+            minWidth: '240px',
+            maxHeight: '280px',
+            overflowY: 'auto'
+          }}
+        >
+          {loadingGPs ? (
+            <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
+              Loading GPs...
+            </div>
+          ) : gramPanchayats.length === 0 ? (
+            <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
+              No GPs found for your block
+            </div>
+          ) : (
+            gramPanchayats.map((gp) => {
+              const isSelectedGP = selectedLocation === gp.name;
+              return (
+                <div
+                  key={`gp-${gp.id}`}
+                  onClick={() => handleGPClick(gp)}
+                  style={getMenuItemStyles(isSelectedGP)}
+                >
+                  <span>{gp.name}</span>
+                </div>
+              );
+            })
+          )}
+        </div>
       </div>
     )}
   </div>
@@ -2224,7 +2167,7 @@ const CEOVillageMasterContent = () => {
         kpiFigure={noticeModuleData.kpiFigure}
       />
       </div>
-    );
-  };
+  );
+};
 
-export default CEOVillageMasterContent;
+export default BDOVillageMasterContent;

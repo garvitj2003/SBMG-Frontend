@@ -3,6 +3,7 @@ import { Search, Bell, ChevronDown, Menu, Loader2 } from 'lucide-react';
 import apiClient from '../../services/api';
 import { useLocation } from '../../context/LocationContext';
 import { useCEOLocation } from '../../context/CEOLocationContext';
+import { useBDOLocation } from '../../context/BDOLocationContext';
 import { useAuth } from '../../context/AuthContext';
 import { ROLES } from '../../utils/roleConfig';
 
@@ -30,13 +31,15 @@ const buildSubtitle = (typeLabel, meta) => {
 const Header = ({ onMenuClick, onNotificationsClick }) => {
   const { role } = useAuth();
   const isCEO = role === ROLES.CEO;
+  const isBDO = role === ROLES.BDO;
   
-  // Try both contexts - one will be available based on which dashboard we're in
+  // Try all contexts - one will be available based on which dashboard we're in
   const locationContextSMD = useLocation();
   const locationContextCEO = useCEOLocation();
+  const locationContextBDO = useBDOLocation();
   
   // Use whichever context is available
-  const locationContext = locationContextCEO || locationContextSMD || {
+  const locationContext = locationContextCEO || locationContextBDO || locationContextSMD || {
     updateLocationSelection: () => {},
     setActiveScope: () => {},
     setDropdownLevel: () => {},
@@ -113,7 +116,14 @@ const Header = ({ onMenuClick, onNotificationsClick }) => {
 
     try {
       // CEO only searches blocks and GPs, not districts
-      const searchPromises = isCEO 
+      // BDO only searches GPs, not districts or blocks
+      const searchPromises = isBDO
+        ? [
+            Promise.resolve({ status: 'fulfilled', value: { data: [] } }), // Skip districts for BDO
+            Promise.resolve({ status: 'fulfilled', value: { data: [] } }), // Skip blocks for BDO
+            apiClient.get('/geography/grampanchayats', commonParams)
+          ]
+        : isCEO 
         ? [
             Promise.resolve({ status: 'fulfilled', value: { data: [] } }), // Skip districts for CEO
             apiClient.get('/geography/blocks', commonParams),
@@ -133,8 +143,8 @@ const Header = ({ onMenuClick, onNotificationsClick }) => {
 
       const nextSuggestions = [];
 
-      // Only process district results for non-CEO users
-      if (!isCEO && districtResult.status === 'fulfilled' && Array.isArray(districtResult.value?.data)) {
+      // Only process district results for non-CEO and non-BDO users
+      if (!isCEO && !isBDO && districtResult.status === 'fulfilled' && Array.isArray(districtResult.value?.data)) {
         districtResult.value.data.forEach((district) => {
           if (!district) return;
           const name = district.name || district.district_name || district.districtName || 'Unnamed District';
@@ -155,7 +165,8 @@ const Header = ({ onMenuClick, onNotificationsClick }) => {
         console.error('Failed to fetch districts for search:', districtResult.reason);
       }
 
-      if (blockResult.status === 'fulfilled' && Array.isArray(blockResult.value?.data)) {
+      // Only process block results for non-BDO users
+      if (!isBDO && blockResult.status === 'fulfilled' && Array.isArray(blockResult.value?.data)) {
         blockResult.value.data.forEach((block) => {
           if (!block) return;
           const name = block.name || block.block_name || block.blockName || 'Unnamed Block';
@@ -476,7 +487,7 @@ const Header = ({ onMenuClick, onNotificationsClick }) => {
             ref={inputRef}
             type="text"
             value={searchTerm}
-            placeholder={isCEO ? "Search blocks or GPs" : "Search districts, blocks, or GPs"}
+            placeholder={isBDO ? "Search GPs" : isCEO ? "Search blocks or GPs" : "Search districts, blocks, or GPs"}
             onChange={handleInputChange}
             onFocus={handleInputFocus}
             onKeyDown={handleKeyDown}
