@@ -34,6 +34,8 @@ const Login = () => {
 
       if (result?.role === ROLES.SMD) {
         navigate('/dashboard');
+      } else if (result?.role === ROLES.CEO) {
+        navigate('/dashboard/ceo');
       } else if (result?.role) {
         navigate(`/dashboard/${result.role}`);
       } else {
@@ -142,7 +144,7 @@ const Login = () => {
             color: '#6B7280', 
             margin: 0 
           }}>
-            Restricted access — only SMD role is enabled right now.
+            Restricted access — SMD and CEO roles are enabled.
           </p>
         </div>
 

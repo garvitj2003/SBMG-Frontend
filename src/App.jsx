@@ -1,8 +1,10 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import { LocationProvider } from './context/LocationContext';
+import { CEOLocationProvider } from './context/CEOLocationContext';
 import Login from './pages/Login';
 import UnifiedDashboard from './components/dashboards/UnifiedDashboard';
+import UnifiedDashboardCEO from './components/dashboards/ceo/UnifiedDashboardCEO';
 import { ROLES } from './utils/roleConfig';
 
 import './App.css';
@@ -33,7 +35,7 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 };
 
 const PublicRoute = ({ children }) => {
-  const { user, loading } = useAuth();
+  const { user, role, loading } = useAuth();
   
   if (loading) {
     return (
@@ -46,7 +48,18 @@ const PublicRoute = ({ children }) => {
     );
   }
   
-  return user ? <Navigate to="/dashboard" replace /> : children;
+  // Redirect authenticated users to their respective dashboards
+  if (user) {
+    if (role === ROLES.CEO) {
+      return <Navigate to="/dashboard/ceo" replace />;
+    } else if (role === ROLES.SMD) {
+      return <Navigate to="/dashboard" replace />;
+    }
+    // Default to main dashboard for any other roles
+    return <Navigate to="/dashboard" replace />;
+  }
+  
+  return children;
 };
 
 function App() {
@@ -71,7 +84,16 @@ function App() {
             </ProtectedRoute>
           }
         />
-       
+        <Route
+          path="/dashboard/ceo"
+          element={
+            <ProtectedRoute allowedRoles={[ROLES.CEO]}>
+              <CEOLocationProvider>
+                <UnifiedDashboardCEO />
+              </CEOLocationProvider>
+            </ProtectedRoute>
+          }
+        />
        
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="*" element={<Navigate to="/login" replace />} />

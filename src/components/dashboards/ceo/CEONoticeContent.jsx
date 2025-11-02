@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Plus, Calendar, ChevronDown, X, Upload, Search, Download, Info, List, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
-import apiClient from '../../services/api';
-import NoDataFound from './common/NoDataFound';
+import apiClient from '../../../services/api';
+import NoDataFound from '../common/NoDataFound';
 
-const NotoficationContent = () => {
+const CEONoticeContent = () => {
   const [sentNotices, setSentNotices] = useState([]);
   const [receivedNotices, setReceivedNotices] = useState([]);
   const [loadingSent, setLoadingSent] = useState(true);
@@ -1063,4 +1063,4 @@ const NotoficationContent = () => {
     );
 };
 
-export default NotoficationContent;
+export default CEONoticeContent;

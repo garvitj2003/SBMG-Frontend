@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { Plus, Calendar, ChevronDown, X, Upload, Loader2, Edit, Trash2 } from 'lucide-react';
-import { schemesAPI } from '../../services/api';
-import NoDataFound from './common/NoDataFound';
+import { schemesAPI } from '../../../services/api';
+import NoDataFound from '../common/NoDataFound';
 
-const SchemesContent = () => {
+const CEOSchemesContent = () => {
     const [showModal, setShowModal] = useState(false);
     const [showDetailsModal, setShowDetailsModal] = useState(false);
     const [selectedScheme, setSelectedScheme] = useState(null);
@@ -1277,4 +1277,4 @@ const SchemesContent = () => {
     );
 };
 
-export default SchemesContent;
+export default CEOSchemesContent;

@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { Plus, Calendar, ChevronDown, X, Upload, Loader2, Edit, Trash2 } from 'lucide-react';
-import { eventsAPI } from '../../services/api';
-import NoDataFound from './common/NoDataFound';
+import { eventsAPI } from '../../../services/api';
+import NoDataFound from '../common/NoDataFound';
 
-const EventsContent = () => {
+const CEOEventsContent = () => {
     const [showModal, setShowModal] = useState(false);
     const [showDetailsModal, setShowDetailsModal] = useState(false);
     const [selectedEvent, setSelectedEvent] = useState(null);
@@ -1204,4 +1204,4 @@ const EventsContent = () => {
     );
 };
 
-export default EventsContent;
+export default CEOEventsContent;

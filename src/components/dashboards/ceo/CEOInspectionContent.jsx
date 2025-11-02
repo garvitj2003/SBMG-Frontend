@@ -1,16 +1,16 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { MapPin, ChevronDown, ChevronRight, Calendar, List, Info, Search, Filter, Download, Eye, Edit, Trash2, CheckCircle, XCircle, Clock, Users, UserCheck, UserX } from 'lucide-react';
 import Chart from 'react-apexcharts';
-import number1 from '../../assets/images/number1.png';
-import number2 from '../../assets/images/nnumber2.png';
-import number3 from '../../assets/images/number3.png';
-import apiClient from '../../services/api';
-import { useLocation } from '../../context/LocationContext';
-import SendNoticeModal from './common/SendNoticeModal';
-import NoDataFound from './common/NoDataFound';
+import number1 from '../../../assets/images/number1.png';
+import number2 from '../../../assets/images/nnumber2.png';
+import number3 from '../../../assets/images/number3.png';
+import apiClient from '../../../services/api';
+import { useCEOLocation } from '../../../context/CEOLocationContext';
+import SendNoticeModal from '../common/SendNoticeModal';
+import NoDataFound from '../common/NoDataFound';
 
 
-const InspectionContent = () => {
+const CEOInspectionContent = () => {
   // Refs to prevent duplicate API calls
   const hasFetchedInitialData = useRef(false);
 
@@ -19,26 +19,30 @@ const InspectionContent = () => {
     activeScope,
     selectedLocation,
     selectedLocationId,
-    selectedDistrictId,
     selectedBlockId,
     selectedGPId,
     dropdownLevel,
-    selectedDistrictForHierarchy,
     selectedBlockForHierarchy,
     setActiveScope,
     setSelectedLocation,
     setSelectedLocationId,
-    setSelectedDistrictId,
     setSelectedBlockId,
     setSelectedGPId,
     setDropdownLevel,
-    setSelectedDistrictForHierarchy,
     setSelectedBlockForHierarchy,
     updateLocationSelection: contextUpdateLocationSelection,
     trackTabChange: contextTrackTabChange,
     trackDropdownChange: contextTrackDropdownChange,
-    getCurrentLocationInfo: contextGetCurrentLocationInfo
-  } = useLocation();
+    getCurrentLocationInfo: contextGetCurrentLocationInfo,
+    ceoDistrictId,
+    ceoDistrictName,
+    loadingCEOData
+  } = useCEOLocation();
+  
+  // CEO always uses their district ID from /me API
+  const selectedDistrictId = ceoDistrictId || null;
+  const selectedDistrictForHierarchy = ceoDistrictId ? { id: ceoDistrictId, name: ceoDistrictName } : null;
+  const setSelectedDistrictForHierarchy = () => {}; // No-op for CEO
   
   // UI controls state
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
@@ -138,7 +142,7 @@ const InspectionContent = () => {
     }
   };
 
-  const scopeButtons = ['State', 'Districts', 'Blocks', 'GPs'];
+  const scopeButtons = ['Blocks', 'GPs']; // CEO can only view Blocks and GPs
   const performanceButtons = ['Time', 'Location'];
 
   // Predefined date ranges
@@ -151,18 +155,10 @@ const InspectionContent = () => {
     { label: 'Custom', value: 'custom', days: null }
   ];
 
-  // Fetch districts from API
-  const fetchDistricts = async () => {
-    try {
-      setLoadingDistricts(true);
-      const response = await apiClient.get('/geography/districts?skip=0&limit=100');
-      console.log('Districts API Response:', response.data);
-      setDistricts(response.data);
-    } catch (error) {
-      console.error('Error fetching districts:', error);
-    } finally {
-      setLoadingDistricts(false);
-    }
+  // CEO: Districts are not fetched - district is fixed from /me API
+  const fetchDistricts = () => {
+    // No-op for CEO - district ID comes from /me API (ceoDistrictId)
+    console.log('CEO: Skipping fetchDistricts - using ceoDistrictId:', ceoDistrictId);
   };
 
   // Fetch blocks for a specific district
@@ -223,7 +219,6 @@ const InspectionContent = () => {
     if (hasFetchedInitialData.current) return;
     
     if (activeScope === 'State') {
-      fetchDistricts();
       hasFetchedInitialData.current = true;
     }
   }, [activeScope]);
@@ -231,7 +226,6 @@ const InspectionContent = () => {
   // Effect to fetch data when scope changes
   useEffect(() => {
     if (activeScope === 'Districts' || activeScope === 'Blocks' || activeScope === 'GPs') {
-      fetchDistricts();
       if (activeScope !== 'Districts') {
         setBlocks([]);
         setGramPanchayats([]);
@@ -492,14 +486,7 @@ const InspectionContent = () => {
       const params = new URLSearchParams();
 
       // Determine level based on active scope
-      let level = 'DISTRICT'; // Default for State scope
-      if (activeScope === 'Districts') {
-        level = 'BLOCK';
-      } else if (activeScope === 'Blocks') {
-        level = 'VILLAGE';
-      } else if (activeScope === 'GPs') {
-        level = 'VILLAGE';
-      }
+      const level = 'VILLAGE'; // CEO: Always VILLAGE level
       params.append('level', level);
       console.log('📊 Level:', level);
 
@@ -1648,45 +1635,7 @@ const InspectionContent = () => {
                   minWidth: activeScope === 'Districts' ? '280px' : activeScope === 'Blocks' ? '520px' : '780px'
                 }}
               >
-                <div
-                  style={{
-                    minWidth: '240px',
-                    maxHeight: '280px',
-                    overflowY: 'auto',
-                    borderRight: activeScope !== 'Districts' ? '1px solid #f3f4f6' : 'none'
-                  }}
-                >
-                  {loadingDistricts ? (
-                    <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
-                      Loading districts...
-                    </div>
-                  ) : districts.length === 0 ? (
-                    <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
-                      No districts available
-                    </div>
-                  ) : (
-                    districts.map((district) => {
-                      const isActiveDistrict = activeHierarchyDistrict?.id === district.id;
-                      const isSelectedDistrict = activeScope === 'Districts' && selectedLocation === district.name;
-                      const showArrow = activeScope === 'Blocks' || activeScope === 'GPs';
-                      return (
-                        <div
-                          key={`district-${district.id}`}
-                          onClick={() => handleDistrictClick(district)}
-                          onMouseEnter={() => handleDistrictHover(district)}
-                          style={getMenuItemStyles(isActiveDistrict || isSelectedDistrict)}
-                        >
-                          <span>{district.name}</span>
-                          {showArrow && (
-                            <ChevronRight style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
-                          )}
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-
-                {activeScope !== 'Districts' && (
+                {/* CEO: First column is BLOCKS (no districts!) */}
                   <div
                     style={{
                       minWidth: '240px',
@@ -1698,10 +1647,6 @@ const InspectionContent = () => {
                     {loadingBlocks ? (
                       <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
                         Loading blocks...
-                      </div>
-                    ) : !activeHierarchyDistrict ? (
-                      <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
-                        Select a district to view blocks
                       </div>
                     ) : blocksForActiveDistrict.length === 0 ? (
                       <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
@@ -3241,4 +3186,4 @@ const InspectionContent = () => {
   );
 };
 
-export default InspectionContent;
+export default CEOInspectionContent;

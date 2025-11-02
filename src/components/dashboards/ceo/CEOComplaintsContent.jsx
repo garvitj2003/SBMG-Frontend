@@ -1,37 +1,41 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { MapPin, ChevronDown, ChevronRight, Calendar, List, Info, Search, Filter, Download, Eye, Edit, Trash2, CheckCircle, XCircle, Clock , Plus, Upload, X, Star, User} from 'lucide-react';
 import Chart from 'react-apexcharts';
-import apiClient, { noticesAPI } from '../../services/api';
-import LocationDisplay from '../common/LocationDisplay';
-import { useLocation } from '../../context/LocationContext';
-import NoDataFound from './common/NoDataFound';
+import apiClient, { noticesAPI } from '../../../services/api';
+import LocationDisplay from '../../common/LocationDisplay';
+import { useCEOLocation } from '../../../context/CEOLocationContext';
+import NoDataFound from '../common/NoDataFound';
 
-const ComplaintsContent = () => {
+const CEOComplaintsContent = () => {
   // Shared location state via context
   const {
     activeScope,
     selectedLocation,
     selectedLocationId,
-    selectedDistrictId,
     selectedBlockId,
     selectedGPId,
     dropdownLevel,
-    selectedDistrictForHierarchy,
     selectedBlockForHierarchy,
     setActiveScope,
     setSelectedLocation,
     setSelectedLocationId,
-    setSelectedDistrictId,
     setSelectedBlockId,
     setSelectedGPId,
     setDropdownLevel,
-    setSelectedDistrictForHierarchy,
     setSelectedBlockForHierarchy,
     updateLocationSelection: contextUpdateLocationSelection,
     trackTabChange: contextTrackTabChange,
     trackDropdownChange: contextTrackDropdownChange,
-    getCurrentLocationInfo: contextGetCurrentLocationInfo
-  } = useLocation();
+    getCurrentLocationInfo: contextGetCurrentLocationInfo,
+    ceoDistrictId,
+    ceoDistrictName,
+    loadingCEOData
+  } = useCEOLocation();
+  
+  // CEO always uses their district ID from /me API
+  const selectedDistrictId = ceoDistrictId || null;
+  const selectedDistrictForHierarchy = ceoDistrictId ? { id: ceoDistrictId, name: ceoDistrictName } : null;
+  const setSelectedDistrictForHierarchy = () => {}; // No-op for CEO
 
   const trackTabChange = useCallback((scope) => {
     console.log('Tab changed to:', scope);
@@ -152,7 +156,7 @@ const ComplaintsContent = () => {
     }
   };
 
-  const scopeButtons = ['State', 'Districts', 'Blocks', 'GPs'];
+  const scopeButtons = ['Blocks', 'GPs']; // CEO can only view Blocks and GPs
 
   const filterButtons = ['Open', 'Verified', 'Resolved', 'Closed'];
 
@@ -188,18 +192,10 @@ const ComplaintsContent = () => {
     console.log('Current Location Info:', locationInfo);
   }, [activeScope, selectedLocation, selectedLocationId, selectedDistrictId, selectedBlockId, selectedGPId, getCurrentLocationInfo]);
 
-  // Fetch districts from API
-  const fetchDistricts = async () => {
-    try {
-      setLoadingDistricts(true);
-      const response = await apiClient.get('/geography/districts?skip=0&limit=100');
-      console.log('Districts API Response:', response.data);
-      setDistricts(response.data);
-    } catch (error) {
-      console.error('Error fetching districts:', error);
-    } finally {
-      setLoadingDistricts(false);
-    }
+  // CEO: Districts are not fetched - district is fixed from /me API
+  const fetchDistricts = () => {
+    // No-op for CEO - district ID comes from /me API (ceoDistrictId)
+    console.log('CEO: Skipping fetchDistricts - using ceoDistrictId:', ceoDistrictId);
   };
 
   // Fetch blocks from API for a given district
@@ -372,21 +368,22 @@ const ComplaintsContent = () => {
       setSelectedDistrictForHierarchy(null);
       setSelectedBlockForHierarchy(null);
     } else if (scope === 'Blocks') {
-      // For blocks, start with districts level
-      setBlocks([]);
+      // CEO: Reset to show block selection
+      updateLocationSelection('Blocks', 'Select Block', null, ceoDistrictId, null, null, 'tab_change');
       setGramPanchayats([]);
-      updateLocationSelection('Blocks', 'Select District', null, null, null, null, 'tab_change');
-      setDropdownLevel('districts');
-      setSelectedDistrictForHierarchy(null);
+      setDropdownLevel('blocks');
       setSelectedBlockForHierarchy(null);
+      // Blocks are already loaded from ceoDistrictId
     } else if (scope === 'GPs') {
-      // For GPs, start with districts level
-      setBlocks([]);
+      // CEO: Reset to show GP selection (blocks should already be loaded)
+      updateLocationSelection('GPs', 'Select GP', null, ceoDistrictId, null, null, 'tab_change');
       setGramPanchayats([]);
-      updateLocationSelection('GPs', 'Select District', null, null, null, null, 'tab_change');
-      setDropdownLevel('districts');
-      setSelectedDistrictForHierarchy(null);
+      setDropdownLevel('blocks');
       setSelectedBlockForHierarchy(null);
+      // Ensure blocks are loaded for GPs tab
+      if (ceoDistrictId && blocks.length === 0) {
+        fetchBlocks(ceoDistrictId);
+      }
     }
   };
 
@@ -480,7 +477,6 @@ const ComplaintsContent = () => {
 
   // Fetch districts immediately when complaints page loads
   useEffect(() => {
-    fetchDistricts();
   }, []);
 
   // Fetch data immediately when complaints tab is selected
@@ -497,7 +493,6 @@ const ComplaintsContent = () => {
   // Load additional data based on scope
   useEffect(() => {
     if (activeScope === 'Districts' && districts.length === 0) {
-      fetchDistricts();
     }
   }, [activeScope, districts.length]);
 
@@ -643,14 +638,7 @@ const ComplaintsContent = () => {
       const params = new URLSearchParams();
 
       // Determine level based on active scope
-      let level = 'DISTRICT'; // Default for State scope
-      if (activeScope === 'Districts') {
-        level = 'BLOCK';
-      } else if (activeScope === 'Blocks') {
-        level = 'VILLAGE';
-      } else if (activeScope === 'GPs') {
-        level = 'VILLAGE';
-      }
+      const level = 'VILLAGE'; // CEO: Always VILLAGE level
       params.append('level', level);
       console.log('📊 Level:', level);
 
@@ -1718,61 +1706,18 @@ const normalizeStatusForFilter = (rawStatus) => {
                   minWidth: activeScope === 'Districts' ? '280px' : activeScope === 'Blocks' ? '520px' : '780px'
                 }}
               >
+                {/* CEO: First column is BLOCKS (no districts!) */}
                 <div
                   style={{
                     minWidth: '240px',
                     maxHeight: '280px',
                     overflowY: 'auto',
-                    borderRight: activeScope !== 'Districts' ? '1px solid #f3f4f6' : 'none'
+                    borderRight: activeScope === 'GPs' ? '1px solid #f3f4f6' : 'none'
                   }}
                 >
-                  {loadingDistricts ? (
-                    <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
-                      Loading districts...
-                    </div>
-                  ) : districts.length === 0 ? (
-                    <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
-                      No districts available
-                    </div>
-                  ) : (
-                    districts.map((district) => {
-                      const isActiveDistrict = activeHierarchyDistrict?.id === district.id;
-                      const isSelectedDistrict = activeScope === 'Districts' && selectedLocation === district.name;
-                      const showArrow = activeScope === 'Blocks' || activeScope === 'GPs';
-
-                      return (
-                        <div
-                          key={`district-${district.id}`}
-                          onClick={() => handleDistrictClick(district)}
-                          onMouseEnter={() => handleDistrictHover(district)}
-                          style={getMenuItemStyles(isActiveDistrict || isSelectedDistrict)}
-                        >
-                          <span>{district.name}</span>
-                          {showArrow && (
-                            <ChevronRight style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
-                          )}
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-
-                {activeScope !== 'Districts' && (
-                  <div
-                    style={{
-                      minWidth: '240px',
-                      maxHeight: '280px',
-                      overflowY: 'auto',
-                      borderRight: activeScope === 'GPs' ? '1px solid #f3f4f6' : 'none'
-                    }}
-                  >
                     {loadingBlocks ? (
                       <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
                         Loading blocks...
-                      </div>
-                    ) : !activeHierarchyDistrict ? (
-                      <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
-                        Select a district to view blocks
                       </div>
                     ) : blocksForActiveDistrict.length === 0 ? (
                       <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
@@ -1800,8 +1745,8 @@ const normalizeStatusForFilter = (rawStatus) => {
                       })
                     )}
                   </div>
-                )}
 
+                {/* CEO: Second column is GPs (when GPs tab is active) */}
                 {activeScope === 'GPs' && (
                   <div
                     style={{
@@ -2411,30 +2356,6 @@ const normalizeStatusForFilter = (rawStatus) => {
               
             </button>
 
-            {/* Add Complaint Button */}
-            <button 
-              onClick={() => {
-                setShowComplaintModal(true);
-                fetchComplaintCategories();
-                fetchDistricts();
-              }}
-              style={{
-                padding: '8px 16px',
-                backgroundColor: 'black',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: '500',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}
-            >
-              <Plus style={{ width: '16px', height: '16px' }} />
-              Add complaint
-            </button>
           </div>
         </div>
 
@@ -3708,4 +3629,4 @@ const normalizeStatusForFilter = (rawStatus) => {
   );
 };
 
-export default ComplaintsContent;
+export default CEOComplaintsContent;

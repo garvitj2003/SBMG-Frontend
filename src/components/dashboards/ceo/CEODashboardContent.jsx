@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { MapPin, ChevronDown, ChevronRight, Calendar, List, Info, TrendingUp } from 'lucide-react';
 import Chart from 'react-apexcharts';
-import number1 from '../../assets/images/number1.png';
-import number2 from '../../assets/images/nnumber2.png';
-import number3 from '../../assets/images/number3.png';
-import apiClient from '../../services/api';
-import { useLocation } from '../../context/LocationContext';
-import LocationDisplay from '../common/LocationDisplay';
-import SendNoticeModal from './common/SendNoticeModal';
-import NoDataFound from './common/NoDataFound';
+import number1 from '../../../assets/images/number1.png';
+import number2 from '../../../assets/images/nnumber2.png';
+import number3 from '../../../assets/images/number3.png';
+import apiClient from '../../../services/api';
+import { useCEOLocation } from '../../../context/CEOLocationContext';
+import LocationDisplay from '../../common/LocationDisplay';
+import SendNoticeModal from '../common/SendNoticeModal';
+import NoDataFound from '../common/NoDataFound';
 
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -194,36 +194,40 @@ const SegmentedGauge = ({ complaintData, percentage, label = "Complaints closed"
   );
 };
 
-const DashboardContent = () => {
+const CEODashboardContent = () => {
   // Use LocationContext for global state management
   const {
     activeScope,
     selectedLocation,
     selectedLocationId,
-    selectedDistrictId,
     selectedBlockId,
     selectedGPId,
     dropdownLevel,
-    selectedDistrictForHierarchy,
     selectedBlockForHierarchy,
     changeHistory,
     lastChange,
     setActiveScope,
     setSelectedLocation,
     setSelectedLocationId,
-    setSelectedDistrictId,
     setSelectedBlockId,
     setSelectedGPId,
     setDropdownLevel,
-    setSelectedDistrictForHierarchy,
     setSelectedBlockForHierarchy,
     updateLocationSelection,
     getCurrentLocationInfo,
     trackTabChange,
     trackDropdownChange,
     getChangeHistory,
-    getLastChange
-  } = useLocation();
+    getLastChange,
+    ceoDistrictId,
+    ceoDistrictName,
+    loadingCEOData
+  } = useCEOLocation();
+  
+  // CEO always uses their district ID from /me API
+  const selectedDistrictId = ceoDistrictId || null;
+  const selectedDistrictForHierarchy = ceoDistrictId ? { id: ceoDistrictId, name: ceoDistrictName } : null;
+  const setSelectedDistrictForHierarchy = () => {}; // No-op for CEO
 
   // Local state for UI controls
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
@@ -472,7 +476,7 @@ const DashboardContent = () => {
     setSelectedNoticeTarget(null);
   }, []);
 
-  const scopeButtons = ['State', 'Districts', 'Blocks', 'GPs'];
+  const scopeButtons = ['Blocks', 'GPs']; // CEO can only view Blocks and GPs
 
   // Predefined date ranges
   const dateRanges = [
@@ -484,19 +488,10 @@ const DashboardContent = () => {
     { label: 'Custom', value: 'custom', days: null }
   ];
 
-  // Fetch districts from API
-  const fetchDistricts = async () => {
-    try {
-      setLoadingDistricts(true);
-      const response = await apiClient.get('/geography/districts?skip=0&limit=100');
-      setDistricts(response.data);
-      console.log('Districts fetched:', response.data);
-    } catch (error) {
-      console.error('Error fetching districts:', error);
-      setDistricts([]);
-    } finally {
-      setLoadingDistricts(false);
-    }
+  // CEO: Districts are not fetched - district is fixed from /me API
+  const fetchDistricts = () => {
+    // No-op for CEO - district ID comes from /me API (ceoDistrictId)
+    console.log('CEO: Skipping fetchDistricts - using ceoDistrictId:', ceoDistrictId);
   };
 
   // Fetch blocks from API for a given district
@@ -573,14 +568,7 @@ const DashboardContent = () => {
       const params = new URLSearchParams();
 
       // Determine level based on active scope
-      let level = 'DISTRICT'; // Default for State scope
-      if (activeScope === 'Districts') {
-        level = 'BLOCK';
-      } else if (activeScope === 'Blocks') {
-        level = 'VILLAGE';
-      } else if (activeScope === 'GPs') {
-        level = 'VILLAGE';
-      }
+      const level = 'VILLAGE'; // CEO: Always VILLAGE level
       params.append('level', level);
       console.log('📊 Level:', level);
 
@@ -701,14 +689,7 @@ const DashboardContent = () => {
       const params = new URLSearchParams();
 
       // Determine level based on active scope
-      let level = 'DISTRICT'; // Default for State scope
-      if (activeScope === 'Districts') {
-        level = 'BLOCK';
-      } else if (activeScope === 'Blocks') {
-        level = 'VILLAGE';
-      } else if (activeScope === 'GPs') {
-        level = 'VILLAGE';
-      }
+      const level = 'VILLAGE'; // CEO: Always VILLAGE level
       params.append('level', level);
       console.log('📊 Level:', level);
 
@@ -872,21 +853,22 @@ const DashboardContent = () => {
       setSelectedDistrictForHierarchy(null);
       setSelectedBlockForHierarchy(null);
     } else if (scope === 'Blocks') {
-      // For blocks, start with districts level and clear dependent data until a district is chosen
-      updateLocationSelection('Blocks', 'Select District', null, null, null, null, 'tab_change');
-      setBlocks([]);
+      // CEO: Reset to show block selection
+      updateLocationSelection('Blocks', 'Select Block', null, ceoDistrictId, null, null, 'tab_change');
       setGramPanchayats([]);
-      setDropdownLevel('districts');
-      setSelectedDistrictForHierarchy(null);
+      setDropdownLevel('blocks');
       setSelectedBlockForHierarchy(null);
+      // Blocks are already loaded from ceoDistrictId
     } else if (scope === 'GPs') {
-      // For GPs, start with districts level and clear dependent data
-      updateLocationSelection('GPs', 'Select District', null, null, null, null, 'tab_change');
-      setBlocks([]);
+      // CEO: Reset to show GP selection (blocks should already be loaded)
+      updateLocationSelection('GPs', 'Select GP', null, ceoDistrictId, null, null, 'tab_change');
       setGramPanchayats([]);
-      setDropdownLevel('districts');
-      setSelectedDistrictForHierarchy(null);
+      setDropdownLevel('blocks');
       setSelectedBlockForHierarchy(null);
+      // Ensure blocks are loaded for GPs tab
+      if (ceoDistrictId && blocks.length === 0) {
+        fetchBlocks(ceoDistrictId);
+      }
     } else {
       // For other scopes, reset to first option
       const options = getLocationOptions();
@@ -1218,10 +1200,13 @@ const DashboardContent = () => {
     console.log(`Selected date: ${getCurrentFilterType()} - ${getDateDisplayText()}`);
   }, [selectedYear, selectedMonth, selectedDay]);
 
-  // Fetch districts immediately when dashboard loads
+  // CEO: Fetch blocks immediately using district ID from /me API
   useEffect(() => {
-    fetchDistricts();
-  }, []);
+    if (ceoDistrictId) {
+      console.log('🔄 CEO Dashboard: Auto-fetching blocks for district:', ceoDistrictId);
+      fetchBlocks(ceoDistrictId);
+    }
+  }, [ceoDistrictId, fetchBlocks]);
 
   // Ensure complaints year is always current year on mount
   useEffect(() => {
@@ -1247,14 +1232,7 @@ const DashboardContent = () => {
       const params = new URLSearchParams();
 
       // Determine level based on active scope
-      let level = 'DISTRICT'; // Default for State scope
-      if (activeScope === 'Districts') {
-        level = 'BLOCK';
-      } else if (activeScope === 'Blocks') {
-        level = 'VILLAGE';
-      } else if (activeScope === 'GPs') {
-        level = 'VILLAGE';
-      }
+      const level = 'VILLAGE'; // CEO: Always VILLAGE level
       params.append('level', level);
       console.log('📊 Level:', level);
 
@@ -1324,7 +1302,7 @@ const DashboardContent = () => {
       const endDate = formatDate(new Date(target.getFullYear(), target.getMonth() + 1, 0));
       
       // Map scope to API level
-      let level = 'DISTRICT';
+      const level = 'VILLAGE'; // CEO: Always VILLAGE level
       if (top3Scope === 'Block') {
         level = 'BLOCK';
       } else if (top3Scope === 'GP') {
@@ -2170,8 +2148,8 @@ const DashboardContent = () => {
               }} />
             </button>
             
-            {/* Location Dropdown Menu */}
-            {showLocationDropdown && activeScope !== 'State' && (
+            {/* Location Dropdown Menu - CEO: Blocks and GPs ONLY (no districts) */}
+            {showLocationDropdown && (
               <div
                 key={`dropdown-${activeScope}`}
                 style={{
@@ -2187,63 +2165,21 @@ const DashboardContent = () => {
                   marginTop: '6px',
                   display: 'flex',
                   overflow: 'hidden',
-                  minWidth: activeScope === 'Districts' ? '280px' : activeScope === 'Blocks' ? '520px' : '780px'
+                  minWidth: activeScope === 'Blocks' ? '280px' : '540px'
                 }}
               >
+                {/* CEO: First column is BLOCKS (no districts!) */}
                 <div
                   style={{
                     minWidth: '240px',
                     maxHeight: '280px',
                     overflowY: 'auto',
-                    borderRight: activeScope !== 'Districts' ? '1px solid #f3f4f6' : 'none'
+                    borderRight: activeScope === 'GPs' ? '1px solid #f3f4f6' : 'none'
                   }}
                 >
-                  {loadingDistricts ? (
-                    <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
-                      Loading districts...
-                    </div>
-                  ) : districts.length === 0 ? (
-                    <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
-                      No districts available
-                    </div>
-                  ) : (
-                    districts.map((district) => {
-                      const isActiveDistrict = activeHierarchyDistrict?.id === district.id;
-                      const isSelectedDistrict = activeScope === 'Districts' && selectedLocation === district.name;
-                      const showArrow = activeScope === 'Blocks' || activeScope === 'GPs';
-                      return (
-                        <div
-                          key={`district-${district.id}`}
-                          onClick={() => handleDistrictClick(district)}
-                          onMouseEnter={() => handleDistrictHover(district)}
-                          style={getMenuItemStyles(isActiveDistrict || isSelectedDistrict)}
-                        >
-                          <span>{district.name}</span>
-                          {showArrow && (
-                            <ChevronRight style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
-                          )}
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-
-                {activeScope !== 'Districts' && (
-                  <div
-                    style={{
-                      minWidth: '240px',
-                      maxHeight: '280px',
-                      overflowY: 'auto',
-                      borderRight: activeScope === 'GPs' ? '1px solid #f3f4f6' : 'none'
-                    }}
-                  >
                     {loadingBlocks ? (
                       <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
                         Loading blocks...
-                      </div>
-                    ) : !activeHierarchyDistrict ? (
-                      <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
-                        Select a district to view blocks
                       </div>
                     ) : blocksForActiveDistrict.length === 0 ? (
                       <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
@@ -2270,8 +2206,8 @@ const DashboardContent = () => {
                       })
                     )}
                   </div>
-                )}
 
+                {/* CEO: Second column is GPs (when GPs tab is active) */}
                 {activeScope === 'GPs' && (
                   <div
                     style={{
@@ -3870,4 +3806,4 @@ const DashboardContent = () => {
   );
 };
 
-export default DashboardContent;
+export default CEODashboardContent;

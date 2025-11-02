@@ -2,6 +2,9 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Search, Bell, ChevronDown, Menu, Loader2 } from 'lucide-react';
 import apiClient from '../../services/api';
 import { useLocation } from '../../context/LocationContext';
+import { useCEOLocation } from '../../context/CEOLocationContext';
+import { useAuth } from '../../context/AuthContext';
+import { ROLES } from '../../utils/roleConfig';
 
 const buildSubtitle = (typeLabel, meta) => {
   if (typeLabel === 'District') {
@@ -25,13 +28,29 @@ const buildSubtitle = (typeLabel, meta) => {
 };
 
 const Header = ({ onMenuClick, onNotificationsClick }) => {
+  const { role } = useAuth();
+  const isCEO = role === ROLES.CEO;
+  
+  // Try both contexts - one will be available based on which dashboard we're in
+  const locationContextSMD = useLocation();
+  const locationContextCEO = useCEOLocation();
+  
+  // Use whichever context is available
+  const locationContext = locationContextCEO || locationContextSMD || {
+    updateLocationSelection: () => {},
+    setActiveScope: () => {},
+    setDropdownLevel: () => {},
+    setSelectedDistrictForHierarchy: () => {},
+    setSelectedBlockForHierarchy: () => {}
+  };
+
   const {
     updateLocationSelection,
     setActiveScope,
     setDropdownLevel,
     setSelectedDistrictForHierarchy,
     setSelectedBlockForHierarchy
-  } = useLocation();
+  } = locationContext;
 
   const [searchTerm, setSearchTerm] = useState('');
   const [suggestions, setSuggestions] = useState([]);
@@ -93,11 +112,20 @@ const Header = ({ onMenuClick, onNotificationsClick }) => {
     };
 
     try {
-      const [districtResult, blockResult, gpResult] = await Promise.allSettled([
-        apiClient.get('/geography/districts', commonParams),
-        apiClient.get('/geography/blocks', commonParams),
-        apiClient.get('/geography/grampanchayats', commonParams)
-      ]);
+      // CEO only searches blocks and GPs, not districts
+      const searchPromises = isCEO 
+        ? [
+            Promise.resolve({ status: 'fulfilled', value: { data: [] } }), // Skip districts for CEO
+            apiClient.get('/geography/blocks', commonParams),
+            apiClient.get('/geography/grampanchayats', commonParams)
+          ]
+        : [
+            apiClient.get('/geography/districts', commonParams),
+            apiClient.get('/geography/blocks', commonParams),
+            apiClient.get('/geography/grampanchayats', commonParams)
+          ];
+      
+      const [districtResult, blockResult, gpResult] = await Promise.allSettled(searchPromises);
 
       if (activeRequestRef.current !== requestId) {
         return;
@@ -105,7 +133,8 @@ const Header = ({ onMenuClick, onNotificationsClick }) => {
 
       const nextSuggestions = [];
 
-      if (districtResult.status === 'fulfilled' && Array.isArray(districtResult.value?.data)) {
+      // Only process district results for non-CEO users
+      if (!isCEO && districtResult.status === 'fulfilled' && Array.isArray(districtResult.value?.data)) {
         districtResult.value.data.forEach((district) => {
           if (!district) return;
           const name = district.name || district.district_name || district.districtName || 'Unnamed District';
@@ -447,7 +476,7 @@ const Header = ({ onMenuClick, onNotificationsClick }) => {
             ref={inputRef}
             type="text"
             value={searchTerm}
-            placeholder="Search districts, blocks, or GPs"
+            placeholder={isCEO ? "Search blocks or GPs" : "Search districts, blocks, or GPs"}
             onChange={handleInputChange}
             onFocus={handleInputFocus}
             onKeyDown={handleKeyDown}
