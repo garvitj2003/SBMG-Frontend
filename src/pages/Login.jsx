@@ -146,7 +146,7 @@ const Login = () => {
             color: '#6B7280', 
             margin: 0 
           }}>
-            Restricted access — SMD and CEO roles are enabled.
+            Restricted access — SMD, CEO, BDO, and VDO roles are enabled.
           </p>
         </div>
 

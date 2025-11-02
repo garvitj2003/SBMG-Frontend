@@ -3,10 +3,12 @@ import { useAuth } from './context/AuthContext';
 import { LocationProvider } from './context/LocationContext';
 import { CEOLocationProvider } from './context/CEOLocationContext';
 import { BDOLocationProvider } from './context/BDOLocationContext';
+import { VDOLocationProvider } from './context/VDOLocationContext';
 import Login from './pages/Login';
 import UnifiedDashboard from './components/dashboards/UnifiedDashboard';
 import UnifiedDashboardCEO from './components/dashboards/ceo/UnifiedDashboardCEO';
 import UnifiedDashboardBDO from './components/dashboards/bdo/UnifiedDashboardBDO';
+import UnifiedDashboardVDO from './components/dashboards/vdo/UnifiedDashboardVDO';
 import { ROLES } from './utils/roleConfig';
 
 import './App.css';
@@ -56,6 +58,8 @@ const PublicRoute = ({ children }) => {
       return <Navigate to="/dashboard/ceo" replace />;
     } else if (role === ROLES.BDO) {
       return <Navigate to="/dashboard/bdo" replace />;
+    } else if (role === ROLES.VDO) {
+      return <Navigate to="/dashboard/vdo" replace />;
     } else if (role === ROLES.SMD) {
       return <Navigate to="/dashboard" replace />;
     }
@@ -105,6 +109,16 @@ function App() {
               <BDOLocationProvider>
                 <UnifiedDashboardBDO />
               </BDOLocationProvider>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dashboard/vdo"
+          element={
+            <ProtectedRoute allowedRoles={[ROLES.VDO]}>
+              <VDOLocationProvider>
+                <UnifiedDashboardVDO />
+              </VDOLocationProvider>
             </ProtectedRoute>
           }
         />

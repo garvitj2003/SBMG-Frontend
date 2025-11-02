@@ -2,7 +2,7 @@ import { createContext, useState, useContext, useEffect } from 'react';
 import { authAPI } from '../services/api';
 import { ROLES } from '../utils/roleConfig';
 
-const ENABLED_ROLES = [ROLES.SMD, ROLES.CEO, ROLES.BDO];
+const ENABLED_ROLES = [ROLES.SMD, ROLES.CEO, ROLES.BDO, ROLES.VDO];
 
 const ROLE_MAPPINGS = {
   admin: ROLES.SMD,

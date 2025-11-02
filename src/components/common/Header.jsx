@@ -4,6 +4,7 @@ import apiClient from '../../services/api';
 import { useLocation } from '../../context/LocationContext';
 import { useCEOLocation } from '../../context/CEOLocationContext';
 import { useBDOLocation } from '../../context/BDOLocationContext';
+import { useVDOLocation } from '../../context/VDOLocationContext';
 import { useAuth } from '../../context/AuthContext';
 import { ROLES } from '../../utils/roleConfig';
 
@@ -28,18 +29,20 @@ const buildSubtitle = (typeLabel, meta) => {
   return typeLabel;
 };
 
-const Header = ({ onMenuClick, onNotificationsClick }) => {
+const Header = ({ onMenuClick, onNotificationsClick, showLocationSearch = true }) => {
   const { role } = useAuth();
   const isCEO = role === ROLES.CEO;
   const isBDO = role === ROLES.BDO;
+  const isVDO = role === ROLES.VDO;
   
   // Try all contexts - one will be available based on which dashboard we're in
   const locationContextSMD = useLocation();
   const locationContextCEO = useCEOLocation();
   const locationContextBDO = useBDOLocation();
+  const locationContextVDO = useVDOLocation();
   
   // Use whichever context is available
-  const locationContext = locationContextCEO || locationContextBDO || locationContextSMD || {
+  const locationContext = locationContextCEO || locationContextBDO || locationContextVDO || locationContextSMD || {
     updateLocationSelection: () => {},
     setActiveScope: () => {},
     setDropdownLevel: () => {},
@@ -472,25 +475,26 @@ const Header = ({ onMenuClick, onNotificationsClick }) => {
 
       {/* Right side - Search bar, Notifications and Profile */}
       <div style={{display: 'flex', alignItems: 'center', gap: '16px', marginRight: '16px'}}>
-        {/* Search bar */}
-        <div ref={containerRef} style={{position: 'relative', width: '320px'}}>
-          <Search style={{
-            position: 'absolute',
-            left: '12px',
-            top: '50%',
-            transform: 'translateY(-50%)',
-            width: '16px',
-            height: '16px',
-            color: '#9ca3af'
-          }} />
-          <input
-            ref={inputRef}
-            type="text"
-            value={searchTerm}
-            placeholder={isBDO ? "Search GPs" : isCEO ? "Search blocks or GPs" : "Search districts, blocks, or GPs"}
-            onChange={handleInputChange}
-            onFocus={handleInputFocus}
-            onKeyDown={handleKeyDown}
+        {/* Search bar - hidden for VDO */}
+        {showLocationSearch && (
+          <div ref={containerRef} style={{position: 'relative', width: '320px'}}>
+            <Search style={{
+              position: 'absolute',
+              left: '12px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              width: '16px',
+              height: '16px',
+              color: '#9ca3af'
+            }} />
+            <input
+              ref={inputRef}
+              type="text"
+              value={searchTerm}
+              placeholder={isBDO ? "Search GPs" : isCEO ? "Search blocks or GPs" : "Search districts, blocks, or GPs"}
+              onChange={handleInputChange}
+              onFocus={handleInputFocus}
+              onKeyDown={handleKeyDown}
             style={{
               width: '100%',
               paddingLeft: '40px',
@@ -612,7 +616,8 @@ const Header = ({ onMenuClick, onNotificationsClick }) => {
               )}
             </div>
           )}
-        </div>
+          </div>
+        )}
         {/* Notification bell - Separate container */}
         <div style={{
           backgroundColor: '#f3f4f6',
