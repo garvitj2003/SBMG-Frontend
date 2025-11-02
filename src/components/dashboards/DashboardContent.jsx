@@ -315,6 +315,11 @@ const DashboardContent = () => {
   
   const performanceRangeRef = useRef(null);
 
+  // Vendor data state (for GP level)
+  const [vendorData, setVendorData] = useState(null);
+  const [loadingVendor, setLoadingVendor] = useState(false);
+  const [vendorError, setVendorError] = useState(null);
+
 
   // Log current location info whenever it changes
   useEffect(() => {
@@ -1433,6 +1438,35 @@ const DashboardContent = () => {
     fetchTop3Data();
   }, [top3Scope, top3Month, fetchTop3Data]);
 
+  // Fetch Vendor data when GP is selected
+  useEffect(() => {
+    const fetchVendorData = async () => {
+      // Only fetch vendor data when GP is selected
+      if (activeScope !== 'GPs' || !selectedGPId) {
+        setVendorData(null);
+        return;
+      }
+
+      try {
+        setLoadingVendor(true);
+        setVendorError(null);
+        
+        console.log('🔄 Fetching vendor data for GP ID:', selectedGPId);
+        const response = await apiClient.get(`/geography/grampanchayats/${selectedGPId}/contractor`);
+        console.log('✅ Vendor API Response:', response.data);
+        
+        setVendorData(response.data);
+      } catch (error) {
+        console.error('❌ Error fetching vendor data:', error);
+        setVendorError(error.response?.data?.message || error.message || 'Failed to fetch vendor details');
+        setVendorData(null);
+      } finally {
+        setLoadingVendor(false);
+      }
+    };
+
+    fetchVendorData();
+  }, [activeScope, selectedGPId]);
 
   // Update selected location when districts are loaded
   useEffect(() => {
@@ -2012,6 +2046,26 @@ const DashboardContent = () => {
       score: item.score,
       rating: '' // Empty as requested
     }));
+  };
+
+  // Helper functions for vendor data
+  const formatVendorDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    const day = date.getDate();
+    const month = date.toLocaleString('en-US', { month: 'long' });
+    const year = date.getFullYear();
+    return `${day} ${month} ${year}`;
+  };
+
+  const calculateContractDuration = (startDate, endDate) => {
+    if (!startDate || !endDate) return 'N/A';
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const diffTime = Math.abs(end - start);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const months = Math.floor(diffDays / 30);
+    return `${months} months`;
   };
 
   const top3Data = getTop3Data();
@@ -3060,14 +3114,196 @@ const DashboardContent = () => {
         </div>
       </div>
 
-      {/* Performance and Top 3 Section */}
-      <div style={{
-        display: 'flex',
-        gap: '16px',
-        marginLeft: '16px',
-        marginRight: '16px',
-        marginTop: '16px'
-      }}>
+      {/* Conditional Section: Performance and Top 3 OR Vendor Details */}
+      {activeScope === 'GPs' ? (
+        /* Vendor Details Section (shown when GP is selected) */
+        <div style={{
+          marginLeft: '16px',
+          marginRight: '16px',
+          marginTop: '16px'
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            padding: '24px',
+            borderRadius: '12px',
+            border: '1px solid #e5e7eb',
+            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
+          }}>
+            {/* Header with Info Icon */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '24px'
+            }}>
+              <h2 style={{
+                fontSize: '18px',
+                fontWeight: '600',
+                color: '#111827',
+                margin: 0
+              }}>
+                Vendor details
+              </h2>
+              <Info style={{ width: '20px', height: '20px', color: '#9ca3af', cursor: 'pointer' }} />
+            </div>
+
+            {/* Loading State */}
+            {loadingVendor && (
+              <div style={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                padding: '40px',
+                color: '#6b7280',
+                fontSize: '14px'
+              }}>
+                Loading vendor details...
+              </div>
+            )}
+
+            {/* Error State */}
+            {vendorError && !loadingVendor && (
+              <div style={{
+                padding: '16px',
+                backgroundColor: '#fef2f2',
+                border: '1px solid #fecaca',
+                borderRadius: '8px',
+                color: '#991b1b',
+                fontSize: '14px'
+              }}>
+                {vendorError}
+              </div>
+            )}
+
+            {/* Vendor Details Content */}
+            {!loadingVendor && !vendorError && vendorData && (
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: '32px'
+              }}>
+                {/* Left Column */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  {/* Name */}
+                  <div>
+                    <div style={{
+                      fontSize: '12px',
+                      color: '#6b7280',
+                      marginBottom: '4px'
+                    }}>
+                      Name
+                    </div>
+                    <div style={{
+                      fontSize: '16px',
+                      fontWeight: '600',
+                      color: '#111827'
+                    }}>
+                      {vendorData.person_name || 'N/A'}
+                    </div>
+                  </div>
+
+                  {/* Annual contract amount */}
+                  <div>
+                    <div style={{
+                      fontSize: '12px',
+                      color: '#6b7280',
+                      marginBottom: '4px'
+                    }}>
+                      Annual contract amount
+                    </div>
+                    <div style={{
+                      fontSize: '16px',
+                      fontWeight: '600',
+                      color: '#111827'
+                    }}>
+                      {vendorData.annual_amount || 'N/A'}
+                    </div>
+                  </div>
+
+                  {/* Frequency of work */}
+                  <div>
+                    <div style={{
+                      fontSize: '12px',
+                      color: '#6b7280',
+                      marginBottom: '4px'
+                    }}>
+                      Frequency of work
+                    </div>
+                    <div style={{
+                      fontSize: '16px',
+                      fontWeight: '600',
+                      color: '#111827'
+                    }}>
+                      {vendorData.frequency || 'N/A'}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Column */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  {/* Work order date */}
+                  <div>
+                    <div style={{
+                      fontSize: '12px',
+                      color: '#6b7280',
+                      marginBottom: '4px'
+                    }}>
+                      Work order date
+                    </div>
+                    <div style={{
+                      fontSize: '16px',
+                      fontWeight: '600',
+                      color: '#111827'
+                    }}>
+                      {formatVendorDate(vendorData.contract_start_date)}
+                    </div>
+                  </div>
+
+                  {/* Duration of work */}
+                  <div>
+                    <div style={{
+                      fontSize: '12px',
+                      color: '#6b7280',
+                      marginBottom: '4px'
+                    }}>
+                      Duration of work
+                    </div>
+                    <div style={{
+                      fontSize: '16px',
+                      fontWeight: '600',
+                      color: '#111827'
+                    }}>
+                      {calculateContractDuration(vendorData.contract_start_date, vendorData.contract_end_date)}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* No Data State */}
+            {!loadingVendor && !vendorError && !vendorData && (
+              <div style={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                padding: '40px',
+                color: '#6b7280',
+                fontSize: '14px'
+              }}>
+                No vendor details available for this Gram Panchayat
+              </div>
+            )}
+          </div>
+        </div>
+      ) : (
+        /* Performance and Top 3 Section (shown when State/District/Block is selected) */
+        <div style={{
+          display: 'flex',
+          gap: '16px',
+          marginLeft: '16px',
+          marginRight: '16px',
+          marginTop: '16px'
+        }}>
         {/* Performance Section */}
         <div style={{
           flex: 1,
@@ -3645,6 +3881,7 @@ const DashboardContent = () => {
           </div>
         </div>
       </div>
+      )}
 
       <SendNoticeModal
         isOpen={showSendNoticeModal}

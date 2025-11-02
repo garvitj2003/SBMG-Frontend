@@ -6,6 +6,7 @@ import number2 from '../../assets/images/nnumber2.png';
 import number3 from '../../assets/images/number3.png';
 import apiClient from '../../services/api';
 import { useLocation } from '../../context/LocationContext';
+import SendNoticeModal from './common/SendNoticeModal';
 
 
 const InspectionContent = () => {
@@ -61,10 +62,15 @@ const InspectionContent = () => {
   const [loadingCriticalIssues, setLoadingCriticalIssues] = useState(false);
   const [criticalIssuesError, setCriticalIssuesError] = useState(null);
 
-  // Top Performers data state
+  // Top Performers data state (for inspector-based performers - CEO/BDO/VDO)
   const [topPerformersData, setTopPerformersData] = useState(null);
   const [loadingTopPerformers, setLoadingTopPerformers] = useState(false);
   const [topPerformersError, setTopPerformersError] = useState(null);
+
+  // Top Performers data state (for location-based performers - District/Block/GP)
+  const [topPerformersLocationData, setTopPerformersLocationData] = useState(null);
+  const [loadingTopPerformersLocation, setLoadingTopPerformersLocation] = useState(false);
+  const [topPerformersLocationError, setTopPerformersLocationError] = useState(null);
 
   // Your Inspections data state
   const [yourInspectionsData, setYourInspectionsData] = useState(null);
@@ -73,11 +79,16 @@ const InspectionContent = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
+  // Performance Report data state
+  const [performanceReportData, setPerformanceReportData] = useState(null);
+  const [loadingPerformanceReport, setLoadingPerformanceReport] = useState(false);
+  const [performanceReportError, setPerformanceReportError] = useState(null);
+
   // Top Performers dropdown state
   const [showPerformersDropdown1, setShowPerformersDropdown1] = useState(false);
   const [showPerformersDropdown2, setShowPerformersDropdown2] = useState(false);
   const [showPerformanceReportDropdown, setShowPerformanceReportDropdown] = useState(false);
-  const [selectedPerformersFilter1, setSelectedPerformersFilter1] = useState('District');
+  const [selectedPerformersFilter1, setSelectedPerformersFilter1] = useState('CEO'); // CEO/BDO/VDO for inspectors
   const [selectedPerformersFilter2, setSelectedPerformersFilter2] = useState('District');
   const [selectedPerformanceReportFilter, setSelectedPerformanceReportFilter] = useState('District');
 
@@ -85,7 +96,9 @@ const InspectionContent = () => {
   const analyticsCallInProgress = useRef(false);
   const criticalIssuesCallInProgress = useRef(false);
   const topPerformersCallInProgress = useRef(false);
+  const topPerformersLocationCallInProgress = useRef(false);
   const yourInspectionsCallInProgress = useRef(false);
+  const performanceReportCallInProgress = useRef(false);
 
   // Date selection state
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
@@ -105,6 +118,19 @@ const InspectionContent = () => {
     return today.toISOString().split('T')[0];
   });
   const [isCustomRange, setIsCustomRange] = useState(false);
+  
+  // My Inspections visibility state
+  const [showMyInspections, setShowMyInspections] = useState(false);
+  
+  // Send Notice Modal state
+  const [showSendNoticeModal, setShowSendNoticeModal] = useState(false);
+  const [selectedNoticeTarget, setSelectedNoticeTarget] = useState(null);
+  const [noticeModuleData, setNoticeModuleData] = useState({
+    moduleName: '',
+    kpiName: '',
+    kpiFigure: ''
+  });
+  
   const handleDateKeyDown = (event) => {
     if (event.key !== 'Tab') {
       event.preventDefault();
@@ -729,6 +755,181 @@ const InspectionContent = () => {
     }
   }, []);
 
+  // Fetch top performers by location (District/Block/GP) from analytics API
+  const fetchTopPerformersLocationData = useCallback(async (level) => {
+    // Prevent duplicate calls
+    if (topPerformersLocationCallInProgress.current) {
+      console.log('⏸️ Top Performers Location API call already in progress, skipping...');
+      return;
+    }
+    
+    try {
+      topPerformersLocationCallInProgress.current = true;
+      setLoadingTopPerformersLocation(true);
+      setTopPerformersLocationError(null);
+
+      console.log('🔄 ===== TOP PERFORMERS LOCATION API CALL =====');
+      console.log('📍 Level:', level);
+
+      // Build query parameters based on selected scope
+      const params = new URLSearchParams();
+
+      // Map dropdown selection to API level
+      let apiLevel = 'DISTRICT';
+      if (level === 'Block') {
+        apiLevel = 'BLOCK';
+      } else if (level === 'GP') {
+        apiLevel = 'VILLAGE';
+      }
+      params.append('level', apiLevel);
+      console.log('📊 Level:', apiLevel);
+
+      // Add geography IDs based on selection
+      if (activeScope === 'Districts' && selectedDistrictId) {
+        params.append('district_id', selectedDistrictId);
+        console.log('🏙️  District ID:', selectedDistrictId);
+      } else if (activeScope === 'Blocks' && selectedBlockId) {
+        params.append('block_id', selectedBlockId);
+        console.log('🏘️  Block ID:', selectedBlockId);
+      } else if (activeScope === 'GPs' && selectedGPId) {
+        params.append('gp_id', selectedGPId);
+        console.log('🏡 GP ID:', selectedGPId);
+      }
+
+      // Add date range if available
+      if (startDate) {
+        params.append('start_date', startDate);
+        console.log('📅 Start Date:', startDate);
+      }
+      if (endDate) {
+        params.append('end_date', endDate);
+        console.log('📅 End Date:', endDate);
+      }
+
+      const url = `/inspections/analytics?${params.toString()}`;
+      console.log('🌐 Full API URL:', url);
+      console.log('🔗 Complete URL:', `${apiClient.defaults.baseURL}${url}`);
+      
+      const response = await apiClient.get(url);
+      
+      console.log('✅ Top Performers Location API Response:', {
+        status: response.status,
+        statusText: response.statusText,
+        data: response.data
+      });
+      
+      setTopPerformersLocationData(response.data);
+      
+      console.log('🔄 ===== END TOP PERFORMERS LOCATION API CALL =====\n');
+      
+    } catch (error) {
+      console.error('❌ ===== TOP PERFORMERS LOCATION API ERROR =====');
+      console.error('Error Type:', error.name);
+      console.error('Error Message:', error.message);
+      console.error('Error Details:', error.response?.data || error);
+      console.error('Status Code:', error.response?.status);
+      console.error('🔄 ===== END TOP PERFORMERS LOCATION API ERROR =====\n');
+      
+      setTopPerformersLocationError(error.message || 'Failed to fetch top performers location data');
+      setTopPerformersLocationData(null);
+    } finally {
+      setLoadingTopPerformersLocation(false);
+      topPerformersLocationCallInProgress.current = false;
+    }
+  }, [activeScope, selectedDistrictId, selectedBlockId, selectedGPId, startDate, endDate]);
+
+  // Fetch Performance Report data from API
+  const fetchPerformanceReportData = useCallback(async (level) => {
+    // Prevent duplicate calls
+    if (performanceReportCallInProgress.current) {
+      console.log('⏸️ Performance Report API call already in progress, skipping...');
+      return;
+    }
+    
+    try {
+      performanceReportCallInProgress.current = true;
+      setLoadingPerformanceReport(true);
+      setPerformanceReportError(null);
+
+      console.log('🔄 ===== PERFORMANCE REPORT API CALL =====');
+      console.log('📍 Current State:', {
+        level,
+        activeScope,
+        selectedLocation,
+        selectedDistrictId,
+        selectedBlockId,
+        selectedGPId,
+        startDate,
+        endDate
+      });
+
+      // Build query parameters based on selected scope
+      const params = new URLSearchParams();
+
+      // Map dropdown selection to API level
+      let apiLevel = 'DISTRICT';
+      if (level === 'Block') {
+        apiLevel = 'BLOCK';
+      } else if (level === 'GP') {
+        apiLevel = 'VILLAGE';
+      }
+      params.append('level', apiLevel);
+      console.log('📊 Level:', apiLevel);
+
+      // Add geography IDs based on selection
+      if (activeScope === 'Districts' && selectedDistrictId) {
+        params.append('district_id', selectedDistrictId);
+        console.log('🏙️  District ID:', selectedDistrictId);
+      } else if (activeScope === 'Blocks' && selectedBlockId) {
+        params.append('block_id', selectedBlockId);
+        console.log('🏘️  Block ID:', selectedBlockId);
+      } else if (activeScope === 'GPs' && selectedGPId) {
+        params.append('gp_id', selectedGPId);
+        console.log('🏡 GP ID:', selectedGPId);
+      }
+
+      // Add date range if available
+      if (startDate) {
+        params.append('start_date', startDate);
+        console.log('📅 Start Date:', startDate);
+      }
+      if (endDate) {
+        params.append('end_date', endDate);
+        console.log('📅 End Date:', endDate);
+      }
+
+      const url = `/inspections/performance-report?${params.toString()}`;
+      console.log('🌐 Full API URL:', url);
+      console.log('🔗 Complete URL:', `${apiClient.defaults.baseURL}${url}`);
+      
+      const response = await apiClient.get(url);
+      
+      console.log('✅ Performance Report API Response:', {
+        status: response.status,
+        statusText: response.statusText,
+        data: response.data
+      });
+      
+      setPerformanceReportData(response.data);
+      
+      console.log('🔄 ===== END PERFORMANCE REPORT API CALL =====\n');
+      
+    } catch (error) {
+      console.error('❌ ===== PERFORMANCE REPORT API ERROR =====');
+      console.error('Error Type:', error.name);
+      console.error('Error Message:', error.message);
+      console.error('Error Details:', error.response?.data || error);
+      console.error('Status Code:', error.response?.status);
+      console.error('🔄 ===== END PERFORMANCE REPORT API ERROR =====\n');
+      
+      setPerformanceReportError(error.message || 'Failed to fetch performance report data');
+      setPerformanceReportData(null);
+    } finally {
+      setLoadingPerformanceReport(false);
+      performanceReportCallInProgress.current = false;
+    }
+  }, [activeScope, selectedLocation, selectedDistrictId, selectedBlockId, selectedGPId, startDate, endDate]);
+
   // Effect to fetch analytics when scope or location changes
   useEffect(() => {
     fetchAnalyticsData();
@@ -741,13 +942,25 @@ const InspectionContent = () => {
 
   // Effect to fetch top performers data when dropdown selection changes
   useEffect(() => {
-    fetchTopPerformersData(selectedPerformersFilter1);
+    // Map CEO/BDO/VDO to District/Block/GP for API call
+    const level = mapRoleToLevel(selectedPerformersFilter1);
+    fetchTopPerformersData(level);
   }, [selectedPerformersFilter1, fetchTopPerformersData]);
 
   // Effect to fetch Your Inspections data when component mounts
   useEffect(() => {
     fetchYourInspectionsData(1);
   }, [fetchYourInspectionsData]);
+
+  // Effect to fetch performance report data when dropdown selection changes
+  useEffect(() => {
+    fetchPerformanceReportData(selectedPerformanceReportFilter);
+  }, [selectedPerformanceReportFilter, fetchPerformanceReportData]);
+
+  // Effect to fetch top performers location data when dropdown selection changes
+  useEffect(() => {
+    fetchTopPerformersLocationData(selectedPerformersFilter2);
+  }, [selectedPerformersFilter2, fetchTopPerformersLocationData]);
 
   // Effect to close dropdowns when clicking outside
   useEffect(() => {
@@ -832,6 +1045,21 @@ const InspectionContent = () => {
     return firstItem?.inspectors || [];
   };
 
+  // Helper functions to extract top 3 performers by location from analytics data
+  const getTopPerformersLocation = () => {
+    if (loadingTopPerformersLocation) return [];
+    if (topPerformersLocationError || !topPerformersLocationData || !topPerformersLocationData.response) {
+      return [];
+    }
+    
+    // Get response array, sort by average_score (descending), and take top 3
+    const sortedData = [...topPerformersLocationData.response]
+      .sort((a, b) => (b.average_score || 0) - (a.average_score || 0))
+      .slice(0, 3);
+    
+    return sortedData;
+  };
+
   // Helper functions to extract values from yourInspectionsData
   const getYourInspections = () => {
     if (loadingYourInspections) return [];
@@ -842,15 +1070,160 @@ const InspectionContent = () => {
     return yourInspectionsData.items || [];
   };
 
+  // Helper functions to extract values from performanceReportData
+  const getPerformanceReportItems = () => {
+    if (loadingPerformanceReport) return [];
+    if (performanceReportError || !performanceReportData || !performanceReportData.line_items) {
+      return [];
+    }
+    
+    return performanceReportData.line_items || [];
+  };
+
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
     const date = new Date(dateString);
     return date.toLocaleDateString('en-GB'); // DD/MM/YYYY format
   };
 
+  // Build notice target for performance report
+  const buildNoticeTarget = useCallback((item, type) => {
+    if (!item) {
+      return null;
+    }
+
+    const baseTarget = {
+      name: item.geo_name || item.name || 'Location',
+      type: type || selectedPerformanceReportFilter,
+      districtId: null,
+      blockId: null,
+      gpId: null,
+    };
+
+    if (type === 'District' || selectedPerformanceReportFilter === 'District') {
+      baseTarget.districtId = item.geo_id ?? item.id ?? null;
+    } else if (type === 'Block' || selectedPerformanceReportFilter === 'Block') {
+      baseTarget.blockId = item.geo_id ?? item.id ?? null;
+      baseTarget.districtId = selectedDistrictId ?? null;
+    } else if (type === 'GP' || selectedPerformanceReportFilter === 'GP') {
+      baseTarget.gpId = item.geo_id ?? item.id ?? null;
+      baseTarget.blockId = selectedBlockId ?? null;
+      baseTarget.districtId = selectedDistrictId ?? null;
+    }
+
+    return baseTarget;
+  }, [selectedPerformanceReportFilter, selectedDistrictId, selectedBlockId]);
+
+  const handleOpenNoticeModal = useCallback((item, type) => {
+    const target = buildNoticeTarget(item, type);
+    if (!target) {
+      return;
+    }
+
+    // Set recipient based on type (CEO for District, BDO for Block, VDO for GP)
+    if (target.type === 'District') {
+      target.recipient = 'CEO';
+    } else if (target.type === 'Block') {
+      target.recipient = 'BDO';
+    } else if (target.type === 'GP') {
+      target.recipient = 'VDO';
+    }
+
+    // Set module data for notice template
+    setNoticeModuleData({
+      moduleName: 'Inspections',
+      kpiName: item.geo_name || item.name || 'Performance',
+      kpiFigure: item.average_score ? `${item.average_score.toFixed(0)}%` : 'N/A'
+    });
+
+    setSelectedNoticeTarget(target);
+    setShowSendNoticeModal(true);
+  }, [buildNoticeTarget]);
+
+  const handleCloseNoticeModal = useCallback(() => {
+    setShowSendNoticeModal(false);
+    setSelectedNoticeTarget(null);
+  }, []);
+
+  // Handler for opening notice modal from My Inspections
+  const handleOpenNoticeModalFromInspection = useCallback((inspection) => {
+    if (!inspection) {
+      return;
+    }
+
+    // Build target for the inspection (GP/Village level)
+    const target = {
+      name: inspection.village_name || inspection.gp_name || 'Location',
+      type: 'GP',
+      districtId: inspection.district_id || selectedDistrictId || null,
+      blockId: inspection.block_id || selectedBlockId || null,
+      gpId: inspection.gp_id || selectedGPId || null,
+      recipient: 'VDO'
+    };
+
+    // Set module data for notice template
+    setNoticeModuleData({
+      moduleName: 'Inspections',
+      kpiName: `${inspection.village_name || 'Village'} - Inspection`,
+      kpiFigure: `Score: ${inspection.overall_score || 0}%, ${inspection.visibly_clean ? 'Clean' : 'Not Clean'}`
+    });
+
+    setSelectedNoticeTarget(target);
+    setShowSendNoticeModal(true);
+  }, [selectedDistrictId, selectedBlockId, selectedGPId]);
+
   // Dropdown options for Top Performers
-  const performersFilterOptions1 = ['District', 'Block', 'GP'];
-  const performersFilterOptions2 = ['District', 'Block', 'GP'];
+  const performersFilterOptions1 = ['CEO', 'BDO', 'VDO']; // For inspector-based performers
+  const performersFilterOptions2 = ['District', 'Block', 'GP']; // For location-based performers
+
+  // Helper function to map role to geographic level
+  const mapRoleToLevel = (role) => {
+    const roleMapping = {
+      'CEO': 'District',
+      'BDO': 'Block',
+      'VDO': 'GP'
+    };
+    return roleMapping[role] || role;
+  };
+
+  // Helper function to generate chart data from analytics
+  const getChartData = () => {
+    if (!analyticsData || !analyticsData.response || analyticsData.response.length === 0) {
+      return {
+        categories: [],
+        belowAverage: [],
+        aboveAverage: [],
+        stateAverage: 0
+      };
+    }
+
+    const data = analyticsData.response;
+    
+    // Calculate state average from coverage_percentage
+    const totalCoverage = data.reduce((sum, item) => sum + (item.coverage_percentage || 0), 0);
+    const stateAverage = data.length > 0 ? totalCoverage / data.length : 0;
+    
+    // Extract categories (geography names)
+    const categories = data.map(item => item.geography_name || 'N/A');
+    
+    // Split data into above and below average
+    const belowAverage = data.map(item => {
+      const coverage = item.coverage_percentage || 0;
+      return coverage < stateAverage ? coverage : 0;
+    });
+    
+    const aboveAverage = data.map(item => {
+      const coverage = item.coverage_percentage || 0;
+      return coverage >= stateAverage ? coverage : 0;
+    });
+    
+    return {
+      categories,
+      belowAverage,
+      aboveAverage,
+      stateAverage
+    };
+  };
 
   // Dropdown click handlers
   const handlePerformersDropdown1Click = () => {
@@ -886,7 +1259,9 @@ const InspectionContent = () => {
     setShowPerformanceReportDropdown(false);
   };
 
-  // Chart data for State Performance Score
+  // Chart data for State Performance Score - Dynamic based on analyticsData
+  const chartData = getChartData();
+  
   const chartOptions = {
     chart: {
       type: 'bar',
@@ -906,7 +1281,7 @@ const InspectionContent = () => {
       enabled: false
     },
     xaxis: {
-      categories: ['Ajmer', 'Anupgarh', 'Balotra', 'Baran', 'Barmer', 'Beawar', 'Bharatpur', 'Bhilwara', 'Bikaner', 'Bundi', 'Chittorgarh', 'Dausa', 'Deeg', 'Location 15', 'Didwana-Kuchaman', 'Dholpur'],
+      categories: chartData.categories,
       labels: {
         style: {
           fontSize: '11px',
@@ -951,12 +1326,15 @@ const InspectionContent = () => {
     annotations: {
       yaxis: [
         {
-          y: 65,
+          y: chartData.stateAverage,
           borderColor: '#9ca3af',
           borderWidth: 2,
           strokeDashArray: 5,
           label: {
-            text: 'State Average',
+            text: activeScope === 'State' ? 'District Average' : 
+                  activeScope === 'Districts' ? 'Block Average' : 
+                  activeScope === 'Blocks' ? 'GP Average' : 
+                  'Village Average',
             style: {
               color: '#6b7280',
               fontSize: '12px'
@@ -968,14 +1346,19 @@ const InspectionContent = () => {
     }
   };
 
+  const averageLabel = activeScope === 'State' ? 'district average' : 
+                        activeScope === 'Districts' ? 'block average' : 
+                        activeScope === 'Blocks' ? 'GP average' : 
+                        'village average';
+  
   const chartSeries = [
     {
-      name: 'Below state average',
-      data: [15, 15, 0, 0, 38, 0, 43, 42, 0, 0, 0, 0, 0, 49, 54, 0]
+      name: `Below ${averageLabel}`,
+      data: chartData.belowAverage
     },
     {
-      name: 'Above state average', 
-      data: [0, 0, 72, 72, 0, 72, 0, 0, 75, 75, 75, 76, 76, 0, 0, 80]
+      name: `Above ${averageLabel}`, 
+      data: chartData.aboveAverage
     }
   ];
 
@@ -1215,9 +1598,13 @@ const InspectionContent = () => {
         </div>
       </div>
 
-   {/* Location Indicator */}
+   {/* Location Indicator and My Inspections Button OR Back Button */}
+   {!showMyInspections ? (
    <div style={{
-        padding: '10px 0px 0px 16px',
+        padding: '10px 16px 0px 16px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between'
       }}>
         <span style={{
           fontSize: '14px',
@@ -1226,9 +1613,53 @@ const InspectionContent = () => {
         }}>
           {activeScope === 'State' ? selectedLocation : `Rajasthan / ${selectedLocation}`}
         </span>
+        
+        {/* My Inspections Button */}
+        <button
+          onClick={() => setShowMyInspections(true)}
+          style={{
+            padding: '8px 16px',
+            backgroundColor: '#10b981',
+            color: 'white',
+            border: 'none',
+            borderRadius: '20px',
+            fontSize: '14px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+            boxShadow: '0 2px 4px rgba(16, 185, 129, 0.2)'
+          }}
+        >
+          My inspections ({yourInspectionsData?.total || '0'})
+        </button>
       </div>
+   ) : (
+   <div style={{
+        padding: '10px 16px 0px 16px',
+      }}>
+        <button
+          onClick={() => setShowMyInspections(false)}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '6px 12px',
+            backgroundColor: 'transparent',
+            border: 'none',
+            fontSize: '16px',
+            color: '#374151',
+            cursor: 'pointer',
+            fontWeight: '500'
+          }}
+        >
+          <ChevronRight style={{ width: '18px', height: '18px', transform: 'rotate(180deg)' }} />
+          Back
+        </button>
+      </div>
+   )}
 
-      {/* Overview Section */}
+      {/* Overview Section - Hide when My Inspections is active */}
+      {!showMyInspections && (
       <div style={{
         backgroundColor: 'white',
         padding: '24px',
@@ -1636,7 +2067,10 @@ const InspectionContent = () => {
                 color: '#111827',
                 margin: 0
               }}>
-                State performance score
+                {activeScope === 'State' ? 'District performance score' : 
+                 activeScope === 'Districts' ? 'Block performance score' : 
+                 activeScope === 'Blocks' ? 'GP performance score' : 
+                 'Village performance score'}
               </h3>
               
               {/* Legend */}
@@ -1655,7 +2089,12 @@ const InspectionContent = () => {
                     borderRadius: '50%',
                     backgroundColor: '#ef4444'
                   }}></div>
-                  <span style={{ fontSize: '12px', color: '#6b7280' }}>Below state average</span>
+                  <span style={{ fontSize: '12px', color: '#6b7280' }}>
+                    Below {activeScope === 'State' ? 'district average' : 
+                           activeScope === 'Districts' ? 'block average' : 
+                           activeScope === 'Blocks' ? 'GP average' : 
+                           'village average'}
+                  </span>
                 </div>
                 <div style={{
                   display: 'flex',
@@ -1668,7 +2107,12 @@ const InspectionContent = () => {
                     borderRadius: '50%',
                     backgroundColor: '#10b981'
                   }}></div>
-                  <span style={{ fontSize: '12px', color: '#6b7280' }}>Above state average</span>
+                  <span style={{ fontSize: '12px', color: '#6b7280' }}>
+                    Above {activeScope === 'State' ? 'district average' : 
+                           activeScope === 'Districts' ? 'block average' : 
+                           activeScope === 'Blocks' ? 'GP average' : 
+                           'village average'}
+                  </span>
                 </div>
               </div>
             </div>
@@ -1678,19 +2122,65 @@ const InspectionContent = () => {
               backgroundColor: '#e5e7eb',
               margin: '12px 0'
             }}></div>
+            
+            {/* Loading State */}
+            {loadingAnalytics && (
+              <div style={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                height: '300px',
+                color: '#6b7280',
+                fontSize: '14px'
+              }}>
+                Loading chart data...
+              </div>
+            )}
+            
+            {/* Error State */}
+            {analyticsError && !loadingAnalytics && (
+              <div style={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                height: '300px',
+                color: '#ef4444',
+                fontSize: '14px'
+              }}>
+                Error loading chart data
+              </div>
+            )}
+            
             {/* Chart */}
-            <Chart
-              options={chartOptions}
-              series={chartSeries}
-              type="bar"
-              height={300}
-              width="100%"
-              backgroundColor="white"
-            />
+            {!loadingAnalytics && !analyticsError && chartData.categories.length > 0 && (
+              <Chart
+                options={chartOptions}
+                series={chartSeries}
+                type="bar"
+                height={300}
+                width="100%"
+              />
+            )}
+            
+            {/* Empty State */}
+            {!loadingAnalytics && !analyticsError && chartData.categories.length === 0 && (
+              <div style={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                height: '300px',
+                color: '#6b7280',
+                fontSize: '14px'
+              }}>
+                No data available for chart
+              </div>
+            )}
           </div>
         </div>
+      )}
 
         {/* Bottom Sections - Critical Issues and Top Performers */}
+        {!showMyInspections && (
         <div style={{
           display: 'grid',
           gridTemplateColumns: '1fr 1fr',
@@ -1924,7 +2414,7 @@ const InspectionContent = () => {
             }}>
               <div>Rank</div>
               <div>Name</div>
-              <div>District</div>
+              <div>Location</div>
               <div>Inspections</div>
             </div>
             
@@ -1992,8 +2482,10 @@ const InspectionContent = () => {
             })}
           </div>
         </div>
+        )}
 
         {/* Additional Sections - Top 3 Performers and Performance Report */}
+        {!showMyInspections && (
         <div style={{
           display: 'grid',
           gridTemplateColumns: '1fr 2fr',
@@ -2095,12 +2587,12 @@ const InspectionContent = () => {
               textTransform: 'uppercase'
             }}>
               <div>Rank</div>
-              <div>District</div>
+              <div>{selectedPerformersFilter2}</div>
               <div>Score</div>
             </div>
             
             {/* Loading State */}
-            {loadingTopPerformers && (
+            {loadingTopPerformersLocation && (
               <div style={{
                 display: 'flex',
                 justifyContent: 'center',
@@ -2114,7 +2606,7 @@ const InspectionContent = () => {
             )}
 
             {/* Error State */}
-            {topPerformersError && !loadingTopPerformers && (
+            {topPerformersLocationError && !loadingTopPerformersLocation && (
               <div style={{
                 display: 'flex',
                 justifyContent: 'center',
@@ -2126,17 +2618,17 @@ const InspectionContent = () => {
                 borderRadius: '8px',
                 margin: '10px 0'
               }}>
-                Error: {topPerformersError}
+                Error: {topPerformersLocationError}
               </div>
             )}
 
             {/* Data State */}
-            {!loadingTopPerformers && !topPerformersError && getTopPerformers().map((performer, index) => {
+            {!loadingTopPerformersLocation && !topPerformersLocationError && getTopPerformersLocation().map((performer, index) => {
               const rankImages = [number1, number2, number3];
               const rankImage = rankImages[index] || number3;
               
               return (
-                <div key={performer.geo_id || index} style={{
+                <div key={performer.geography_id || index} style={{
                   display: 'grid',
                   gridTemplateColumns: '80px 1fr 100px',
                   gap: '12px',
@@ -2155,8 +2647,10 @@ const InspectionContent = () => {
                       }} 
                     />
                   </div>
-                  <div style={{ fontSize: '14px', color: '#374151' }}>{performer.geo_name || 'N/A'}</div>
-                  <div style={{ fontSize: '14px', fontWeight: '600', color: '#111827' }}>{performer.inspections_count || 0}</div>
+                  <div style={{ fontSize: '14px', color: '#374151' }}>{performer.geography_name || 'N/A'}</div>
+                  <div style={{ fontSize: '14px', fontWeight: '600', color: '#111827' }}>
+                    {performer.average_score ? `${performer.average_score.toFixed(0)}%` : '0%'}
+                  </div>
                 </div>
               );
             })}
@@ -2245,10 +2739,10 @@ const InspectionContent = () => {
             {/* Table Header with Sort Icons */}
             <div style={{
               display: 'grid',
-              gridTemplateColumns: '1fr 190px 190px 100px',
+              gridTemplateColumns: '1fr 100px 120px',
               gap: '1px',
               padding: '12px',
-              backgroundColor: '#f9fafb',
+              backgroundColor: '#f3f4f6',
               borderRadius: '8px',
               marginBottom: '8px',
               fontSize: '12px',
@@ -2257,21 +2751,7 @@ const InspectionContent = () => {
               textTransform: 'uppercase'
             }}>
               <div style={{ display: 'flex', alignItems: 'start', justifyContent: 'start', gap: '4px' }}>
-                District
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <span style={{ fontSize: '10px', lineHeight: '1' }}>▲</span>
-                  <span style={{ fontSize: '10px', lineHeight: '1' }}>▼</span>
-                </div>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                Score
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <span style={{ fontSize: '10px', lineHeight: '1' }}>▲</span>
-                  <span style={{ fontSize: '10px', lineHeight: '1' }}>▼</span>
-                </div>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                Inspections
+                {selectedPerformanceReportFilter}
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                   <span style={{ fontSize: '10px', lineHeight: '1' }}>▲</span>
                   <span style={{ fontSize: '10px', lineHeight: '1' }}>▼</span>
@@ -2284,88 +2764,99 @@ const InspectionContent = () => {
                   <span style={{ fontSize: '10px', lineHeight: '1' }}>▼</span>
                 </div>
               </div>
+              <div></div>
             </div>
             
-            {/* Performance Data Rows */}
+            {/* Loading State */}
+            {loadingPerformanceReport && (
+              <div style={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                padding: '40px 20px',
+                color: '#6b7280',
+                fontSize: '14px'
+              }}>
+                Loading performance report...
+              </div>
+            )}
+
+            {/* Error State */}
+            {performanceReportError && !loadingPerformanceReport && (
+              <div style={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                padding: '40px 20px',
+                color: '#ef4444',
+                fontSize: '14px',
+                backgroundColor: '#fef2f2',
+                borderRadius: '8px',
+                margin: '10px 0'
+              }}>
+                Error: {performanceReportError}
+              </div>
+            )}
+
+            {/* Performance Data Rows - From API */}
+            {!loadingPerformanceReport && !performanceReportError && (
             <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
-              {/* Row 1 */}
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 190px 190px 100px',
-                gap: '1px',
-                padding: '12px',
-                alignItems: 'center',
-                borderBottom: '1px solid #f3f4f6'
-              }}>
-                <div style={{ fontSize: '14px', color: '#374151' }}>Jodhpur</div>
-                <div style={{ fontSize: '14px', fontWeight: '400', color: '#111827' }}>80%</div>
-                <div style={{ fontSize: '14px', color: '#374151' }}>350</div>
-                <div style={{ fontSize: '14px', color: '#374151' }}>80%</div>
-              </div>
+              {getPerformanceReportItems().map((item, index) => (
+                <div key={item.geo_id || index} style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 100px 120px',
+                  gap: '1px',
+                  padding: '12px',
+                  alignItems: 'center',
+                  borderBottom: index < getPerformanceReportItems().length - 1 ? '1px solid #f3f4f6' : 'none'
+                }}>
+                  <div style={{ fontSize: '14px', color: '#374151' }}>
+                    {item.geo_name || 'N/A'}
+                  </div>
+                  <div style={{ fontSize: '14px', color: '#374151' }}>
+                    {item.coverage_percentage ? `${item.coverage_percentage.toFixed(0)}%` : '0%'}
+                  </div>
+                  <div>
+                    <button
+                      onClick={() => handleOpenNoticeModal(item, selectedPerformanceReportFilter)}
+                      style={{
+                        padding: '6px 12px',
+                        backgroundColor: '#f3f4f6',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '8px',
+                        fontSize: '12px',
+                        color: '#374151',
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      Send notice
+                    </button>
+                  </div>
+                </div>
+              ))}
               
-              {/* Row 2 */}
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 190px 190px 100px',
-                gap: '1px',
-                padding: '12px',
-                alignItems: 'center',
-                borderBottom: '1px solid #f3f4f6'
-              }}>
-                <div style={{ fontSize: '14px', color: '#374151' }}>Jaipur</div>
-                <div style={{ fontSize: '14px', fontWeight: '400', color: '#111827' }}>80%</div>
-                <div style={{ fontSize: '14px', color: '#374151' }}>325</div>
-                <div style={{ fontSize: '14px', color: '#374151' }}>75%</div>
-              </div>
-              
-              {/* Row 3 */}
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 190px 190px 100px',
-                gap: '1px',
-                padding: '12px',
-                alignItems: 'center',
-                borderBottom: '1px solid #f3f4f6'
-              }}>
-                <div style={{ fontSize: '14px', color: '#374151' }}>Udaipur</div>
-                <div style={{ fontSize: '14px', fontWeight: '400', color: '#111827' }}>60%</div>
-                <div style={{ fontSize: '14px', color: '#374151' }}>280</div>
-                <div style={{ fontSize: '14px', color: '#374151' }}>70%</div>
-              </div>
-              
-              {/* Row 4 */}
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 190px 190px 100px',
-                gap: '1px',  
-                padding: '12px',
-                alignItems: 'center',
-                borderBottom: '1px solid #f3f4f6'
-              }}>
-                <div style={{ fontSize: '14px', color: '#374151' }}>Ajmer</div>
-                <div style={{ fontSize: '14px', fontWeight: '400', color: '#111827' }}>45%</div>
-                <div style={{ fontSize: '14px', color: '#374151' }}>200</div>
-                <div style={{ fontSize: '14px', color: '#374151' }}>60%</div>
-              </div>
-              
-              {/* Row 5 */}
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 190px 190px 100px',
-                gap: '1px',
-                padding: '12px',
-                alignItems: 'center'
-              }}>
-                <div style={{ fontSize: '14px', color: '#374151' }}>Bikaner</div>
-                <div style={{ fontSize: '14px', fontWeight: '400', color: '#111827' }}>70%</div>
-                <div style={{ fontSize: '14px', color: '#374151' }}>250</div>
-                <div style={{ fontSize: '14px', color: '#374151' }}>65%</div>
-              </div>
+              {/* Empty State */}
+              {getPerformanceReportItems().length === 0 && (
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  padding: '40px 20px',
+                  color: '#6b7280',
+                  fontSize: '14px'
+                }}>
+                  No performance data available
+                </div>
+              )}
             </div>
+            )}
           </div>
         </div>
+        )}
 
-        {/* Your Inspections Table */}
+        {/* Your Inspections Table - Conditionally rendered */}
+        {showMyInspections && (
         <div style={{
           marginTop: '16px',
           marginLeft: '16px',
@@ -2373,26 +2864,27 @@ const InspectionContent = () => {
         }}>
           <div style={{
             backgroundColor: 'white',
-            padding: '14px',
+            padding: '20px',
             borderRadius: '12px',
             border: '1px solid #e5e7eb',
             boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
           }}>
+            {/* Header */}
             <h3 style={{
-              fontSize: '18px',
+              fontSize: '20px',
               fontWeight: '600',
               color: '#111827',
               margin: '0 0 20px 0'
             }}>
-              Your Inspections
+              My Inspections ({yourInspectionsData?.total || '0'})
             </h3>
             
             {/* Table Header */}
             <div style={{
               display: 'grid',
-              gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr',
-              gap: '20px',
-              padding: '12px',
+              gridTemplateColumns: '120px 1.5fr 1.5fr 120px 120px 180px',
+              gap: '16px',
+              padding: '12px 16px',
               backgroundColor: '#f9fafb',
               borderRadius: '8px',
               marginBottom: '8px',
@@ -2409,7 +2901,7 @@ const InspectionContent = () => {
                 </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                Block Name
+                Village Name
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                   <span style={{ fontSize: '10px', lineHeight: '1' }}>▲</span>
                   <span style={{ fontSize: '10px', lineHeight: '1' }}>▼</span>
@@ -2476,9 +2968,9 @@ const InspectionContent = () => {
                 {getYourInspections().map((inspection, index) => (
                   <div key={inspection.id || index} style={{
                     display: 'grid',
-                    gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr',
-                    gap: '20px',
-                    padding: '12px',
+                    gridTemplateColumns: '120px 1.5fr 1.5fr 120px 120px 180px',
+                    gap: '16px',
+                    padding: '12px 16px',
                     alignItems: 'center',
                     borderBottom: index < getYourInspections().length - 1 ? '1px solid #f3f4f6' : 'none'
                   }}>
@@ -2486,28 +2978,48 @@ const InspectionContent = () => {
                       {formatDate(inspection.date)}
                     </div>
                     <div style={{ fontSize: '14px', color: '#374151' }}>
-                      {inspection.block_name || 'N/A'}
+                      {inspection.village_name || 'Village name'}
                     </div>
                     <div style={{ fontSize: '14px', color: '#374151' }}>
-                      {inspection.village_name || 'N/A'}
+                      {inspection.gp_name || 'GP name'}
                     </div>
                     <div style={{ fontSize: '14px', fontWeight: '600', color: '#111827' }}>
                       {inspection.overall_score || 0}%
                     </div>
                     <div style={{ 
                       fontSize: '14px', 
-                      fontWeight: '500',
+                      fontWeight: '600',
                       color: inspection.visibly_clean ? '#10b981' : '#ef4444'
                     }}>
                       {inspection.visibly_clean ? 'Yes' : 'No'}
                     </div>
                     <div style={{ 
-                      fontSize: '14px', 
-                      color: '#6b7280', 
-                      cursor: 'pointer', 
-                      textDecoration: 'underline' 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '8px' 
                     }}>
-                      Download report
+                      <button
+                        onClick={() => handleOpenNoticeModalFromInspection(inspection)}
+                        style={{
+                          padding: '6px 12px',
+                          backgroundColor: '#f3f4f6',
+                          border: '1px solid #d1d5db',
+                          borderRadius: '8px',
+                          fontSize: '12px',
+                          color: '#374151',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Send notice
+                      </button>
+                      <Download 
+                        style={{ 
+                          width: '18px', 
+                          height: '18px', 
+                          color: '#6b7280',
+                          cursor: 'pointer'
+                        }} 
+                      />
                     </div>
                   </div>
                 ))}
@@ -2563,6 +3075,18 @@ const InspectionContent = () => {
             )}
           </div>
         </div>
+        )}
+
+      {/* Send Notice Modal */}
+      <SendNoticeModal
+        isOpen={showSendNoticeModal}
+        onClose={handleCloseNoticeModal}
+        target={selectedNoticeTarget}
+        onSent={handleCloseNoticeModal}
+        moduleName={noticeModuleData.moduleName}
+        kpiName={noticeModuleData.kpiName}
+        kpiFigure={noticeModuleData.kpiFigure}
+      />
       </div>
   );
 };
