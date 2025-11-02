@@ -195,6 +195,18 @@ const AttendanceContent = () => {
       return null;
     }
 
+    // For GP view, use the selected GP's information
+    if (activeScope === 'GPs') {
+      const target = {
+        name: selectedLocation || '',
+        type: 'GP',
+        districtId: selectedDistrictId ?? null,
+        blockId: selectedBlockId ?? null,
+        gpId: selectedGPId ?? null,
+      };
+      return target;
+    }
+
     const target = {
       name: item.name,
       type: null,
@@ -224,7 +236,7 @@ const AttendanceContent = () => {
     }
 
     return target;
-  }, [activeScope, blocks, gramPanchayats, selectedBlockId, selectedDistrictId]);
+  }, [activeScope, blocks, gramPanchayats, selectedBlockId, selectedDistrictId, selectedGPId, selectedLocation]);
 
   const handleOpenNoticeModal = useCallback((item) => {
     const target = buildNoticeTarget(item);
@@ -1411,7 +1423,24 @@ const AttendanceContent = () => {
       return [];
     }
 
-    // Group data by geography and calculate average attendance
+    // For GP view, show date-wise data
+    if (activeScope === 'GPs') {
+      return apiData.response.map(item => {
+        const status = (item.present_count || 0) > 0 ? 'Present' : 'Absent';
+        return {
+          id: `${item.geography_id}_${item.date}`,
+          date: item.date,
+          status: status,
+          present_count: item.present_count || 0,
+          absent_count: item.absent_count || 0,
+          attendance_rate: item.attendance_rate || 0,
+          geography_id: item.geography_id,
+          geography_name: item.geography_name
+        };
+      }).sort((a, b) => new Date(b.date) - new Date(a.date)); // Sort by date, newest first
+    }
+
+    // For other views, group data by geography and calculate average attendance
     const geographyMap = new Map();
 
     apiData.response.forEach(item => {
@@ -1461,20 +1490,48 @@ const AttendanceContent = () => {
   const getFilteredAndSortedHistoryData = () => {
     let filteredData = [...attendanceHistoryData];
 
+    // For GP view, filter and sort by date
+    if (activeScope === 'GPs') {
+      // Apply search filter (search in date or status)
+      if (historySearchTerm.trim()) {
+        const searchLower = historySearchTerm.toLowerCase();
+        filteredData = filteredData.filter(item =>
+          item.date?.toLowerCase().includes(searchLower) ||
+          item.status?.toLowerCase().includes(searchLower)
+        );
+      }
+
+      // Apply sorting by date
+      filteredData.sort((a, b) => {
+        const dateA = new Date(a.date);
+        const dateB = new Date(b.date);
+        if (historySortOrder === 'asc') {
+          return dateA - dateB;
+        } else {
+          return dateB - dateA;
+        }
+      });
+
+      return filteredData;
+    }
+
+    // For other views, filter and sort by name
     // Apply search filter
     if (historySearchTerm.trim()) {
       const searchLower = historySearchTerm.toLowerCase();
       filteredData = filteredData.filter(item =>
-        item.name.toLowerCase().includes(searchLower)
+        item.name?.toLowerCase().includes(searchLower)
       );
     }
 
-    // Apply sorting
+    // Apply sorting (with safety check for undefined names)
     filteredData.sort((a, b) => {
+      const nameA = a.name || '';
+      const nameB = b.name || '';
       if (historySortOrder === 'asc') {
-        return a.name.localeCompare(b.name);
+        return nameA.localeCompare(nameB);
       } else {
-        return b.name.localeCompare(a.name);
+        return nameB.localeCompare(nameA);
       }
     });
 
@@ -1499,6 +1556,12 @@ const AttendanceContent = () => {
     
     return diffDays > 0;
   };
+
+  // Clear attendance history data when scope changes to prevent showing mismatched data
+  useEffect(() => {
+    console.log('🧹 Clearing attendance history data due to scope change');
+    setAttendanceHistoryData([]);
+  }, [activeScope]);
 
   // Fetch attendance history when scope, location, or date range changes
   useEffect(() => {
@@ -2749,7 +2812,8 @@ const AttendanceContent = () => {
         </div>
       </div>
 
-        {/* Top 3 and State Performance Section */}
+        {/* Top 3 and State Performance Section - Hidden in GP view */}
+        {activeScope !== 'GPs' && (
         <div style={{
           display: 'flex',
           gap: '16px',
@@ -3448,6 +3512,7 @@ const AttendanceContent = () => {
           </div>
         </div>
       </div>
+        )}
 
         {/* Attendance History Section */}
         <div style={{
@@ -3671,7 +3736,9 @@ const AttendanceContent = () => {
 
           {/* Attendance History Table */}
           <div style={{
-            overflowX: 'auto'
+            overflowX: 'auto',
+            maxHeight: '1000px',
+            overflowY: 'auto'
           }}>
             <table style={{
               width: '100%',
@@ -3689,7 +3756,8 @@ const AttendanceContent = () => {
                     color: '#374151',
                     position: 'relative'
                   }}>
-                     {activeScope === 'State' ? 'District name' : 
+                     {activeScope === 'GPs' ? 'Date' : 
+                      activeScope === 'State' ? 'District name' : 
                       activeScope === 'Districts' ? 'Block name' : 
                       activeScope === 'Blocks' ? 'GP name' : 'Village name'}
                     <div style={{
@@ -3711,7 +3779,7 @@ const AttendanceContent = () => {
                     color: '#374151',
                     position: 'relative'
                   }}>
-                    Attendance (%)
+                    {activeScope === 'GPs' ? 'Status' : 'Attendance (%)'}
                     <div style={{
                       position: 'absolute',
                       right: '8px',
@@ -3723,7 +3791,15 @@ const AttendanceContent = () => {
                       ↕
                     </div>
                   </th>
-                 
+                  <th style={{
+                    padding: '12px',
+                    textAlign: 'right',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    color: '#374151'
+                  }}>
+                    Action
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -3772,14 +3848,21 @@ const AttendanceContent = () => {
                         fontSize: '14px',
                         color: '#374151'
                       }}>
-                        {item.name}
+                        {activeScope === 'GPs' ? (
+                          // Format date as DD/MM/YYYY
+                          item.date ? new Date(item.date).toLocaleDateString('en-GB') : item.date
+                        ) : (
+                          item.name || '-'
+                        )}
                       </td>
                       <td style={{
                         padding: '12px',
                         fontSize: '14px',
-                        color: '#374151'
+                        color: activeScope === 'GPs' 
+                          ? (item.status === 'Present' ? '#10b981' : '#ef4444')
+                          : '#374151'
                       }}>
-                        {item.attendancePercentage}%
+                        {activeScope === 'GPs' ? (item.status || '-') : `${item.attendancePercentage || 0}%`}
                       </td>
                       <td style={{
                         padding: '12px',
