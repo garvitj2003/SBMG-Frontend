@@ -56,6 +56,24 @@ The application is set up with demo authentication. Use the following credential
   - BDO (Block Development Officer)
   - VDO (Village Development Officer)
 
+## 🗺️ Google Maps Setup
+
+For GPS tracking features to work, you need to configure Google Maps API:
+
+1. Create a `.env` file in the root directory:
+```bash
+VITE_GOOGLE_MAPS_API_KEY=your_google_maps_api_key_here
+```
+
+2. Get your API key from [Google Cloud Console](https://console.cloud.google.com/)
+   - Enable "Maps JavaScript API"
+   - Enable "Maps Embed API" (optional)
+   - Add HTTP referrer restrictions for security
+
+3. For production deployment:
+   - **GitHub Actions**: Add `VITE_GOOGLE_MAPS_API_KEY` as a secret in your repository settings
+   - **Vercel**: Add the environment variable in your project settings
+
 ## 📁 Project Structure
 
 ```

@@ -59,9 +59,15 @@ const GoogleMapView = ({
   center = null,
   zoom = 13,
 }) => {
+  // Debug: Check if API key is available
+  const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+  console.log('🗺️ Google Maps API Key:', apiKey ? `${apiKey.substring(0, 10)}...` : 'NOT FOUND');
+
   const { isLoaded, loadError } = useJsApiLoader({
     id: 'google-map-script',
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
+    googleMapsApiKey: apiKey,
+    language: 'en',
+    region: 'IN',
   });
 
   // Calculate center based on vehicles if not provided
@@ -81,6 +87,7 @@ const GoogleMapView = ({
   }, [vehicles, selectedVehicle, center]);
 
   if (loadError) {
+    console.error('🗺️ Google Maps Load Error:', loadError);
     return (
       <div style={{
         width: '100%',
@@ -90,6 +97,7 @@ const GoogleMapView = ({
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: '#f3f4f6',
+        padding: '20px',
       }}>
         <div style={{
           fontSize: '16px',
@@ -102,9 +110,20 @@ const GoogleMapView = ({
         <div style={{
           fontSize: '14px',
           color: '#6b7280',
+          marginBottom: '8px',
+          textAlign: 'center',
         }}>
-          Please check your API key and internet connection
+          {loadError.message || 'Please check your API key and internet connection'}
         </div>
+        {!apiKey && (
+          <div style={{
+            fontSize: '12px',
+            color: '#dc2626',
+            textAlign: 'center',
+          }}>
+            ⚠️ API key is missing. Please configure VITE_GOOGLE_MAPS_API_KEY environment variable.
+          </div>
+        )}
       </div>
     );
   }
