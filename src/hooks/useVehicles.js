@@ -47,28 +47,42 @@ export const useVehicles = (location = {}, options = {}) => {
         gp_id: location.gpId,
       });
       
-      // Backend returns: [{vehicle_no, imei, id, gp_id}]
-      const vehicles = response.data || [];
+      // Backend now returns: {date_, location, summary, vehicles: [...]}
+      // Extract vehicles array from response
+      const responseData = response.data || {};
+      const vehicles = responseData.vehicles || [];
       
-      // Add mock GPS data to each vehicle
-      return vehicles.map(vehicle => ({
-        ...vehicle,
-        vehicle_id: vehicle.id,
-        vehicle_name: `Vehicle ${vehicle.vehicle_no}`,
-        status: generateMockStatus(vehicle.id),
-        speed: Math.floor(Math.random() * 60), // Mock speed 0-60 km/h
-        coordinates: generateMockCoordinates(vehicle.id),
-        last_updated: new Date().toISOString(),
-        isFlagged: false, // No flagged vehicles for now
-        // Optional: Add mock route for moving vehicles
-        route: generateMockStatus(vehicle.id) === 'running' ? [
-          generateMockCoordinates(vehicle.id),
-          {
-            lat: generateMockCoordinates(vehicle.id).lat + 0.005,
-            lng: generateMockCoordinates(vehicle.id).lng + 0.005,
-          }
-        ] : []
-      }));
+      // Transform vehicles to match frontend expectations
+      return vehicles.map(vehicle => {
+        // Transform coordinates: API uses {lat, long} but Google Maps needs {lat, lng}
+        const coordinates = vehicle.coordinates 
+          ? {
+              lat: vehicle.coordinates.lat,
+              lng: vehicle.coordinates.long || vehicle.coordinates.lng
+            }
+          : null;
+        
+        // Transform route array: API uses [{lat, long}, ...] but Google Maps needs [{lat, lng}, ...]
+        const route = vehicle.route && Array.isArray(vehicle.route)
+          ? vehicle.route.map(point => ({
+              lat: point.lat,
+              lng: point.long || point.lng
+            }))
+          : [];
+        
+        return {
+          ...vehicle,
+          vehicle_id: vehicle.vehicle_id || vehicle.id,
+          vehicle_name: vehicle.name || `Vehicle ${vehicle.vehicle_no}`,
+          vehicle_no: vehicle.vehicle_no,
+          status: vehicle.status || 'inactive',
+          speed: vehicle.speed || 0,
+          coordinates: coordinates,
+          last_updated: vehicle.last_updated || new Date().toISOString(),
+          isFlagged: false,
+          route: route
+        };
+      });
     },
     enabled: !!(location.districtId || location.blockId || location.gpId), // Only fetch if location is provided
     ...options,
