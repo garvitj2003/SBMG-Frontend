@@ -91,7 +91,7 @@ const Login = () => {
           src={groupLogo}
           alt="Government of India"
           style={{
-            height: '48px',
+            height: '50px',
             width: 'auto',
             objectFit: 'contain'
           }}
@@ -127,14 +127,14 @@ const Login = () => {
             src={minister1}
             alt="Minister 1"
             style={{
-              height: '130px',
+              height: '135px',
               width: 'auto',
               objectFit: 'cover',
               transform: 'translateY(-52px)'
             }}
           />
           <div style={{ 
-            marginTop: '-30px',
+            marginTop: '-35px',
             textAlign: 'center',
             width: '150px',
             transform: 'translateX(-25px) translateY(-10px)'
@@ -163,14 +163,14 @@ const Login = () => {
             src={minister2}
             alt="Minister 2"
             style={{
-              height: '130px',
+              height: '135px',
               width: 'auto',
               objectFit: 'cover',
               transform: 'translateY(-52px)'
             }}
           />
           <div style={{ 
-            marginTop: '-30px',
+            marginTop: '-35px',
             textAlign: 'center',
             width: '150px',
             transform: ' translateY(-10px)'
@@ -200,14 +200,14 @@ const Login = () => {
             src={minister3}
             alt="Minister 3"
             style={{
-              height: '130px',
+              height: '120px',
               width: 'auto',
               objectFit: 'cover',
               transform: 'translateY(-52px)'
             }}
           />
           <div style={{ 
-            marginTop: '-30px',
+            marginTop: '-35px',
             textAlign: 'center',
             width: '150px',
             transform: ' translateX(10px) translateY(-10px)'
@@ -247,10 +247,12 @@ const Login = () => {
             marginTop: '-34px',
             textAlign: 'center',
             width: '180px',
+            transform: ' translateX(15px) '
+
 
           }}>
             <div style={{ 
-              fontSize: '15px', 
+              fontSize: '14px', 
               fontWeight: 'bold', 
               color: '#1F2937',
               marginBottom: '2px'
@@ -258,7 +260,7 @@ const Login = () => {
               श्री ओटाराम देवासी
             </div>
             <div style={{ 
-              fontSize: '12px', 
+              fontSize: '11px', 
               color: '#6B7280',
               lineHeight: '1.3'
             }}>
