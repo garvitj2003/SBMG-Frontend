@@ -101,8 +101,8 @@ const Login = () => {
       {/* Ministers Section */}
       <div className="relative top-[120px] left-1/2 -translate-x-1/2 z-[1000] w-[90%] max-w-[800px]">
         {/* White Container for Ministers */}
-        <div className="bg-white rounded-xl shadow-lg h-[90px] flex items-end justify-center overflow-visible">
-          <div className="grid grid-cols-4 gap-4 w-full px-4 pb-0">
+        <div className="bg-white rounded-xl shadow-lg h-[90px] flex items-end justify-center overflow-visible ">
+          <div className="grid grid-cols-4 gap-4 w-full px-4 pb-0 justify-items-center">
             {/* Minister 1 */}
             <div className="flex justify-center items-end">
               <img
@@ -110,6 +110,7 @@ const Login = () => {
                 alt="Minister 1"
                 className="h-[150px] w-auto object-cover"
               />
+              
             </div>
 
             {/* Minister 2 */}
@@ -142,9 +143,9 @@ const Login = () => {
         </div>
 
         {/* Names below the white container */}
-        <div className="grid grid-cols-4 gap-4 w-full px-4 pt-10 mt-[20px]">
+        <div className="grid grid-cols-4 gap-20 w-full px-4 pt-12 justify-items-center" style={{ marginTop: '10px' }}>
           {/* Minister 1 Name */}
-          <div className="text-center w-[150px] mx-auto">
+          <div className="text-center max-w-[150px] justify-self-start ">
             <div className="text-[15px] font-bold text-gray-800">
               श्री नरेंद्र मोदी
             </div>
@@ -154,7 +155,7 @@ const Login = () => {
           </div>
 
           {/* Minister 2 Name */}
-          <div className="text-center w-[150px] mx-auto">
+          <div className="text-center max-w-[150px]">
             <div className="text-[15px] font-bold text-gray-800">
               श्री भजन लाल शर्मा
             </div>
@@ -164,7 +165,7 @@ const Login = () => {
           </div>
 
           {/* Minister 3 Name */}
-          <div className="text-center w-[150px] mx-auto">
+          <div className="text-center max-w-[150px]">
             <div className="text-[15px] font-bold text-gray-800">
               श्री मदन दिलावर
             </div>
@@ -174,7 +175,7 @@ const Login = () => {
           </div>
 
           {/* Minister 4 Name */}
-          <div className="text-center w-[180px] mx-auto">
+          <div className="text-center max-w-[180px]">
             <div className="text-sm font-bold text-gray-800">
               श्री ओटाराम देवासी
             </div>
@@ -189,7 +190,7 @@ const Login = () => {
       <div
         style={{
           position: 'absolute',
-          top: '58%',
+          top: '60%',
           left: '50%',
           transform: 'translate(-50%, -50%)',
           width: '400px',
