@@ -6,10 +6,11 @@ import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import backgroundImage from '../assets/images/background.png';
 import swachLogo from '../assets/logos/swach.png';
 import groupLogo from '../assets/logos/Group-.png';
-import minister1 from '../assets/images/minster1.png';
+import minister1 from '../assets/images/minister1.png';
 import minister2 from '../assets/images/minister2.png';
-import minister3 from '../assets/images/minsiter3.png';
-import minister4 from '../assets/images/minister4.png';
+import minister34 from '../assets/images/minster34.png';
+import appStore from '../assets/images/App Store.png';
+import googlePlay from '../assets/images/Google Play.png';
 
 const Login = () => {
   const [username, setUsername] = useState('');
@@ -56,7 +57,44 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen w-full relative">
+    <>
+      <style>{`
+       .login-dialog-responsive {
+          margin-bottom: 80px;
+        }
+           @media (max-width: 768px) {
+          .login-dialog-responsive {
+            top: 650px !important;
+            transform: translateX(-50%) !important;
+          }
+        }
+           @media (min-width: 769px) and (max-width: 1024px) {
+          .login-dialog-responsive {
+            top: 600px !important;
+            transform: translateX(-50%) !important;
+          }
+        }
+           @media (min-width: 1025px) and (max-width: 1366px) {
+          .login-dialog-responsive {
+            top: 450px !important;
+            transform: translateX(-50%) !important;
+          }
+        }
+     
+      @media (min-width: 1367px) and (max-width: 1600px) {
+          .login-dialog-responsive {
+            top: 580px !important;
+            transform: translateX(-50%) !important;
+          }
+        }
+        @media (min-width: 1601px) {
+          .login-dialog-responsive {
+            top: 65% !important;
+            transform: translate(-50%, -50%) !important;
+          }
+        }
+      `}</style>
+      <div className="min-h-screen w-full relative">
       {/* Full-screen background */}
       <div
         style={{
@@ -77,110 +115,103 @@ const Login = () => {
         }}
       ></div>
 
-      {/* Government of India Emblem overlay */}
-      <div
-        style={{
-          position: 'absolute',
-          top: '20px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          zIndex: 1000
-        }}
-      >
-        <img
-          src={groupLogo}
-          alt="Government of India"
-          style={{
-            height: '50px',
-            width: 'auto',
-            objectFit: 'contain'
-          }}
-        />
-      </div>
-
-      {/* Ministers Section */}
-      <div className="relative top-[120px] left-1/2 -translate-x-1/2 z-[1000] w-[90%] max-w-[800px]">
-        {/* White Container for Ministers */}
-        <div className="bg-white rounded-xl shadow-lg h-[90px] flex items-end justify-center overflow-visible ">
-          <div className="grid grid-cols-4 gap-4 w-full px-4 pb-0 justify-items-center">
-            {/* Minister 1 */}
-            <div className="flex justify-center items-end">
-              <img
-                src={minister1}
-                alt="Minister 1"
-                className="h-[150px] w-auto object-cover"
-              />
-              
-            </div>
-
-            {/* Minister 2 */}
-            <div className="flex justify-center items-end">
-              <img
-                src={minister2}
-                alt="Minister 2"
-                className="h-[140px] w-auto object-cover"
-              />
-            </div>
-
-            {/* Minister 3 */}
-            <div className="flex justify-center items-end">
-              <img
-                src={minister3}
-                alt="Minister 3"
-                className="h-[110px] w-auto object-cover"
-              />
-            </div>
-
-            {/* Minister 4 */}
-            <div className="flex justify-center items-end">
-              <img
-                src={minister4}
-                alt="Minister 4"
-                className="h-[110px] w-auto object-cover"
-              />
-            </div>
-          </div>
+       {/* Government Logos Section */}
+       <div className="relative flex justify-center items-center gap-4 mb-4 mt-16 flex-wrap" style={{ marginTop: '40px' }}>
+          <img src={groupLogo} alt="Government of India" className="h-[40px] w-auto object-contain" />
         </div>
 
-        {/* Names below the white container */}
-        <div className="grid grid-cols-4 gap-20 w-full px-4 pt-12 justify-items-center" style={{ marginTop: '10px' }}>
-          {/* Minister 1 Name */}
-          <div className="text-center max-w-[150px] justify-self-start ">
-            <div className="text-[15px] font-bold text-gray-800">
-              श्री नरेंद्र मोदी
+
+      {/* Ministers Section */}
+      <div className="relative top-[50px] left-1/2 -translate-x-1/2 z-[1000] w-[70%] max-w-[900px]">
+      
+        {/* White Container for Ministers with Central Layout */}
+        <div className="relative">
+          <div className="bg-white rounded-xl shadow-lg h-[105px] flex items-end justify-center overflow-visible relative">
+            {/* Left Side - Ministers 1 & 2 */}
+            <div className="absolute left-[-50px] flex items-end">
+              {/* Minister 1 */}
+              <div className="relative z-10" style={{ bottom: '-20px' }}>
+                <img
+                  src={minister1}
+                  alt="Minister 1"
+                  className="h-[200px] w-auto object-cover"
+                />
+              </div>
+
+              {/* Minister 2 - Overlapping Minister 1 */}
+              <div className="relative z-0" style={{ marginLeft: '-180px' }}>
+                <img
+                  src={minister2}
+                  alt="Minister 2"
+                  className="h-[180px] w-auto object-cover"
+                />
+              </div>
             </div>
-            <div className="text-[12px] text-gray-500 leading-[1.3]">
-              माननीय प्रधानमंत्री-भारत
+
+            {/* Center - Title Text */}
+            <div className="absolute left-1/2 text-center z-10" style={{ top: '50%', transform: 'translate(-50%, -50%)' }}>
+              <h1 className="text-xl md:text-3xl font-bold text-gray-800 mb-1">SBMG Rajasthan</h1>
+              <p className="text-sm md:text-xl text-gray-700">स्वच्छ भारत मिशन(ग्रामीण) राजस्थान</p>
+            </div>
+
+            {/* Right Side - Ministers 3 & 4 Combined */}
+            <div className="absolute right-[0px] flex gap-0 items-end px-2">
+              <div className="flex justify-center items-end" style={{ position: 'relative', bottom: '-21px' }}>
+                <img
+                  src={minister34}
+                  alt="Ministers 3 and 4"
+                  className="h-[180px] w-auto object-cover"
+                />
+              </div>
             </div>
           </div>
 
-          {/* Minister 2 Name */}
-          <div className="text-center max-w-[150px]">
-            <div className="text-[15px] font-bold text-gray-800">
-              श्री भजन लाल शर्मा
-            </div>
-            <div className="text-[12px] text-gray-500 leading-[1.3]">
-              माननीय मुख्यमंत्री-राजस्थान
-            </div>
-          </div>
+          {/* Names below the white container */}
+          <div className="flex w-full px-2 pt-12 justify-between" style={{ marginTop: '10px', paddingRight: '40px' }}>
+            {/* Left Side Names */}
+            <div className="flex gap-5" style={{ paddingLeft: '40px' }}>
+              {/* Minister 1 Name */}
+              <div className="text-center max-w-[150px] -mr-4">
+                <div className="text-[13px] font-bold text-gray-800">
+                  श्री नरेंद्र मोदी
+                </div>
+                <div className="text-[12px]  text-gray-500 leading-[1.3]">
+                  माननीय प्रधानमंत्री-भारत
+                </div>
+              </div>
 
-          {/* Minister 3 Name */}
-          <div className="text-center max-w-[150px]">
-            <div className="text-[15px] font-bold text-gray-800">
-              श्री मदन दिलावर
+              {/* Minister 2 Name */}
+              <div className="text-center max-w-[150px] -mr-4">
+                <div className="text-[13px] font-bold text-gray-800">
+                  श्री भजन लाल शर्मा
+                </div>
+                <div className="text-[12px]  text-gray-500 leading-[1.3]">
+                  माननीय मुख्यमंत्री-राजस्थान
+                </div>
+              </div>
             </div>
-            <div className="text-[12px] text-gray-500 leading-[1.3]">
-              माननीय मंत्री-स्कूल शिक्षा, पंचायती राज एवं संस्कृत शिक्षा विभाग, राजस्थान
-            </div>
-          </div>
 
-          {/* Minister 4 Name */}
-          <div className="text-center max-w-[180px]">
-            <div className="text-sm font-bold text-gray-800">
-              श्री ओटाराम देवासी
-            </div>
-            <div className="text-[11px] text-gray-500 leading-[1.3]">
-              माननीय राज्य मंत्री-पंचायती राज, ग्रामीण विकास एवं आपदा प्रबंधन, राजस्थान
+            {/* Right Side Names */}
+            <div className="flex gap-5" style={{ marginRight: '-70px' }}>
+              {/* Minister 3 Name */}
+              <div className="text-center max-w-[180px] -mr-4">
+              <div className="text-[13px] font-bold text-gray-800">
+                    श्री मदन दिलावर
+                  </div>
+                  <div className="text-[11px]  text-gray-500 leading-tight" style={{ lineHeight: '1.15' }}>
+                    माननीय मंत्री-स्कूल शिक्षा, पंचायती राज एवं संस्कृत शिक्षा विभाग, राजस्थान
+                  </div>
+                </div>
+
+                {/* Minister 4 Name */}
+                <div className="text-center max-w-[180px] -mr-4">
+                <div className="text-[13px] font-bold text-gray-800">
+                    श्री ओटाराम देवासी
+                  </div>
+                  <div className="text-[11px] text-gray-500 leading-tight" style={{ lineHeight: '1.15' }}>
+                    माननीय राज्य मंत्री-पंचायती राज, ग्रामीण विकास एवं आपदा प्रबंधन, राजस्थान
+                  </div>
+              </div>
             </div>
           </div>
         </div>
@@ -188,26 +219,12 @@ const Login = () => {
 
       {/* White dialog box in center */}
       <div
+        className="login-dialog-responsive absolute left-1/2 w-[90%] max-w-[450px] min-h-[500px] z-[9999] bg-white flex flex-col items-center rounded-xl shadow-lg overflow-y-auto"
         style={{
-          position: 'absolute',
-          top: '60%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          width: '400px',
-          minHeight: '500px',
-          maxHeight: '90vh',
-          zIndex: 9999,
-          backgroundColor: 'white',
-          background: 'white',
-          margin: 0,
           padding: '32px',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'flex-start',
-          alignItems: 'center',
-          borderRadius: '12px',
-          boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)',
-          overflowY: 'auto'
+          paddingBottom: '50px',
+          maxHeight: '90vh',
+          boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)'
         }}
       >
         {/* Swachh Rajasthan Logo */}
@@ -226,19 +243,28 @@ const Login = () => {
         {/* Welcome Message */}
         <div style={{ textAlign: 'center', marginBottom: '8px' }}>
           <h1 style={{
-            fontSize: '22px',
+            fontSize: '20px',
             fontWeight: 'bold',
             color: '#1F2937',
             margin: '0 0 0px 0'
           }}>
-            Welcome Back!
+            पंचायतीराज विभाग, राजस्थान
           </h1>
+          <h2 style={{
+            fontSize: '16px',
+            fontWeight: 'bold',
+            color: '#1F2937',
+            margin: '0 0 0px 0'
+          }}>
+            Welcome
+          </h2>
           <p style={{
             fontSize: '13px',
             color: '#6B7280',
-            margin: 0
+            margin: 0,
+            fontWeight: 'bold'
           }}>
-            Restricted access — SMD, CEO, BDO, and VDO roles are enabled.
+            For authorise personal - SMD, CEO, BDO & VDO only.
           </p>
         </div>
 
@@ -261,7 +287,7 @@ const Login = () => {
 
         {/* Login Form */}
         <form style={{ width: '100%' }}>
-          {/* Username Input */}
+          {/* Email Input */}
           <div style={{ marginBottom: '8px' }}>
             <label style={{
               display: 'block',
@@ -271,7 +297,7 @@ const Login = () => {
               marginBottom: '8px',
               textAlign: 'left'
             }}>
-              Username
+              Email
             </label>
             <div style={{ position: 'relative' }}>
               <div style={{
@@ -284,10 +310,10 @@ const Login = () => {
                 <Mail size={20} />
               </div>
               <input
-                type="text"
+                type="email"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="Enter your username"
+                placeholder="Enter your official email"
                 style={{
                   width: '100%',
                   padding: '12px 12px 12px 44px',
@@ -399,18 +425,86 @@ const Login = () => {
               fontSize: '16px',
               fontWeight: '500',
               cursor: isLoading ? 'not-allowed' : 'pointer',
-              opacity: isLoading ? 0.7 : 1
+              opacity: isLoading ? 0.7 : 1,
+              marginBottom: '16px'
             }}
           >
             {isLoading ? 'Logging In...' : 'Log In'}
           </button>
         </form>
+
+        {/* App Store Buttons */}
+        <div style={{
+          display: 'flex',
+          gap: '12px',
+          justifyContent: 'center',
+          alignItems: 'center',
+          marginTop: '10px',
+          marginBottom: '16px'
+        }}>
+          <a
+            href="#"
+            onClick={(e) => e.preventDefault()}
+            style={{
+              display: 'block',
+              cursor: 'pointer'
+            }}
+          >
+            <img
+              src={googlePlay}
+              alt="Get it on Google Play"
+              style={{
+                height: '40px',
+                width: 'auto',
+                objectFit: 'contain'
+              }}
+            />
+          </a>
+          <a
+            href="#"
+            onClick={(e) => e.preventDefault()}
+            style={{
+              display: 'block',
+              cursor: 'pointer'
+            }}
+          >
+            <img
+              src={appStore}
+              alt="Download on the App Store"
+              style={{
+                height: '40px',
+                width: 'auto',
+                objectFit: 'contain'
+              }}
+            />
+          </a>
+        </div>
+
+        {/* Complaint Contact Banner */}
+        <div style={{
+          width: '100%',
+          backgroundColor: '#FFF7ED',
+          borderRadius: '8px',
+          padding: '12px',
+          textAlign: 'center',
+          marginTop: '10px',
+          marginBottom: '40px'
+        }}>
+          <p style={{
+            color: '#C2410C',
+            fontSize: '14px',
+            fontWeight: '500',
+            margin: 0
+          }}>
+            Call us at 0141-2204880 for any complaint
+          </p>
+        </div>
       </div>
 
       {/* White container at bottom */}
       <div
         style={{
-          position: 'absolute',
+          position: 'fixed',
           bottom: 0,
           left: 0,
           width: '100vw',
@@ -442,8 +536,8 @@ const Login = () => {
       </div>
 
     </div>
+    </>
   );
 };
 
 export default Login;
-
