@@ -169,5 +169,41 @@ export const vehiclesAPI = {
   },
 };
 
+export const feedbackAPI = {
+  // Get feedback statistics
+  getStats: () => apiClient.get('/feedback/stats/summary'),
+  
+  // Get all feedbacks (authority users only)
+  getFeedbacks: (params = {}) => {
+    const queryParams = new URLSearchParams();
+    if (params.feedback_source) queryParams.append('feedback_source', params.feedback_source);
+    if (params.skip !== undefined) queryParams.append('skip', params.skip);
+    if (params.limit !== undefined) queryParams.append('limit', params.limit);
+    return apiClient.get(`/feedback/?${queryParams.toString()}`);
+  },
+  
+  // Get feedback by ID (authority users only)
+  getFeedbackById: (feedbackId) => apiClient.get(`/feedback/${feedbackId}`),
+  
+  // Get authenticated user's own feedback
+  getMyFeedback: () => apiClient.get('/feedback/my/'),
+  
+  // Create new feedback
+  createFeedback: (feedbackData) => {
+    return apiClient.post('/feedback/', {
+      comment: feedbackData.comment,
+      rating: feedbackData.rating
+    });
+  },
+  
+  // Update authenticated user's own feedback
+  updateMyFeedback: (feedbackData) => {
+    return apiClient.put('/feedback/my/', {
+      comment: feedbackData.comment,
+      rating: feedbackData.rating
+    });
+  },
+};
+
 export default apiClient;
 

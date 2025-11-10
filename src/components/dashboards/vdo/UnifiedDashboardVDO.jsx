@@ -9,7 +9,8 @@ import {
   Calendar,
   Truck,
   Bell,
-  CreditCard
+  CreditCard,
+  MessageSquare
 } from 'lucide-react';
 import { useState } from 'react';
 import swachLogo from '../../../assets/logos/swach.png';
@@ -24,6 +25,7 @@ import VDOEventsContent from './VDOEventsContent';
 import VDONoticeContent from './VDONoticeContent';
 import VDOGpsTrackingContent from './VDOGpsTrackingContent';
 import PaymentsContent from '../PaymentsContent';
+import VDOFeedbackContent from './VDOFeedback';
 import { useVDOLocation } from '../../../context/VDOLocationContext';
 
 const Sidebar = ({ activeItem, setActiveItem }) => {
@@ -37,7 +39,8 @@ const Sidebar = ({ activeItem, setActiveItem }) => {
     { name: 'Events', icon: Calendar },
     { name: 'GPS Tracking', icon: Truck },
     { name: 'Payments', icon: CreditCard },
-    { name: 'Notices', icon: Bell }
+    { name: 'Notices', icon: Bell },
+    { name: 'Feedbacks', icon: MessageSquare }
   ];
 
  return (
@@ -208,6 +211,8 @@ const UnifiedDashboardVDO = () => {
         return <PaymentsContent />;
       case 'Notices':
         return <VDONoticeContent />;
+      case 'Feedbacks':
+        return <VDOFeedbackContent />;
       default:
         return (
           <div style={{ padding: '4px' }}>
