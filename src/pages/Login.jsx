@@ -150,8 +150,8 @@ const Login = () => {
 
             {/* Center - Title Text */}
             <div className="absolute left-1/2 text-center z-10" style={{ top: '50%', transform: 'translate(-50%, -50%)' }}>
-              <h1 className="text-xl md:text-3xl font-bold text-gray-800 mb-1">SBMG Rajasthan</h1>
-              <p className="text-sm md:text-xl text-gray-700">स्वच्छ भारत मिशन(ग्रामीण) राजस्थान</p>
+              <h1 className="text-xl md:text-2xl font-bold text-gray-800 mb-1">स्वच्छ भारत मिशन(ग्रामीण)</h1>
+              <p className="text-sm md:text-xl font-bold text-gray-800"> राजस्थान</p>
             </div>
 
             {/* Right Side - Ministers 3 & 4 Combined */}
@@ -176,7 +176,7 @@ const Login = () => {
                   श्री नरेंद्र मोदी
                 </div>
                 <div className="text-[12px]  text-gray-500 leading-[1.3]">
-                  माननीय प्रधानमंत्री-भारत
+                  माननीय प्रधानमंत्री
                 </div>
               </div>
 
@@ -186,7 +186,7 @@ const Login = () => {
                   श्री भजन लाल शर्मा
                 </div>
                 <div className="text-[12px]  text-gray-500 leading-[1.3]">
-                  माननीय मुख्यमंत्री-राजस्थान
+                  माननीय मुख्यमंत्री-राजस्थान सरकार
                 </div>
               </div>
             </div>
