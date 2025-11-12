@@ -2100,6 +2100,7 @@ const BDOVillageMasterContent = () => {
                 color: '#374151'
               }}>
                         Total {activeScope === 'State' || activeScope === 'Districts' ? 'GPs' : 'Villages'}
+                <InfoTooltip tooltipKey="TOTAL_GPS" size={14} color="#9ca3af" />
                 <ArrowUpDown style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
               </div>
               <div style={{
@@ -2111,6 +2112,7 @@ const BDOVillageMasterContent = () => {
                 color: '#374151'
               }}>
                         {activeScope === 'State' || activeScope === 'Districts' ? 'GPs' : 'Villages'} with Data
+                <InfoTooltip tooltipKey="GPS_WITH_DATA" size={14} color="#9ca3af" />
                 <ArrowUpDown style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
               </div>
               <div style={{
@@ -2122,6 +2124,7 @@ const BDOVillageMasterContent = () => {
                 color: '#374151'
               }}>
                         Coverage %
+                <InfoTooltip tooltipKey="COVERAGE_PERCENTAGE" size={14} color="#9ca3af" />
                 <ArrowUpDown style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
               </div>
             <div style={{

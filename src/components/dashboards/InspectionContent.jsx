@@ -2902,6 +2902,7 @@ const InspectionContent = () => {
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                 Coverage
+                <InfoTooltip tooltipKey="INSPECTION_COVERAGE_PERCENTAGE" size={14} color="#6b7280" />
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                   <span style={{ fontSize: '10px', lineHeight: '1' }}>▲</span>
                   <span style={{ fontSize: '10px', lineHeight: '1' }}>▼</span>
