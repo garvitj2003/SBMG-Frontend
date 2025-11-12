@@ -1826,7 +1826,7 @@ const VDOAttendanceContent = () => {
         value: loadingAnalytics ? '...' : formatNumber(metrics.total_contractors),
         icon: List,
         color: '#3b82f6',
-        tooltipText: 'Total number of vendors and supervisors registered in the selected area.'
+        tooltipText: 'Total number of vendors/supervisors registered in the selected area.'
       },
       {
         title: 'Vendor/Supervisor Present',

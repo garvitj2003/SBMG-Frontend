@@ -8,6 +8,7 @@ import apiClient from '../../../services/api';
 import { useBDOLocation } from '../../../context/BDOLocationContext';
 import SendNoticeModal from '../common/SendNoticeModal';
 import NoDataFound from '../common/NoDataFound';
+import { InfoTooltip } from '../../common/Tooltip';
 
 
 const BDOInspectionContent = () => {
@@ -2019,7 +2020,7 @@ const BDOInspectionContent = () => {
                 }}>
                   Statewide Avg Score
                 </h3>
-                <Info style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
+                <InfoTooltip tooltipKey="AVERAGE_INSPECTION_SCORE" size={16} color="#9ca3af" />
               </div>
               <div style={{
                 fontSize: '32px',
@@ -2055,7 +2056,7 @@ const BDOInspectionContent = () => {
                     Total inspections
                   </h3>
                 </div>
-                <Info style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
+                <InfoTooltip tooltipKey="TOTAL_INSPECTIONS" size={16} color="#9ca3af" />
               </div>
               <div style={{
                 fontSize: '32px',
@@ -2088,7 +2089,7 @@ const BDOInspectionContent = () => {
                 }}>
                   Village covered
                 </h3>
-                <Info style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
+                <InfoTooltip tooltipKey="INSPECTION_COVERAGE_PERCENTAGE" size={16} color="#9ca3af" />
               </div>
               <div style={{
                 fontSize: '32px',

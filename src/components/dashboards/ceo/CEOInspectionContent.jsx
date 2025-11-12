@@ -2088,7 +2088,7 @@ const CEOInspectionContent = () => {
                 }}>
                   Statewide Avg Score
                 </h3>
-                <InfoTooltip size={16} color="#9ca3af" />
+                <InfoTooltip tooltipKey="AVERAGE_INSPECTION_SCORE" size={16} color="#9ca3af" />
               </div>
               <div style={{
                 fontSize: '32px',
@@ -2124,7 +2124,7 @@ const CEOInspectionContent = () => {
                     Total inspections
                   </h3>
                 </div>
-                <InfoTooltip size={16} color="#9ca3af" />
+                <InfoTooltip tooltipKey="TOTAL_INSPECTIONS" size={16} color="#9ca3af" />
               </div>
               <div style={{
                 fontSize: '32px',
@@ -2157,7 +2157,7 @@ const CEOInspectionContent = () => {
                 }}>
                   Village covered
                 </h3>
-                <InfoTooltip size={16} color="#9ca3af" />
+                <InfoTooltip tooltipKey="INSPECTION_COVERAGE_PERCENTAGE" size={16} color="#9ca3af" />
               </div>
               <div style={{
                 fontSize: '32px',

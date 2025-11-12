@@ -7,6 +7,7 @@ import number3 from '../../../assets/images/number3.png';
 import apiClient from '../../../services/api';
 import { useVDOLocation } from '../../../context/VDOLocationContext';
 import NoDataFound from '../common/NoDataFound';
+import { InfoTooltip } from '../../common/Tooltip';
 
 
 const VDOInspectionContent = () => {
@@ -1867,7 +1868,7 @@ const VDOInspectionContent = () => {
                 }}>
                   Statewide Avg Score
                 </h3>
-                <Info style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
+                <InfoTooltip tooltipKey="AVERAGE_INSPECTION_SCORE" size={16} color="#9ca3af" />
               </div>
               <div style={{
                 fontSize: '32px',
@@ -1903,7 +1904,7 @@ const VDOInspectionContent = () => {
                     Total inspections
                   </h3>
                 </div>
-                <Info style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
+                <InfoTooltip tooltipKey="TOTAL_INSPECTIONS" size={16} color="#9ca3af" />
               </div>
               <div style={{
                 fontSize: '32px',
@@ -1936,7 +1937,7 @@ const VDOInspectionContent = () => {
                 }}>
                   Village covered
                 </h3>
-                <Info style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
+                <InfoTooltip tooltipKey="INSPECTION_COVERAGE_PERCENTAGE" size={16} color="#9ca3af" />
               </div>
               <div style={{
                 fontSize: '32px',

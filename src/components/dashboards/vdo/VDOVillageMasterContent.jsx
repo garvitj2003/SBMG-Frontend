@@ -3,7 +3,6 @@ import { MapPin, ChevronDown, ChevronRight, Calendar, List, Search, Filter, Down
 import Chart from 'react-apexcharts';
 import apiClient from '../../../services/api';
 import { useVDOLocation } from '../../../context/VDOLocationContext';
-
 import NoDataFound from '../common/NoDataFound';
 import { InfoTooltip } from '../../common/Tooltip';
 
@@ -1407,7 +1406,10 @@ const VDOVillageMasterContent = () => {
               }}>
                 Total funds sanctioned
               </h3>
-              <DollarSign style={{ width: '20px', height: '20px', color: '#6b7280' }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <InfoTooltip tooltipKey="TOTAL_FUNDS_SANCTIONED" size={16} color="#6b7280" />
+                <DollarSign style={{ width: '20px', height: '20px', color: '#6b7280' }} />
+              </div>
             </div>
             <div style={{
               fontSize: '24px',
@@ -1442,7 +1444,7 @@ const VDOVillageMasterContent = () => {
                 Total work order Amount
               </h3>
               <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <InfoTooltip size={16} color="#6b7280" style={{ cursor: 'pointer' }} />
+                <InfoTooltip tooltipKey="TOTAL_WORK_ORDER_AMOUNT" size={16} color="#6b7280" />
                 <DollarSign style={{ width: '20px', height: '20px', color: '#6b7280' }} />
               </div>
             </div>
@@ -1478,7 +1480,7 @@ const VDOVillageMasterContent = () => {
               }}>
                 SBMG Target Achievement Rate
               </h3>
-              <InfoTooltip size={16} color="#6b7280" style={{ cursor: 'pointer' }} />
+              <InfoTooltip tooltipKey="SBMG_TARGET_ACHIEVEMENT_RATE" size={16} color="#6b7280" />
               </div>
             <div style={{
               fontSize: '24px',
@@ -1608,7 +1610,10 @@ const VDOVillageMasterContent = () => {
                 paddingBottom: '16px',
                 borderBottom: '1px solid #e5e7eb'
               }}>
-                <span style={{ fontSize: '16px', color: '#6b7280' }}>Fund Utilization rate</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '16px', color: '#6b7280' }}>Fund Utilization rate</span>
+                  <InfoTooltip tooltipKey="FUND_UTILIZATION_RATE" size={14} color="#6b7280" />
+                </div>
                 <span style={{ fontSize: '18px', fontWeight: '700', color: '#111827' }}>
                   {loadingAnalytics ? '...' : (analyticsData?.annual_overview?.fund_utilization_rate !== undefined && analyticsData?.annual_overview?.fund_utilization_rate !== null ? `${analyticsData.annual_overview.fund_utilization_rate}%` : analyticsData?.fund_utilization_rate !== undefined && analyticsData?.fund_utilization_rate !== null ? `${analyticsData.fund_utilization_rate}%` : '0%')}
                 </span>
@@ -1622,7 +1627,10 @@ const VDOVillageMasterContent = () => {
                 paddingBottom: '16px',
                 borderBottom: '1px solid #e5e7eb'
               }}>
-                <span style={{ fontSize: '16px', color: '#6b7280' }}>Average Cost Per Household(D2D)</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '16px', color: '#6b7280' }}>Average Cost Per Household(D2D)</span>
+                  <InfoTooltip tooltipKey="AVERAGE_COST_PER_HOUSEHOLD_D2D" size={14} color="#6b7280" />
+                </div>
                 <span style={{ fontSize: '18px', fontWeight: '700', color: '#111827' }}>
                   {loadingAnalytics ? '...' : (analyticsData?.annual_overview?.average_cost_per_household_d2d !== undefined && analyticsData?.annual_overview?.average_cost_per_household_d2d !== null ? `₹${formatNumber(analyticsData.annual_overview.average_cost_per_household_d2d)}` : '₹0')}
                 </span>
@@ -1637,7 +1645,10 @@ const VDOVillageMasterContent = () => {
                 paddingBottom: '16px',
                 borderBottom: '1px solid #e5e7eb'
               }}>
-                <span style={{ fontSize: '16px', color: '#6b7280' }}>Household covered (D2D)</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '16px', color: '#6b7280' }}>Household covered (D2D)</span>
+                  <InfoTooltip tooltipKey="HOUSEHOLDS_COVERED_D2D" size={14} color="#6b7280" />
+                </div>
                 <span style={{ fontSize: '18px', fontWeight: '700', color: '#111827' }}>
                   {loadingAnalytics ? '...' : (analyticsData?.annual_overview?.households_covered_d2d !== undefined && analyticsData?.annual_overview?.households_covered_d2d !== null ? formatNumber(analyticsData.annual_overview.households_covered_d2d) : analyticsData?.households_covered_d2d !== undefined && analyticsData?.households_covered_d2d !== null ? formatNumber(analyticsData.households_covered_d2d) : '0')}
                 </span>
@@ -1653,7 +1664,10 @@ const VDOVillageMasterContent = () => {
                 paddingBottom: '16px',
                 borderBottom: '1px solid #e5e7eb'
               }}>
-                <span style={{ fontSize: '16px', color: '#6b7280' }}>GPs with Identified Asset Gaps</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '16px', color: '#6b7280' }}>GPs with Identified Asset Gaps</span>
+                  <InfoTooltip tooltipKey="GPS_WITH_ASSET_GAPS" size={14} color="#6b7280" />
+                </div>
                 <span style={{ fontSize: '18px', fontWeight: '700', color: '#111827' }}>
                   {loadingAnalytics ? '...' : (analyticsData?.annual_overview?.gps_with_asset_gaps !== undefined && analyticsData?.annual_overview?.gps_with_asset_gaps !== null ? formatNumber(analyticsData.annual_overview.gps_with_asset_gaps) : '0')}
                 </span>
@@ -1667,7 +1681,10 @@ const VDOVillageMasterContent = () => {
                 justifyContent: 'space-between',
                 alignItems: 'center'
               }}>
-                <span style={{ fontSize: '16px', color: '#6b7280' }}>Active Sanitation Bidders</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '16px', color: '#6b7280' }}>Active Sanitation Bidders</span>
+                  <InfoTooltip tooltipKey="ACTIVE_SANITATION_BIDDERS" size={14} color="#6b7280" />
+                </div>
                 <span style={{ fontSize: '18px', fontWeight: '700', color: '#111827' }}>
                   {loadingAnalytics ? '...' : (analyticsData?.annual_overview?.active_sanitation_bidders !== undefined && analyticsData?.annual_overview?.active_sanitation_bidders !== null ? formatNumber(analyticsData.annual_overview.active_sanitation_bidders) : '0')}
                 </span>
