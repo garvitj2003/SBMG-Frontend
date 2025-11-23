@@ -1531,7 +1531,7 @@ const DashboardContent = () => {
         title: 'Total complaints',
         value: loadingAnalytics ? '...' : formatNumber(counts.total),
         icon: List,
-        color: '#3b82f6',
+        color: '#9ca3af',
         trend: 'up',
         tooltipText: 'Total complaints logged for the selected scope and period.',
         chartData: {
@@ -1544,11 +1544,11 @@ const DashboardContent = () => {
               height: 40,
               sparkline: { enabled: true }
             },
-            stroke: { curve: 'smooth', width: 2, colors: ['#3b82f6'] },
+            stroke: { curve: 'smooth', width: 2, colors: ['#6b7280'] },
             fill: {
               type: 'solid',
               opacity: 0.10,
-              colors: ['#3b82f6']
+              colors: ['#9ca3af']
             },
             tooltip: { enabled: false },
             grid: { show: false },
@@ -1591,42 +1591,12 @@ const DashboardContent = () => {
         title: 'Resolved complaints',
         value: loadingAnalytics ? '...' : formatNumber(counts.resolved),
         icon: List,
-        color: '#8b5cf6',
+        color: '#f97316',
         trend: 'up',
         tooltipText: 'Complaints resolved after action was taken.',
         chartData: {
           series: [{
             data: [counts.resolved * 0.8, counts.resolved * 0.88, counts.resolved * 0.92, counts.resolved]
-          }],
-          options: {
-            chart: {
-              type: 'area',
-              height: 40,
-              sparkline: { enabled: true }
-            },
-            stroke: { curve: 'smooth', width: 2, colors: ['#8b5cf6'] },
-            fill: {
-              type: 'solid',
-              opacity: 0.10,
-              colors: ['#8b5cf6']
-            },
-            tooltip: { enabled: false },
-            grid: { show: false },
-            xaxis: { labels: { show: false } },
-            yaxis: { labels: { show: false } }
-          }
-        }
-      },
-      {
-        title: 'Verified complaints',
-        value: loadingAnalytics ? '...' : formatNumber(counts.verified),
-        icon: List,
-        color: '#f97316',
-        trend: 'up',
-        tooltipText: 'Complaints verified by the VDO.',
-        chartData: {
-          series: [{
-            data: [counts.verified * 0.82, counts.verified * 0.89, counts.verified * 0.93, counts.verified]
           }],
           options: {
             chart: {
@@ -1648,10 +1618,40 @@ const DashboardContent = () => {
         }
       },
       {
+        title: 'Verified complaints',
+        value: loadingAnalytics ? '...' : formatNumber(counts.verified),
+        icon: List,
+        color: '#f59e0b',
+        trend: 'up',
+        tooltipText: 'Complaints verified by the VDO.',
+        chartData: {
+          series: [{
+            data: [counts.verified * 0.82, counts.verified * 0.89, counts.verified * 0.93, counts.verified]
+          }],
+          options: {
+            chart: {
+              type: 'area',
+              height: 40,
+              sparkline: { enabled: true }
+            },
+            stroke: { curve: 'smooth', width: 2, colors: ['#f59e0b'] },
+            fill: {
+              type: 'solid',
+              opacity: 0.10,
+              colors: ['#f59e0b']
+            },
+            tooltip: { enabled: false },
+            grid: { show: false },
+            xaxis: { labels: { show: false } },
+            yaxis: { labels: { show: false } }
+          }
+        }
+      },
+      {
         title: 'Disposed complaints',
         value: loadingAnalytics ? '...' : formatNumber(counts.disposed),
         icon: List,
-        color: '#10b981',
+        color: '#14b8a6',
         trend: 'up',
         tooltipText: 'Complaints closed after final disposal or resolution confirmation.',
         chartData: {
@@ -1664,11 +1664,11 @@ const DashboardContent = () => {
               height: 40,
               sparkline: { enabled: true }
             },
-            stroke: { curve: 'smooth', width: 2, colors: ['#10b981'] },
+            stroke: { curve: 'smooth', width: 2, colors: ['#14b8a6'] },
             fill: {
               type: 'solid',
               opacity: 0.10,
-              colors: ['#10b981']
+              colors: ['#14b8a6']
             },
             tooltip: { enabled: false },
             grid: { show: false },
@@ -3088,7 +3088,7 @@ const DashboardContent = () => {
               fill: {
                 opacity: 1
               },
-              colors: ['#ef4444', '#10b981', '#3b82f6'],
+              colors: ['#ef4444', '#14b8a6', '#9ca3af'],
               legend: {
                 show: false
               },

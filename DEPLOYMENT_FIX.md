@@ -35,9 +35,15 @@ Google Maps works on `localhost:5173` but shows errors on production `http://15.
    ```
    http://15.206.174.7/*
    https://15.206.174.7/*
-   http://localhost:*
-   https://localhost:*
+   http://localhost:5173/*
+   http://localhost:*/*
+   https://localhost:*/*
    ```
+   
+   **Note**: 
+   - `http://localhost:5173/*` - Specific port for Vite dev server
+   - `http://localhost:*/*` - Covers all localhost ports
+   - `https://localhost:*/*` - For HTTPS localhost (if needed)
 7. Under **API restrictions**, ensure **Maps JavaScript API** is enabled
 8. Click **Save**
 
@@ -105,6 +111,12 @@ curl "https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&callback=initMap"
 
 ### Issue: Works in localhost but not production
 **Solution**: Production domain `15.206.174.7` not added to HTTP referrer restrictions (Step 2).
+
+### Issue: "RefererNotAllowedMapError" in localhost
+**Solution**: Add localhost referrers to your API key restrictions:
+- `http://localhost:5173/*` (for specific port)
+- `http://localhost:*/*` (for all localhost ports)
+- `https://localhost:*/*` (for HTTPS localhost)
 
 ## Security Notes
 

@@ -10,6 +10,7 @@ const VDOEventsContent = () => {
     const [events, setEvents] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [eventFilter, setEventFilter] = useState('active'); // 'active', 'inactive', 'all'
     const [formData, setFormData] = useState({
         title: '',
         description: '',
@@ -37,16 +38,31 @@ const VDOEventsContent = () => {
         }
     };
 
-    // Fetch events data on component mount
+    // Fetch events data on component mount and when filter changes
     useEffect(() => {
         fetchEvents();
-    }, []);
+    }, [eventFilter]);
+
+    // Close modals if selected event is no longer in the filtered list
+    useEffect(() => {
+        if (selectedEvent && !loading) {
+            const eventStillVisible = events.some(e => e.id === selectedEvent.id);
+            if (!eventStillVisible) {
+                // Event is no longer visible (likely disabled and filtered out)
+                setShowEditModal(false);
+                setShowDetailsModal(false);
+                setSelectedEvent(null);
+            }
+        }
+    }, [events, selectedEvent, loading]);
 
     const fetchEvents = async () => {
         try {
             setLoading(true);
             setError(null);
-            const response = await eventsAPI.getEvents({ skip: 0, limit: 100, active: true });
+            // Determine active parameter based on filter
+            const activeParam = eventFilter === 'all' ? undefined : (eventFilter === 'active');
+            const response = await eventsAPI.getEvents({ skip: 0, limit: 100, active: activeParam });
             console.log('Fetched events data:', response.data);
             setEvents(response.data);
         } catch (err) {
@@ -219,6 +235,11 @@ const VDOEventsContent = () => {
 
             await eventsAPI.updateEvent(selectedEvent.id, updatePayload);
             
+            // If event is set to inactive, switch filter to "All" so user can see it as inactive
+            if (!editFormData.active && eventFilter === 'active') {
+                setEventFilter('all');
+            }
+            
             // Close modal and refresh
             setShowEditModal(false);
             setIsUpdating(false);
@@ -298,8 +319,65 @@ const VDOEventsContent = () => {
                         </h2>
 
                     </div>
-                    {/* Right side - Add Scheme button */}
-                    <div>
+                    {/* Right side - Filter and Add Event button */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        {/* Event Filter Toggle */}
+                        <div style={{
+                            display: 'flex',
+                            backgroundColor: '#f3f4f6',
+                            borderRadius: '8px',
+                            padding: '2px',
+                            gap: '2px'
+                        }}>
+                            <button
+                                onClick={() => setEventFilter('active')}
+                                style={{
+                                    padding: '6px 12px',
+                                    borderRadius: '6px',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    fontSize: '13px',
+                                    fontWeight: '500',
+                                    backgroundColor: eventFilter === 'active' ? '#10b981' : 'transparent',
+                                    color: eventFilter === 'active' ? 'white' : '#6b7280',
+                                    transition: 'all 0.2s'
+                                }}
+                            >
+                                Active
+                            </button>
+                            <button
+                                onClick={() => setEventFilter('inactive')}
+                                style={{
+                                    padding: '6px 12px',
+                                    borderRadius: '6px',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    fontSize: '13px',
+                                    fontWeight: '500',
+                                    backgroundColor: eventFilter === 'inactive' ? '#ef4444' : 'transparent',
+                                    color: eventFilter === 'inactive' ? 'white' : '#6b7280',
+                                    transition: 'all 0.2s'
+                                }}
+                            >
+                                Inactive
+                            </button>
+                            <button
+                                onClick={() => setEventFilter('all')}
+                                style={{
+                                    padding: '6px 12px',
+                                    borderRadius: '6px',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    fontSize: '13px',
+                                    fontWeight: '500',
+                                    backgroundColor: eventFilter === 'all' ? '#3b82f6' : 'transparent',
+                                    color: eventFilter === 'all' ? 'white' : '#6b7280',
+                                    transition: 'all 0.2s'
+                                }}
+                            >
+                                All
+                            </button>
+                        </div>
                         <button
                             onClick={() => setShowModal(true)}
                             style={{
@@ -441,8 +519,9 @@ const VDOEventsContent = () => {
                             <div style={{
                                 display: 'flex',
                                 alignItems: 'center',
-                                justifyContent: 'space-between',
-                                marginBottom: '8px'
+                                gap: '10px',
+                                marginBottom: '8px',
+                                minWidth: 0
                             }}>
                                 <h3 style={{
                                     fontSize: '16px',
@@ -450,7 +529,11 @@ const VDOEventsContent = () => {
                                     color: '#111827',
                                     margin: 0,
                                     lineHeight: '1.4',
-                                    flex: 1
+                                    flex: 1,
+                                    minWidth: 0,
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap'
                                 }}>
                                             {event.name || 'Untitled Event'}
                                 </h3>
@@ -464,7 +547,7 @@ const VDOEventsContent = () => {
                                     alignItems: 'center',
                                     gap: '6px',
                                     boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
-                                    marginLeft: '10px'
+                                    flexShrink: 0
                                 }}>
                                     <Calendar style={{ width: '14px', height: '14px', color: '#6b7280' }} />
                                     <span style={{

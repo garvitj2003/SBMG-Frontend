@@ -40,12 +40,52 @@ const SchemesContent = () => {
         fetchSchemes();
     }, []);
 
-    const fetchSchemes = async () => {
+    // Close modals if selected scheme is no longer in the filtered list
+    useEffect(() => {
+        if (selectedScheme && !loading) {
+            const schemeStillVisible = schemes.some(s => s.id === selectedScheme.id);
+            if (!schemeStillVisible) {
+                // Scheme is no longer visible (likely disabled and filtered out)
+                setShowEditModal(false);
+                setShowDetailsModal(false);
+                setSelectedScheme(null);
+            }
+        }
+    }, [schemes, selectedScheme, loading]);
+
+    const fetchSchemes = async (showAll = false) => {
         try {
             setLoading(true);
             setError(null);
-            const response = await schemesAPI.getSchemes({ skip: 0, limit: 100, active: true });
-            setSchemes(response.data);
+            const activeParam = showAll ? undefined : true;
+            const response = await schemesAPI.getSchemes({ skip: 0, limit: 100, active: activeParam });
+            
+            // Deduplicate schemes by ID and name to prevent duplicate entries
+            const schemesData = response.data || [];
+            const uniqueSchemes = schemesData.reduce((acc, scheme) => {
+                // First check if scheme with same ID already exists
+                const existingById = acc.find(s => s.id === scheme.id);
+                if (existingById) {
+                    console.warn('Duplicate scheme detected by ID:', scheme.name, 'ID:', scheme.id);
+                    return acc;
+                }
+                
+                // Then check if scheme with same name already exists (case-insensitive)
+                // Keep the first occurrence and skip duplicates
+                const existingByName = acc.find(s => 
+                    s.name && scheme.name && 
+                    s.name.toLowerCase().trim() === scheme.name.toLowerCase().trim()
+                );
+                if (existingByName) {
+                    console.warn('Duplicate scheme detected by name:', scheme.name, 'ID:', scheme.id, '- Keeping first occurrence');
+                    return acc;
+                }
+                
+                acc.push(scheme);
+                return acc;
+            }, []);
+            
+            setSchemes(uniqueSchemes);
         } catch (err) {
             console.error('Error fetching schemes:', err);
             setError('Failed to load schemes. Please try again.');
@@ -201,10 +241,13 @@ const SchemesContent = () => {
 
             await schemesAPI.updateScheme(selectedScheme.id, updatePayload);
             
+            // If scheme is set to inactive, fetch all schemes so user can see it as inactive
+            const showAllSchemes = !editFormData.active;
+            
             // Close modal and refresh
             setShowEditModal(false);
             setIsUpdating(false);
-            fetchSchemes(); // Refresh schemes
+            fetchSchemes(showAllSchemes); // Refresh schemes (show all if inactive)
         } catch (error) {
             console.error('Error updating scheme:', error);
             setIsUpdating(false);

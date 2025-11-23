@@ -2987,8 +2987,7 @@ const InspectionContent = () => {
         </div>
         )}
 
-        {/* Your Inspections Table - Conditionally rendered (always show in GP view) */}
-        {(showMyInspections || activeScope === 'GPs') && (
+        {/* Your Inspections Table - Always visible at bottom */}
         <div style={{
           marginTop: '16px',
           marginLeft: '16px',
@@ -3227,7 +3226,6 @@ const InspectionContent = () => {
             )}
           </div>
         </div>
-        )}
 
       {/* Send Notice Modal */}
       <SendNoticeModal

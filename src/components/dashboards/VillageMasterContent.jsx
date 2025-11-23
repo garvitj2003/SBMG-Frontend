@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { MapPin, ChevronDown, ChevronRight, Calendar, List, Info, Search, Filter, Download, Eye, Edit, Trash2, CheckCircle, XCircle, Clock, Users, UserCheck, UserX, DollarSign, Target, TrendingUp, Database, BarChart3, ArrowUpDown } from 'lucide-react';
+import { MapPin, ChevronDown, ChevronRight, List, Info, Search, Filter, Download, Eye, Edit, Trash2, CheckCircle, XCircle, Clock, Users, UserCheck, UserX, DollarSign, Target, TrendingUp, Database, BarChart3, ArrowUpDown } from 'lucide-react';
 import Chart from 'react-apexcharts';
 import apiClient from '../../services/api';
 import { useLocation } from '../../context/LocationContext';
@@ -59,58 +59,8 @@ const VillageMasterContent = () => {
     const [loadingAnalytics, setLoadingAnalytics] = useState(false);
     const [analyticsError, setAnalyticsError] = useState(null);
 
-    // Date selection state
-    const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-    const [selectedMonth, setSelectedMonth] = useState(null);
-    const [selectedDay, setSelectedDay] = useState(null);
-    const [showDateDropdown, setShowDateDropdown] = useState(false);
-    const [selectionStep, setSelectionStep] = useState('year');
-    
-    // Date range state
-    const [selectedDateRange, setSelectedDateRange] = useState('Today');
-    const [startDate, setStartDate] = useState(() => {
-        const today = new Date();
-        return today.toISOString().split('T')[0];
-    });
-    const [endDate, setEndDate] = useState(() => {
-        const today = new Date();
-        return today.toISOString().split('T')[0];
-    });
-    const [isCustomRange, setIsCustomRange] = useState(false);
-    const handleDateKeyDown = (event) => {
-        if (event.key !== 'Tab') {
-            event.preventDefault();
-        }
-    };
-  
     const scopeButtons = ['State', 'Districts', 'Blocks', 'GPs'];
     const performanceButtons = ['Time', 'Location'];
-
-    // Predefined date ranges
-    const dateRanges = [
-        { label: 'Today', value: 'today', days: 0 },
-        { label: 'Yesterday', value: 'yesterday', days: 1 },
-        { label: 'Last 7 Days', value: 'last7days', days: 7 },
-        { label: 'Last 30 Days', value: 'last30days', days: 30 },
-        { label: 'Last 60 Days', value: 'last60days', days: 60 },
-        { label: 'Custom', value: 'custom', days: null }
-    ];
-
-    // Months array
-    const months = [
-        { value: 1, name: 'January' },
-        { value: 2, name: 'February' },
-        { value: 3, name: 'March' },
-        { value: 4, name: 'April' },
-        { value: 5, name: 'May' },
-        { value: 6, name: 'June' },
-        { value: 7, name: 'July' },
-        { value: 8, name: 'August' },
-        { value: 9, name: 'September' },
-        { value: 10, name: 'October' },
-        { value: 11, name: 'November' },
-        { value: 12, name: 'December' }
-    ];
 
     // Helper functions for location management
     const trackTabChange = useCallback((scope) => {
@@ -779,10 +729,8 @@ const VillageMasterContent = () => {
     // Click outside handler
     useEffect(() => {
         const handleClickOutside = (event) => {
-            if (!event.target.closest('[data-location-dropdown]') && 
-                !event.target.closest('[data-date-dropdown]')) {
+            if (!event.target.closest('[data-location-dropdown]')) {
                 setShowLocationDropdown(false);
-                setShowDateDropdown(false);
             }
         };
 
@@ -850,67 +798,6 @@ const VillageMasterContent = () => {
         }
     }, [activeScope, selectedDistrictId, selectedBlockId, selectedGPId, activeFyData, fetchAnalytics]);
 
-    // Date selection helper functions
-    const generateYears = () => {
-        const currentYear = new Date().getFullYear();
-        return Array.from({ length: 6 }, (_, i) => currentYear - i);
-    };
-
-    const generateDays = () => {
-        const daysInMonth = new Date(selectedYear, selectedMonth, 0).getDate();
-        return Array.from({ length: daysInMonth }, (_, i) => i + 1);
-    };
-
-    // Get display text based on selected date range
-    const getDateDisplayText = () => {
-        if (isCustomRange && startDate && endDate) {
-            const start = new Date(startDate);
-            const end = new Date(endDate);
-            return `${start.getDate()}/${start.getMonth() + 1}/${start.getFullYear()} - ${end.getDate()}/${end.getMonth() + 1}/${end.getFullYear()}`;
-        } else if (isCustomRange && startDate) {
-            const start = new Date(startDate);
-            return `${start.getDate()}/${start.getMonth() + 1}/${start.getFullYear()} - Select End Date`;
-        } else {
-            return selectedDateRange;
-        }
-    };
-
-    // Toggle date dropdown on click
-    const handleCalendarClick = () => {
-        setShowDateDropdown(!showDateDropdown);
-    };
-
-    // Handle predefined date range selection
-    const handleDateRangeSelection = (range) => {
-        if (range.value === 'custom') {
-            setIsCustomRange(true);
-            setSelectedDateRange('Custom');
-            setStartDate(null);
-            setEndDate(null);
-        } else {
-            setIsCustomRange(false);
-            setSelectedDateRange(range.label);
-            
-            const today = new Date();
-            
-            if (range.value === 'today') {
-                setStartDate(today.toISOString().split('T')[0]);
-                setEndDate(today.toISOString().split('T')[0]);
-            } else if (range.value === 'yesterday') {
-                const yesterday = new Date(today);
-                yesterday.setDate(today.getDate() - 1);
-                setStartDate(yesterday.toISOString().split('T')[0]);
-                setEndDate(yesterday.toISOString().split('T')[0]);
-            } else {
-                const start = new Date(today);
-                start.setDate(today.getDate() - range.days);
-                setStartDate(start.toISOString().split('T')[0]);
-                setEndDate(today.toISOString().split('T')[0]);
-            }
-            
-            setShowDateDropdown(false);
-        }
-    };
 
     // Helper function to format numbers
     const formatNumber = (num) => {
@@ -1252,8 +1139,8 @@ const VillageMasterContent = () => {
         </div>
       </div>
 
-         {/* Location Indicator */}
-         <div style={{
+      {/* Location Indicator */}
+      <div style={{
         padding: '10px 0px 0px 16px',
       }}>
         <span style={{
@@ -1295,242 +1182,6 @@ const VillageMasterContent = () => {
             }}>
               Overview
             </h2>
-           
-          </div>
-          <div 
-            onClick={handleCalendarClick}
-            data-date-dropdown
-            style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-              color: '#6b7280',
-              fontSize: '14px',
-            padding: '8px 12px',
-              border: '1px solid #d1d5db',
-            borderRadius: '8px',
-              backgroundColor: 'white',
-              cursor: 'pointer',
-              position: 'relative',
-              transition: 'all 0.2s'
-            }}
-          >
-            <Calendar style={{ width: '16px', height: '16px' }} />
-            <span>{getDateDisplayText()}</span>
-            <ChevronDown style={{ width: '16px', height: '16px' }} />
-            
-            {/* Modern Date Range Picker */}
-            {/* {showDateDropdown && (
-              <div 
-                onClick={(e) => e.stopPropagation()}
-                style={{
-                  position: 'absolute',
-                  top: '100%',
-                  right: '0',
-                  backgroundColor: 'white',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '12px',
-                  boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)',
-                  zIndex: 1000,
-                  marginTop: '8px',
-                  width: '600px',
-                  maxWidth: '90vw',
-                  display: 'flex',
-                  overflow: 'hidden'
-                }}
-              >
-                <div style={{
-                  width: '200px',
-                  backgroundColor: '#f8fafc',
-                  borderRight: '1px solid #e2e8f0',
-                  padding: '16px 0'
-                }}>
-                  <div style={{ padding: '0 16px 12px', borderBottom: '1px solid #e2e8f0' }}>
-                    <h3 style={{ 
-                      margin: 0, 
-                      fontSize: '14px', 
-                      fontWeight: '600', 
-                      color: '#1e293b' 
-                    }}>
-                      Quick Select
-                    </h3>
-                  </div>
-
-                  {dateRanges.map((range, index) => (
-                    <div
-                      key={range.value}
-                      onClick={() => handleDateRangeSelection(range)}
-                      style={{
-                        padding: '12px 16px',
-                        cursor: 'pointer',
-                        fontSize: '14px',
-                        color: range.value === 'custom' ? '#10b981' : '#475569',
-                        backgroundColor: selectedDateRange === range.label ? '#f0fdf4' : 'transparent',
-                        borderLeft: selectedDateRange === range.label ? '3px solid #10b981' : '3px solid transparent',
-                        transition: 'all 0.2s'
-                      }}
-                    >
-                      {range.label}
-                    </div>
-                  ))}
-                </div>
-
-                <div style={{
-                  flex: 1,
-                  padding: '16px',
-                  minHeight: '300px'
-                }}>
-                  {isCustomRange ? (
-                    <div>
-                      <h3 style={{ 
-                        margin: '0 0 16px 0', 
-                        fontSize: '14px', 
-                        fontWeight: '600', 
-                        color: '#1e293b' 
-                      }}>
-                        Select Date Range
-                      </h3>
-                      
-                      <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
-                        <div>
-                          <label style={{ 
-                            display: 'block', 
-                            fontSize: '12px', 
-                            color: '#64748b', 
-                            marginBottom: '4px' 
-                          }}>
-                            Start Date
-                          </label>
-                          <input
-                            type="date"
-                            value={startDate || ''}
-                          onKeyDown={handleDateKeyDown}
-                            onChange={(e) => setStartDate(e.target.value)}
-                            style={{
-                              padding: '8px 12px',
-                              border: '1px solid #d1d5db',
-                              borderRadius: '6px',
-                              fontSize: '14px',
-                              width: '140px'
-                            }}
-                          />
-                        </div>
-                        <div>
-                          <label style={{ 
-                            display: 'block', 
-                            fontSize: '12px',
-                            color: '#64748b', 
-                            marginBottom: '4px' 
-                          }}>
-                            End Date
-                          </label>
-                          <input
-                            type="date"
-                            value={endDate || ''}
-                          onKeyDown={handleDateKeyDown}
-                            onChange={(e) => setEndDate(e.target.value)}
-                            style={{
-                              padding: '8px 12px',
-                              border: '1px solid #d1d5db',
-                              borderRadius: '6px',
-                              fontSize: '14px',
-                              width: '140px'
-                            }}
-                          />
-                        </div>
-                      </div>
-
-                      <div style={{ 
-                        display: 'flex', 
-                        gap: '8px', 
-                        justifyContent: 'flex-end'
-                      }}>
-                        <button
-                          onClick={() => {
-                            const today = new Date();
-                            const todayStr = today.toISOString().split('T')[0];
-                            setStartDate(todayStr);
-                            setEndDate(todayStr);
-                            setIsCustomRange(false);
-                            setSelectedDateRange('Today');
-                          }}
-                          style={{
-                            padding: '8px 16px',
-                            border: '1px solid #d1d5db',
-                            borderRadius: '6px',
-                            backgroundColor: '#f9fafb',
-                            color: '#6b7280',
-                            fontSize: '14px',
-            cursor: 'pointer'
-                          }}
-                        >
-                          Cancel
-                        </button>
-                        
-                        <button
-                          onClick={() => setShowDateDropdown(false)}
-                          disabled={!startDate || !endDate}
-                          style={{
-                            padding: '8px 16px',
-                            backgroundColor: startDate && endDate ? '#10b981' : '#d1d5db',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '6px',
-                            fontSize: '14px',
-                            cursor: startDate && endDate ? 'pointer' : 'not-allowed'
-                          }}
-                        >
-                          Apply
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div>
-                      <h3 style={{ 
-                        margin: '0 0 16px 0', 
-                        fontSize: '14px', 
-                        fontWeight: '600', 
-                        color: '#1e293b' 
-                      }}>
-                        Selected Range
-                      </h3>
-                      
-                      <div style={{
-                        padding: '12px',
-                        backgroundColor: '#f0fdf4',
-                        border: '1px solid #bbf7d0',
-                        borderRadius: '6px',
-                        marginBottom: '16px'
-                      }}>
-                        <div style={{ fontSize: '14px', color: '#166534', fontWeight: '500' }}>
-                          {selectedDateRange}
-                        </div>
-                        {startDate && endDate && (
-                          <div style={{ fontSize: '12px', color: '#16a34a', marginTop: '4px' }}>
-                            {new Date(startDate).toLocaleDateString()} - {new Date(endDate).toLocaleDateString()}
-                          </div>
-                        )}
-                      </div>
-                      
-                      <button
-                        onClick={() => setShowDateDropdown(false)}
-                        style={{
-                          padding: '8px 16px',
-                          backgroundColor: '#10b981',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '6px',
-                          fontSize: '14px',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        Apply
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )} */}
           </div>
         </div>
 
@@ -2049,177 +1700,177 @@ const VillageMasterContent = () => {
         </div>
       )}
 
-        {/* Coverage Table Section - Only for State, Districts, and Blocks */}
-        {activeScope !== 'GPs' && (
-  <div style={{
-            backgroundColor: 'white',
-            padding: '14px',
-            marginLeft: '16px',
-            marginRight: '16px',
-            marginTop: '16px',
-            borderRadius: '8px',
-            border: '1px solid lightgray'
-          }}>
-            <h3 style={{
-              fontSize: '18px',
-              fontWeight: '600',
-              color: '#111827',
-              margin: 0,
-              marginBottom: '12px'
-            }}>
-              {activeScope === 'State' ? 'District' : activeScope === 'Districts' ? 'Block' : 'GP'} Wise Coverage
-            </h3>
-
-            {/* Table */}
-            {(() => {
-              const coverageData = activeScope === 'State' 
-                ? analyticsData?.district_wise_coverage || []
-                : activeScope === 'Districts'
-                ? analyticsData?.block_wise_coverage || []
-                : analyticsData?.gp_wise_coverage || [];
-              
-              if (coverageData.length === 0) {
-                return (
-          <div style={{
-                    padding: '40px',
-                    textAlign: 'center',
-                    color: '#9ca3af',
-                    fontSize: '14px'
-                  }}>
-                    {loadingAnalytics ? 'Loading...' : 'No coverage data available'}
-            </div>
-                );
-              }
-
-              return (
+      {/* Coverage Table Section - Only for State, Districts, and Blocks */}
+      {activeScope !== 'GPs' && (
         <div style={{
+          backgroundColor: 'white',
+          padding: '14px',
+          marginLeft: '16px',
+          marginRight: '16px',
+          marginTop: '16px',
           borderRadius: '8px',
-                  border: '1px solid #e5e7eb',
-                  overflow: 'hidden'
-                }}>
-          <div style={{
-                    minWidth: '600px',
-                    maxHeight: '500px',
-                    overflowY: 'auto',
-                    overflowX: 'auto'
-                  }}>
-                    {/* Table Header - Sticky */}
-            <div style={{
-              display: 'grid',
-                      gridTemplateColumns: '2fr 1fr 1fr 1fr 1.5fr',
-              backgroundColor: '#f9fafb',
-              padding: '12px 16px',
-                      borderBottom: '1px solid #e5e7eb',
-                      position: 'sticky',
-                      top: 0,
-                      zIndex: 10
-            }}>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                fontSize: '14px',
-                fontWeight: '600',
-                color: '#374151'
-              }}>
-                        {activeScope === 'State' ? 'District' : activeScope === 'Districts' ? 'Block' : 'GP'} Name
-                <ArrowUpDown style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
-              </div>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                fontSize: '14px',
-                fontWeight: '600',
-                color: '#374151'
-              }}>
-                        Total {activeScope === 'State' || activeScope === 'Districts' ? 'GPs' : 'Villages'}
-                <InfoTooltip tooltipKey="TOTAL_GPS" size={14} color="#9ca3af" />
-                <ArrowUpDown style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
-              </div>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                fontSize: '14px',
-                fontWeight: '600',
-                color: '#374151'
-              }}>
-                        {activeScope === 'State' || activeScope === 'Districts' ? 'GPs' : 'Villages'} with Data
-                <InfoTooltip tooltipKey="GPS_WITH_DATA" size={14} color="#9ca3af" />
-                <ArrowUpDown style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
-              </div>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                fontSize: '14px',
-                fontWeight: '600',
-                color: '#374151'
-              }}>
-                        Coverage %
-                <InfoTooltip tooltipKey="COVERAGE_PERCENTAGE" size={14} color="#9ca3af" />
-                <ArrowUpDown style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
-              </div>
-            <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        fontSize: '14px',
-                        fontWeight: '600',
-                        color: '#374151'
-                      }}>
-                        Status
-                        <ArrowUpDown style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
-            </div>
-            </div>
+          border: '1px solid lightgray'
+        }}>
+          <h3 style={{
+            fontSize: '18px',
+            fontWeight: '600',
+            color: '#111827',
+            margin: 0,
+            marginBottom: '12px'
+          }}>
+            {activeScope === 'State' ? 'District' : activeScope === 'Districts' ? 'Block' : 'GP'} Wise Coverage
+          </h3>
 
-                    {/* Table Rows */}
-                    {coverageData.map((item, index) => (
-                      <div key={item.geography_id || index} style={{
-              display: 'grid',
-                        gridTemplateColumns: '2fr 1fr 1fr 1fr 1.5fr',
-              padding: '12px 16px',
-                        borderBottom: index < coverageData.length - 1 ? '1px solid #e5e7eb' : 'none',
-                        backgroundColor: 'white',
-                        transition: 'background-color 0.2s'
-                      }}
-                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
-                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
-                      >
-                        <div style={{ fontSize: '14px', color: '#111827', fontWeight: '500' }}>
-                          {item.geography_name}
-            </div>
-                        <div style={{ fontSize: '14px', color: '#111827' }}>
-                          {formatNumber(item.total_gps || 0)}
-            </div>
-                        <div style={{ fontSize: '14px', color: '#111827' }}>
-                          {formatNumber(item.gps_with_data || 0)}
-                        </div>
-                        <div style={{ fontSize: '14px', color: '#111827' }}>
-                          {item.coverage_percentage ? `${item.coverage_percentage}%` : '0%'}
-                        </div>
-                        <div style={{ fontSize: '14px', color: '#111827' }}>
-                          <span style={{
-                            padding: '4px 8px',
-                            borderRadius: '4px',
-                            backgroundColor: item.master_data_status === 'Available' ? '#d1fae5' : '#fee2e2',
-                            color: item.master_data_status === 'Available' ? '#065f46' : '#991b1b',
-                            fontSize: '12px'
-                          }}>
-                            {item.master_data_status || 'Not Available'}
-                          </span>
-            </div>
-          </div>
-                    ))}
-        </div>
+          {/* Table */}
+          {(() => {
+            const coverageData = activeScope === 'State' 
+              ? analyticsData?.district_wise_coverage || []
+              : activeScope === 'Districts'
+              ? analyticsData?.block_wise_coverage || []
+              : analyticsData?.gp_wise_coverage || [];
+            
+            if (coverageData.length === 0) {
+              return (
+                <div style={{
+                  padding: '40px',
+                  textAlign: 'center',
+                  color: '#9ca3af',
+                  fontSize: '14px'
+                }}>
+                  {loadingAnalytics ? 'Loading...' : 'No coverage data available'}
                 </div>
               );
-            })()}
-          </div>
-        )}
-      </div>
-    );
+            }
+
+            return (
+              <div style={{
+                borderRadius: '8px',
+                border: '1px solid #e5e7eb',
+                overflow: 'hidden'
+              }}>
+                <div style={{
+                  minWidth: '600px',
+                  maxHeight: '500px',
+                  overflowY: 'auto',
+                  overflowX: 'auto'
+                }}>
+                  {/* Table Header - Sticky */}
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: '2fr 1fr 1fr 1fr 1.5fr',
+                    backgroundColor: '#f9fafb',
+                    padding: '12px 16px',
+                    borderBottom: '1px solid #e5e7eb',
+                    position: 'sticky',
+                    top: 0,
+                    zIndex: 10
+                  }}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      color: '#374151'
+                    }}>
+                      {activeScope === 'State' ? 'District' : activeScope === 'Districts' ? 'Block' : 'GP'} Name
+                      <ArrowUpDown style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
+                    </div>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      color: '#374151'
+                    }}>
+                      Total {activeScope === 'State' || activeScope === 'Districts' ? 'GPs' : 'Villages'}
+                      <InfoTooltip tooltipKey="TOTAL_GPS" size={14} color="#9ca3af" />
+                      <ArrowUpDown style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
+                    </div>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      color: '#374151'
+                    }}>
+                      {activeScope === 'State' || activeScope === 'Districts' ? 'GPs' : 'Villages'} with Data
+                      <InfoTooltip tooltipKey="GPS_WITH_DATA" size={14} color="#9ca3af" />
+                      <ArrowUpDown style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
+                    </div>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      color: '#374151'
+                    }}>
+                      Coverage %
+                      <InfoTooltip tooltipKey="COVERAGE_PERCENTAGE" size={14} color="#9ca3af" />
+                      <ArrowUpDown style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
+                    </div>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      color: '#374151'
+                    }}>
+                      Status
+                      <ArrowUpDown style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
+                    </div>
+                  </div>
+
+                  {/* Table Rows */}
+                  {coverageData.map((item, index) => (
+                    <div key={item.geography_id || index} style={{
+                      display: 'grid',
+                      gridTemplateColumns: '2fr 1fr 1fr 1fr 1.5fr',
+                      padding: '12px 16px',
+                      borderBottom: index < coverageData.length - 1 ? '1px solid #e5e7eb' : 'none',
+                      backgroundColor: 'white',
+                      transition: 'background-color 0.2s'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
+                    >
+                      <div style={{ fontSize: '14px', color: '#111827', fontWeight: '500' }}>
+                        {item.geography_name}
+                      </div>
+                      <div style={{ fontSize: '14px', color: '#111827' }}>
+                        {formatNumber(item.total_gps || 0)}
+                      </div>
+                      <div style={{ fontSize: '14px', color: '#111827' }}>
+                        {formatNumber(item.gps_with_data || 0)}
+                      </div>
+                      <div style={{ fontSize: '14px', color: '#111827' }}>
+                        {item.coverage_percentage ? `${item.coverage_percentage}%` : '0%'}
+                      </div>
+                      <div style={{ fontSize: '14px', color: '#111827' }}>
+                        <span style={{
+                          padding: '4px 8px',
+                          borderRadius: '4px',
+                          backgroundColor: item.master_data_status === 'Available' ? '#d1fae5' : '#fee2e2',
+                          color: item.master_data_status === 'Available' ? '#065f46' : '#991b1b',
+                          fontSize: '12px'
+                        }}>
+                          {item.master_data_status || 'Not Available'}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+      )}
+    </div>
+  );
   };
 
 export default VillageMasterContent;

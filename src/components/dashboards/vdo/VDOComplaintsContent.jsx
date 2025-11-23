@@ -875,7 +875,7 @@ const VDOComplaintsContent = () => {
       title: 'Total Complaints',
         value: loadingAnalytics ? '...' : formatNumber(counts.total),
       icon: List,
-      color: '#3b82f6',
+      color: '#9ca3af',
         trend: 'up',
       tooltipText: 'Total complaints logged for the selected scope and period.',
       chartData: {
@@ -890,11 +890,11 @@ const VDOComplaintsContent = () => {
             toolbar: { show: false },
             zoom: { enabled: false }
           },
-          stroke: { curve: 'smooth', width: 2, colors: ['#3b82f6'] },
+          stroke: { curve: 'smooth', width: 2, colors: ['#6b7280'] },
           fill: {
             type: 'solid',
             opacity: 0.10,
-            colors: ['#3b82f6']
+            colors: ['#9ca3af']
           },
           tooltip: { enabled: false },
           grid: { 
@@ -969,7 +969,7 @@ const VDOComplaintsContent = () => {
       title: 'Verified',
         value: loadingAnalytics ? '...' : formatNumber(counts.verified),
       icon: List,
-      color: '#f97316',
+      color: '#f59e0b',
         trend: 'up',
       tooltipText: 'Complaints verified by the VDO.',
       chartData: {
@@ -982,7 +982,7 @@ const VDOComplaintsContent = () => {
             height: 40,
             sparkline: { enabled: true }
           },
-          stroke: { curve: 'smooth', width: 2, colors: ['#f97316'] },
+          stroke: { curve: 'smooth', width: 2, colors: ['#f59e0b'] },
           fill: {
             type: 'gradient',
             gradient: {
@@ -1008,7 +1008,7 @@ const VDOComplaintsContent = () => {
         title: 'Resolved',
         value: loadingAnalytics ? '...' : formatNumber(counts.resolved),
         icon: List,
-        color: '#8b5cf6',
+        color: '#f97316',
         trend: 'up',
       tooltipText: 'Complaints resolved after action was taken.',
         chartData: {
@@ -1021,7 +1021,7 @@ const VDOComplaintsContent = () => {
               height: 40,
               sparkline: { enabled: true }
             },
-            stroke: { curve: 'smooth', width: 2, colors: ['#8b5cf6'] },
+            stroke: { curve: 'smooth', width: 2, colors: ['#f97316'] },
             fill: {
               type: 'gradient',
               gradient: {
@@ -1047,7 +1047,7 @@ const VDOComplaintsContent = () => {
       title: 'Disposed',
         value: loadingAnalytics ? '...' : formatNumber(counts.disposed),
       icon: List,
-      color: '#10b981',
+      color: '#14b8a6',
         trend: 'up',
       tooltipText: 'Complaints closed after final disposal or resolution confirmation.',
       chartData: {
@@ -1060,7 +1060,7 @@ const VDOComplaintsContent = () => {
             height: 40,
             sparkline: { enabled: true }
           },
-          stroke: { curve: 'smooth', width: 2, colors: ['#10b981'] },
+          stroke: { curve: 'smooth', width: 2, colors: ['#14b8a6'] },
           fill: {
             type: 'gradient',
             gradient: {

@@ -2697,8 +2697,7 @@ const VDOInspectionContent = () => {
         </div>
         )}
 
-        {/* Your Inspections Table - Conditionally rendered (always show in GP view) */}
-        {(showMyInspections || activeScope === 'GPs') && (
+        {/* Your Inspections Table - Always visible at bottom */}
         <div style={{
           marginTop: '16px',
           marginLeft: '16px',
@@ -2923,7 +2922,6 @@ const VDOInspectionContent = () => {
             )}
           </div>
         </div>
-        )}
     </div>
   );
 };

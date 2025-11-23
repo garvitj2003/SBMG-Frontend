@@ -17,6 +17,8 @@ const NotoficationContent = () => {
   const actionMenuRef = useRef(null);
   const [viewNoticeModal, setViewNoticeModal] = useState({ isOpen: false, notice: null });
   const [repliesModal, setRepliesModal] = useState({ isOpen: false, notice: null });
+  const [replyText, setReplyText] = useState('');
+  const [submittingReply, setSubmittingReply] = useState(false);
   
   // Pagination state
   const pageSize = 1000; // Number of items per page
@@ -224,8 +226,61 @@ const NotoficationContent = () => {
     closeActionMenu();
   };
 
-  const closeViewNoticeModal = () => setViewNoticeModal({ isOpen: false, notice: null });
+  const closeViewNoticeModal = () => {
+    setViewNoticeModal({ isOpen: false, notice: null });
+    setReplyText('');
+  };
   const closeRepliesModal = () => setRepliesModal({ isOpen: false, notice: null });
+
+  // Handle reply submission
+  const handleReplySubmit = async (notice) => {
+    if (!replyText.trim()) {
+      alert('Please enter a reply message');
+      return;
+    }
+
+    try {
+      setSubmittingReply(true);
+      const response = await apiClient.post(`/notices/${notice.id}/reply`, {
+        reply_text: replyText.trim()
+      });
+      
+      console.log('✅ Reply submitted successfully:', response.data);
+      
+      // Update the notice in the list
+      if (viewMode === 'received') {
+        setReceivedNotices(prevNotices => 
+          prevNotices.map(n => {
+            if (n.id === notice.id) {
+              const updatedReplies = [...(n.replies || []), response.data];
+              return {
+                ...n,
+                replies: updatedReplies
+              };
+            }
+            return n;
+          })
+        );
+      }
+      
+      // Update the modal notice
+      setViewNoticeModal(prev => ({
+        ...prev,
+        notice: {
+          ...prev.notice,
+          replies: [...(prev.notice.replies || []), response.data]
+        }
+      }));
+      
+      setReplyText('');
+      alert('Reply submitted successfully!');
+    } catch (error) {
+      console.error('❌ Error submitting reply:', error);
+      alert(error.response?.data?.detail || error.message || 'Failed to submit reply');
+    } finally {
+      setSubmittingReply(false);
+    }
+  };
 
   const getToggleButtonStyle = (isActive) => ({
     display: 'flex',
@@ -948,23 +1003,85 @@ const NotoficationContent = () => {
                     </div>
                   </div>
 
-                  <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                    <button
-                      onClick={closeViewNoticeModal}
-                      style={{
-                        padding: '10px 18px',
-                        borderRadius: '10px',
-                        border: '1px solid #d1d5db',
-                        backgroundColor: '#111827',
-                        color: 'white',
-                        fontSize: '14px',
-                        fontWeight: 500,
-                        cursor: 'pointer'
-                      }}
-                    >
-                      Close
-                    </button>
-                  </div>
+                  {/* Reply Section - Only for received notices */}
+                  {viewMode === 'received' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', paddingTop: '12px', borderTop: '1px solid #e5e7eb' }}>
+                      <span style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#6b7280', marginBottom: '4px' }}>Reply to Notice</span>
+                      <textarea
+                        value={replyText}
+                        onChange={(e) => setReplyText(e.target.value)}
+                        placeholder="Enter your reply..."
+                        style={{
+                          width: '100%',
+                          minHeight: '100px',
+                          padding: '12px',
+                          borderRadius: '10px',
+                          border: '1px solid #d1d5db',
+                          fontSize: '14px',
+                          color: '#111827',
+                          fontFamily: 'inherit',
+                          resize: 'vertical',
+                          outline: 'none'
+                        }}
+                        disabled={submittingReply}
+                      />
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                        <button
+                          onClick={closeViewNoticeModal}
+                          disabled={submittingReply}
+                          style={{
+                            padding: '10px 18px',
+                            borderRadius: '10px',
+                            border: '1px solid #d1d5db',
+                            backgroundColor: 'white',
+                            color: '#374151',
+                            fontSize: '14px',
+                            fontWeight: 500,
+                            cursor: submittingReply ? 'not-allowed' : 'pointer',
+                            opacity: submittingReply ? 0.6 : 1
+                          }}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={() => handleReplySubmit(viewNoticeModal.notice.raw || viewNoticeModal.notice)}
+                          disabled={submittingReply || !replyText.trim()}
+                          style={{
+                            padding: '10px 18px',
+                            borderRadius: '10px',
+                            border: 'none',
+                            backgroundColor: submittingReply || !replyText.trim() ? '#9ca3af' : '#10b981',
+                            color: 'white',
+                            fontSize: '14px',
+                            fontWeight: 500,
+                            cursor: submittingReply || !replyText.trim() ? 'not-allowed' : 'pointer'
+                          }}
+                        >
+                          {submittingReply ? 'Submitting...' : 'Submit Reply'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {viewMode !== 'received' && (
+                    <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                      <button
+                        onClick={closeViewNoticeModal}
+                        style={{
+                          padding: '10px 18px',
+                          borderRadius: '10px',
+                          border: '1px solid #d1d5db',
+                          backgroundColor: '#111827',
+                          color: 'white',
+                          fontSize: '14px',
+                          fontWeight: 500,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Close
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
