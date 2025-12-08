@@ -2084,6 +2084,24 @@ const DashboardContent = () => {
 
   return (
     <div>
+      <style>{`
+        @media (max-width: 639px) {
+          .desktop-text {
+            display: none !important;
+          }
+          .mobile-text {
+            display: inline !important;
+          }
+        }
+        @media (min-width: 640px) {
+          .desktop-text {
+            display: inline !important;
+          }
+          .mobile-text {
+            display: none !important;
+          }
+        }
+      `}</style>
       {/* Header Section */}
       <div style={{
         backgroundColor: 'white',
@@ -2621,24 +2639,28 @@ const DashboardContent = () => {
         )}
 
         {/* Data Cards and Progress Summary */}
-        <div style={{
+        <div className="flex flex-col lg:flex-row gap-4 lg:gap-6" style={{
           display: 'flex',
           gap: '24px',
           opacity: loadingAnalytics ? 0.6 : 1,
-          transition: 'opacity 0.3s'
+          transition: 'opacity 0.3s',
+          flexWrap: 'wrap'
         }}>
           {/* Data Cards */}
-          <div style={{
+          <div className="w-full lg:w-[60%] lg:min-w-0" style={{
             display: 'flex',
             flexDirection: 'column',
             gap: '12px',
-            width: '60%'
+            width: '100%',
+            minWidth: 0,
+            flexBasis: '60%',
+            flexShrink: 1
           }}>
             {/* Top Row - 2 cards */}
-            <div style={{
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3" style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(2, minmax(180px, 1fr))',
-              gap: '12px'
+              gap: '12px',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))'
             }}>
               {complaintData.slice(0, 2).map((item, index) => (
                 <div key={index} style={{
@@ -2710,10 +2732,10 @@ const DashboardContent = () => {
             </div>
 
             {/* Bottom Row - 3 cards */}
-            <div style={{
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3" style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(3, minmax(180px, 1fr))',
-              gap: '12px'
+              gap: '12px',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))'
             }}>
               {complaintData.slice(2, 5).map((item, index) => (
                 <div key={index + 2} style={{
@@ -2786,8 +2808,9 @@ const DashboardContent = () => {
           </div>
 
           {/* Progress Summary */}
-          <div style={{
-            flex: 1,
+          <div className="w-full lg:w-auto lg:flex-1 lg:min-w-0" style={{
+            flex: '1 1 auto',
+            minWidth: 0,
             backgroundColor: 'white',
             padding: '20px',
             borderRadius: '12px',
@@ -3303,7 +3326,7 @@ const DashboardContent = () => {
         </div>
       ) : (
         /* Performance and Top 3 Section (shown when State/District/Block is selected) */
-        <div style={{
+        <div className="flex flex-col lg:flex-row gap-4 lg:gap-4" style={{
           display: 'flex',
           gap: '16px',
           marginLeft: '16px',
@@ -3311,8 +3334,9 @@ const DashboardContent = () => {
           marginTop: '16px'
         }}>
         {/* Performance Section */}
-        <div style={{
+        <div className="w-full lg:flex-1 lg:min-w-0" style={{
           flex: 1,
+          minWidth: 0,
           backgroundColor: 'white',
           paddingLeft: '24px',
           paddingRight: '24px',
@@ -3358,7 +3382,8 @@ const DashboardContent = () => {
                   backgroundColor: activePerformanceTab === 'starPerformers' ? '#10b981' : 'transparent',
                   color: activePerformanceTab === 'starPerformers' ? 'white' : '#6b7280'
                 }}>
-                Star Performers
+                <span className="desktop-text">Star Performers</span>
+                <span className="mobile-text">Star Perform...</span>
               </button>
               <button 
                 onClick={() => setActivePerformanceTab('underperformers')}
@@ -3372,7 +3397,8 @@ const DashboardContent = () => {
                   backgroundColor: activePerformanceTab === 'underperformers' ? '#10b981' : 'transparent',
                   color: activePerformanceTab === 'underperformers' ? 'white' : '#6b7280'
                 }}>
-                Underperformers
+                <span className="desktop-text">Underperformers</span>
+                <span className="mobile-text">Under perform...</span>
               </button>
               </div>
 
@@ -3590,21 +3616,16 @@ const DashboardContent = () => {
         </div>
 
         {/* Top 3 Section */}
-        <div style={{
+        <div className="w-full lg:flex-1 lg:min-w-0 px-4 sm:px-6 py-3.5 sm:py-6" style={{
           flex: 1,
+          minWidth: 0,
           backgroundColor: 'white',
-          paddingLeft: '24px',
-          paddingRight: '24px',
-          paddingTop: '14px',
-          paddingBottom: '24px',
           borderRadius: '12px',
-          border: '1px solid lightgray'
+          border: '1px solid lightgray',
+          overflow: 'hidden'
         }}>
           {/* Top 3 Header */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0" style={{
             marginBottom: '20px'
           }}>
             <div style={{
@@ -3625,12 +3646,14 @@ const DashboardContent = () => {
                 size={16}
               />
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-2 w-full sm:w-auto">
               <div 
                 data-top3-dropdown
+                className="w-full sm:w-auto"
                 style={{
                 position: 'relative',
-                minWidth: '100px'
+                minWidth: '100px',
+                flex: '1 1 auto'
               }}>
                 <button 
                   onClick={() => setShowTop3Dropdown(!showTop3Dropdown)}
@@ -3690,10 +3713,14 @@ const DashboardContent = () => {
                 )}
               </div>
 
-              <div ref={top3MonthRef} style={{ position: 'relative' }}>
+              <div ref={top3MonthRef} className="w-full sm:w-auto" style={{ 
+                position: 'relative',
+                flex: '1 1 auto'
+              }}>
                 <button
                   type="button"
                   onClick={handleTop3MonthButtonClick}
+                  className="w-full sm:w-auto"
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -3706,7 +3733,8 @@ const DashboardContent = () => {
                     fontSize: '14px',
                     color: '#374151',
                     minWidth: '130px',
-                    justifyContent: 'space-between'
+                    justifyContent: 'space-between',
+                    width: '100%'
                   }}
                 >
                   <span>{getTop3RangeLabel()}</span>
@@ -3777,7 +3805,9 @@ const DashboardContent = () => {
           <div style={{
             overflowX: 'auto',
             opacity: loadingTop3 ? 0.6 : 1,
-            transition: 'opacity 0.3s'
+            transition: 'opacity 0.3s',
+            width: '100%',
+            maxWidth: '100%'
           }}>
             <table style={{
               width: '100%',

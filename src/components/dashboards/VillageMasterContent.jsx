@@ -901,7 +901,7 @@ const VillageMasterContent = () => {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#F3F4F6' }}>
      {/* Header Section */}
-     <div style={{
+     <div className="bg-white border-b border-gray-200 py-1 px-2 md:px-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-2 md:gap-4" style={{
         backgroundColor: 'white',
         borderBottom: '1px solid #e5e7eb',
         padding: '5px 15px',
@@ -911,7 +911,7 @@ const VillageMasterContent = () => {
      }}>
          {/* Left side - Dashboard title */}
         <div>
-          <h1 style={{
+          <h1 className="text-lg md:text-xl" style={{
             fontSize: '20px',
             fontWeight: '600',
             color: '#374151',
@@ -922,13 +922,13 @@ const VillageMasterContent = () => {
         </div>
 
         {/* Right side - Scope buttons and Location dropdown */}
-        <div style={{
+        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2 md:gap-4 w-full md:w-auto" style={{
           display: 'flex',
           alignItems: 'center',
           gap: '16px'
         }}>
           {/* Scope segmented buttons */}
-          <div style={{
+          <div className="flex flex-wrap md:flex-nowrap bg-gray-100 rounded-xl p-1 gap-0.5" style={{
             display: 'flex',
             backgroundColor: '#f3f4f6',
             borderRadius: '12px',
@@ -939,6 +939,7 @@ const VillageMasterContent = () => {
               <button
                 key={scope}
                 onClick={() => handleScopeChange(scope)}
+                className="px-2 md:px-2.5 py-1 rounded-lg text-xs md:text-sm font-medium transition-all"
                 style={{
                   padding: '3px 10px',
                   borderRadius: '8px',
@@ -958,6 +959,7 @@ const VillageMasterContent = () => {
   {/* Location dropdown */}
   <div 
     data-location-dropdown
+    className="relative w-full md:w-auto md:min-w-[200px]"
     style={{
             position: 'relative',
             minWidth: '200px'
@@ -966,6 +968,7 @@ const VillageMasterContent = () => {
     <button 
       onClick={() => activeScope !== 'State' && setShowLocationDropdown(!showLocationDropdown)}
       disabled={activeScope === 'State'}
+      className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm md:text-base flex items-center justify-between"
       style={{
               width: '100%',
               padding: '5px 12px',
@@ -1153,7 +1156,7 @@ const VillageMasterContent = () => {
       </div>
 
       {/* Overview Section */}
-      <div style={{
+      <div className="bg-white p-4 md:p-6 mx-2 md:mx-4 mt-1.5 rounded-lg border border-gray-300" style={{
         backgroundColor: 'white',
         padding: '24px',
         marginLeft: '16px',
@@ -1186,9 +1189,8 @@ const VillageMasterContent = () => {
         </div>
 
         {/* Metrics Cards */}
-        <div style={{
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4" style={{
           display: 'grid',
-          gridTemplateColumns: activeScope === 'GPs' ? 'repeat(3, 1fr)' : 'repeat(5, 1fr)',
           gap: '16px'
         }}>
           {/* Total Village Master Data - Hidden in GP view */}
@@ -1387,14 +1389,14 @@ const VillageMasterContent = () => {
         </div>
 
         {/* SBMG Target vs Achievement and Annual Overview Section */}
-        <div style={{
+        <div className="flex flex-col lg:flex-row gap-2 md:gap-4 mt-4" style={{
           display: 'flex',
           gap: '10px',
           marginTop: '16px'
         }}>
           {/* SBMG Target vs Achievement Chart - Hidden in GP view */}
           {activeScope !== 'GPs' && (
-          <div style={{
+          <div className="flex-1 md:flex-[2] bg-white p-3 md:p-4 rounded-lg border border-gray-200" style={{
             flex: 2,
             backgroundColor: 'white',
             padding: '14px',
@@ -1455,7 +1457,11 @@ const VillageMasterContent = () => {
               backgroundColor: '#e5e7eb',
               margin: '12px 0'
             }}></div>
-            <div style={{ height: '400px' }}>
+            <div className="h-64 md:h-80 lg:h-96 overflow-x-auto" style={{ 
+              height: '400px',
+              minHeight: '300px',
+              maxWidth: '100%'
+            }}>
               <Chart
                 options={chartOptions}
                 series={chartSeries}
@@ -1468,7 +1474,7 @@ const VillageMasterContent = () => {
           <divider />
          
           {/* Annual Overview */}
-          <div style={{
+          <div className={`${activeScope === 'GPs' ? 'w-full' : 'flex-1'} bg-white p-3 md:p-4 rounded-lg border border-gray-200`} style={{
             flex: activeScope === 'GPs' ? 'none' : 1,
             width: activeScope === 'GPs' ? '100%' : 'auto',
             backgroundColor: 'white',

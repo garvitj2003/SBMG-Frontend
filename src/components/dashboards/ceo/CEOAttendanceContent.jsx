@@ -2108,6 +2108,37 @@ const AttendanceContent = () => {
 
   return (
     <div>
+      <style>{`
+        @media (max-width: 639px) {
+          .desktop-text {
+            display: none !important;
+          }
+          .mobile-text {
+            display: inline !important;
+          }
+          .top3-header-container {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 12px !important;
+          }
+          .top3-controls-container {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            width: 100% !important;
+          }
+          .top3-controls-container > div {
+            width: 100% !important;
+          }
+        }
+        @media (min-width: 640px) {
+          .desktop-text {
+            display: inline !important;
+          }
+          .mobile-text {
+            display: none !important;
+          }
+        }
+      `}</style>
       {/* Header Section */}
       <div style={{
         backgroundColor: 'white',
@@ -2866,7 +2897,7 @@ const AttendanceContent = () => {
           minHeight: '450px'
         }}>
           {/* Top 3 Header */}
-          <div style={{
+          <div className="top3-header-container" style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -2893,7 +2924,7 @@ const AttendanceContent = () => {
             </div>
             
             {/* Right side controls in same row */}
-            <div style={{
+            <div className="top3-controls-container" style={{
               display: 'flex',
               alignItems: 'center',
               gap: '12px'
@@ -3019,15 +3050,31 @@ const AttendanceContent = () => {
                     cursor: 'pointer',
                     fontSize: '14px',
                     color: '#374151',
-                    fontWeight: '500'
+                    fontWeight: '500',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden'
                   }}
                 >
-                  <span>
+                  <span style={{
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    flex: 1,
+                    textAlign: 'left'
+                  }}>
                     {top3Period === 'Month' 
-                      ? months.find(m => m.value === top3SelectedMonth)?.name 
+                      ? (() => {
+                          const month = months.find(m => m.value === top3SelectedMonth);
+                          return month ? (
+                            <>
+                              <span className="desktop-text">{month.name}</span>
+                              <span className="mobile-text">{month.name.substring(0, 3)}</span>
+                            </>
+                          ) : ''
+                        })()
                       : top3SelectedYear}
                   </span>
-                  <ChevronDown style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
+                  <ChevronDown style={{ width: '16px', height: '16px', color: '#9ca3af', flexShrink: 0, marginLeft: '8px' }} />
                 </button>
                 
                 {/* Month/Year Dropdown Menu */}
@@ -3043,7 +3090,7 @@ const AttendanceContent = () => {
                       border: '1px solid #d1d5db',
                       borderRadius: '8px',
                       boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                      zIndex: 1000,
+                      zIndex: 9999,
                       marginTop: '4px',
                       maxHeight: '250px',
                       overflowY: 'auto'

@@ -44,7 +44,7 @@ const Sidebar = ({ activeItem, setActiveItem }) => {
   ];
 
  return (
-    <aside style={{
+    <aside className="w-full md:w-64 lg:w-[272px] h-screen bg-green-50 border-r border-gray-200 flex flex-col m-0 p-0" style={{
       width: '272px',
       height: '100vh',
       backgroundColor: '#F0FDF4',
@@ -224,14 +224,14 @@ const UnifiedDashboardVDO = () => {
   };
 
   return (
-    <div style={{
+    <div className="flex h-screen bg-white m-0 p-0" style={{
       display: 'flex',
       height: '100vh',
       backgroundColor: 'white',
       margin: 0,
       padding: 0
     }}>
-      <div style={{
+      <div className={`transition-all duration-250 ease-in-out flex-shrink-0 ${isSidebarOpen ? 'w-64 md:w-64 lg:w-[272px]' : 'w-0'} overflow-hidden`} style={{
         width: isSidebarOpen ? '272px' : '0px',
         transition: 'width 0.25s ease',
         overflow: 'hidden',
@@ -239,7 +239,7 @@ const UnifiedDashboardVDO = () => {
       }}>
         <Sidebar activeItem={activeItem} setActiveItem={setActiveItem} />
       </div>
-      <div style={{
+      <div className="flex-1 bg-gray-100 m-0 p-0 flex flex-col overflow-auto" style={{
         flex: 1,
         backgroundColor: '#F3F4F6',
         margin: 0,

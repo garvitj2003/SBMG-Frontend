@@ -479,14 +479,15 @@ const Header = ({ onMenuClick, onNotificationsClick, showLocationSearch = true }
   }, [showUserDropdown]);
 
   return (
-    <header style={{
-      backgroundColor: 'white',
-      borderBottom: '1px solid #e5e7eb',
-      padding: '6px 0px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between'
-    }}>
+    <header className="bg-white border-b border-gray-200 py-1.5 px-0 flex items-center justify-between"
+      style={{
+        backgroundColor: 'white',
+        borderBottom: '1px solid #e5e7eb',
+        padding: '6px 0px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between'
+      }}>
       {/* Left side - Menu icon */}
       <div style={{display: 'flex', alignItems: 'center'}}>
         <button onClick={onMenuClick} style={{
@@ -502,10 +503,10 @@ const Header = ({ onMenuClick, onNotificationsClick, showLocationSearch = true }
       </div>
 
       {/* Right side - Search bar, Notifications and Profile */}
-      <div style={{display: 'flex', alignItems: 'center', gap: '16px', marginRight: '16px'}}>
+      <div className="flex items-center gap-2 md:gap-4 mr-2 md:mr-4" style={{display: 'flex', alignItems: 'center', gap: '16px', marginRight: '16px'}}>
         {/* Search bar - hidden for VDO */}
         {showLocationSearch && (
-          <div ref={containerRef} style={{position: 'relative', width: '320px'}}>
+          <div ref={containerRef} className="relative w-48 md:w-64 lg:w-80" style={{position: 'relative', width: '320px'}}>
             <Search style={{
               position: 'absolute',
               left: '12px',
@@ -523,6 +524,7 @@ const Header = ({ onMenuClick, onNotificationsClick, showLocationSearch = true }
               onChange={handleInputChange}
               onFocus={handleInputFocus}
               onKeyDown={handleKeyDown}
+            className="w-full pl-10 pr-12 py-1.5 border border-gray-300 rounded-full outline-none text-sm md:text-base"
             style={{
               width: '100%',
               paddingLeft: '40px',

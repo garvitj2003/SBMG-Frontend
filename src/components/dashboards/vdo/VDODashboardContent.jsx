@@ -2202,24 +2202,28 @@ const VDODashboardContent = () => {
 
 
         {/* Data Cards and Progress Summary */}
-        <div style={{
+        <div className="flex flex-col lg:flex-row gap-4 lg:gap-6" style={{
           display: 'flex',
           gap: '24px',
           opacity: loadingAnalytics ? 0.6 : 1,
-          transition: 'opacity 0.3s'
+          transition: 'opacity 0.3s',
+          flexWrap: 'wrap'
         }}>
           {/* Data Cards */}
-          <div style={{
+          <div className="w-full lg:w-[60%] lg:min-w-0" style={{
             display: 'flex',
             flexDirection: 'column',
             gap: '12px',
-            width: '60%'
+            width: '100%',
+            minWidth: 0,
+            flexBasis: '60%',
+            flexShrink: 1
           }}>
             {/* Top Row - 2 cards */}
-            <div style={{
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3" style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(2, minmax(180px, 1fr))',
-              gap: '12px'
+              gap: '12px',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))'
             }}>
               {complaintData.slice(0, 2).map((item, index) => (
                 <div key={index} style={{
@@ -2291,10 +2295,10 @@ const VDODashboardContent = () => {
             </div>
 
             {/* Bottom Row - 3 cards */}
-            <div style={{
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3" style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(3, minmax(180px, 1fr))',
-              gap: '12px'
+              gap: '12px',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))'
             }}>
               {complaintData.slice(2, 5).map((item, index) => (
                 <div key={index + 2} style={{
@@ -2367,8 +2371,9 @@ const VDODashboardContent = () => {
           </div>
 
           {/* Progress Summary */}
-          <div style={{
-            flex: 1,
+          <div className="w-full lg:w-auto lg:flex-1 lg:min-w-0" style={{
+            flex: '1 1 auto',
+            minWidth: 0,
             backgroundColor: 'white',
             padding: '20px',
             borderRadius: '12px',

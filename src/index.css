@@ -35,3 +35,51 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+/* Mobile Responsive Styles */
+@media (max-width: 640px) {
+  /* Ensure proper viewport scaling */
+  html {
+    -webkit-text-size-adjust: 100%;
+    -ms-text-size-adjust: 100%;
+  }
+  
+  /* Dashboard cards responsive */
+  .dashboard-card {
+    min-width: 0;
+    width: 100%;
+  }
+  
+  /* Responsive text sizing for mobile */
+  h1 { font-size: 1.25rem; }
+  h2 { font-size: 1.125rem; }
+  h3 { font-size: 1rem; }
+}
+
+/* iPad and Tablet Responsive Styles */
+@media (min-width: 768px) and (max-width: 1024px) {
+  /* Ensure proper viewport scaling */
+  html {
+    -webkit-text-size-adjust: 100%;
+    -ms-text-size-adjust: 100%;
+  }
+  
+  /* Improve touch targets for iPad */
+  button, a {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Better table scrolling on iPad */
+  .table-responsive {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+  }
+  
+  /* Responsive text sizing */
+  h1 { font-size: 1.5rem; }
+  h2 { font-size: 1.25rem; }
+  h3 { font-size: 1.125rem; }
+}
