@@ -259,8 +259,7 @@ const DashboardContent = () => {
   };
 
   const getPerformanceDateRange = () => {
-    const now = new Date();
-    const target = new Date(now.getFullYear(), performanceMonth, 1);
+    const target = new Date(selectedPerformanceYear, performanceMonth, 1);
     const start = new Date(target.getFullYear(), target.getMonth(), 1);
     const end = new Date(target.getFullYear(), target.getMonth() + 1, 0);
     return {
@@ -285,8 +284,7 @@ const DashboardContent = () => {
   const performancePrimaryLabel = getPerformanceGeoLabel();
 
   const getPerformanceRangeLabel = () => {
-    const now = new Date();
-    return `${MONTH_NAMES[performanceMonth]} ${now.getFullYear()}`;
+    return `${MONTH_NAMES[performanceMonth]} ${selectedPerformanceYear}`;
   };
 
   const getTop3RangeLabel = () => {
@@ -305,7 +303,9 @@ const DashboardContent = () => {
   const [performanceError, setPerformanceError] = useState(null);
   const [activePerformanceTab, setActivePerformanceTab] = useState('starPerformers');
   const [performanceMonth, setPerformanceMonth] = useState(() => new Date().getMonth());
+  const [selectedPerformanceYear, setSelectedPerformanceYear] = useState(() => new Date().getFullYear());
   const [showPerformanceRangePicker, setShowPerformanceRangePicker] = useState(false);
+  const [showPerformanceYearDropdown, setShowPerformanceYearDropdown] = useState(false);
   const [top3Scope, setTop3Scope] = useState('District');
   const [top3Month, setTop3Month] = useState(() => new Date().getMonth());
   const [showTop3Dropdown, setShowTop3Dropdown] = useState(false);
@@ -316,6 +316,7 @@ const DashboardContent = () => {
   const top3MonthRef = useRef(null);
   
   const performanceRangeRef = useRef(null);
+  const performanceYearRef = useRef(null);
 
   // Vendor data state (for GP level)
   const [vendorData, setVendorData] = useState(null);
@@ -377,6 +378,23 @@ const DashboardContent = () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [showPerformanceRangePicker]);
+
+  useEffect(() => {
+    if (!showPerformanceYearDropdown) {
+      return;
+    }
+
+    const handleClickOutside = (event) => {
+      if (performanceYearRef.current && !performanceYearRef.current.contains(event.target)) {
+        setShowPerformanceYearDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showPerformanceYearDropdown]);
 
   useEffect(() => {
     if (!showTop3MonthPicker) {
@@ -1305,6 +1323,12 @@ const DashboardContent = () => {
     setSelectedComplaintsYear(currentYear);
   }, []);
 
+  // Ensure performance year is always current year on mount
+  useEffect(() => {
+    const currentYear = new Date().getFullYear();
+    setSelectedPerformanceYear(currentYear);
+  }, []);
+
   // Fetch Performance Data from API (both current and previous month)
   const fetchPerformanceData = useCallback(async () => {
     try {
@@ -1377,7 +1401,7 @@ const DashboardContent = () => {
     } finally {
       setLoadingPerformance(false);
     }
-  }, [activeScope, selectedDistrictId, selectedBlockId, selectedGPId, performanceMonth]);
+  }, [activeScope, selectedDistrictId, selectedBlockId, selectedGPId, performanceMonth, selectedPerformanceYear]);
 
   // Fetch Top 3 data from dedicated API
   const fetchTop3Data = useCallback(async () => {
@@ -1503,7 +1527,7 @@ const DashboardContent = () => {
     }
     
     fetchPerformanceData();
-  }, [activeScope, selectedDistrictId, selectedBlockId, selectedGPId, districts, blocks, gramPanchayats, performanceMonth]);
+  }, [activeScope, selectedDistrictId, selectedBlockId, selectedGPId, districts, blocks, gramPanchayats, performanceMonth, selectedPerformanceYear, fetchPerformanceData]);
 
   // Fetch Top 3 data when scope or month changes
   useEffect(() => {
@@ -3477,7 +3501,74 @@ const DashboardContent = () => {
               </button>
               </div>
 
-              {/* Range Selector */}
+              {/* Year Selector */}
+              <div 
+                ref={performanceYearRef}
+                data-performance-year-dropdown
+                style={{ position: 'relative', minWidth: '120px' }}>
+                <button 
+                  onClick={() => setShowPerformanceYearDropdown(!showPerformanceYearDropdown)}
+                  style={{
+                    width: '100%',
+                    padding: '6px 12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '12px',
+                    backgroundColor: 'white',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    color: '#6b7280'
+                  }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Calendar style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
+                    <span>{selectedPerformanceYear}</span>
+                  </div>
+                  <ChevronDown style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
+                </button>
+                
+                {/* Year Dropdown Menu */}
+                {showPerformanceYearDropdown && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: 0,
+                    right: 0,
+                    backgroundColor: 'white',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                    zIndex: 1000,
+                    marginTop: '4px',
+                    maxHeight: '200px',
+                    overflowY: 'auto'
+                  }}>
+                    {generateYears().map(year => (
+                      <div
+                        key={year}
+                        onClick={() => {
+                          setSelectedPerformanceYear(year);
+                          setShowPerformanceYearDropdown(false);
+                          console.log('Selected performance year:', year);
+                        }}
+                        style={{
+                          padding: '8px 12px',
+                          cursor: 'pointer',
+                          fontSize: '14px',
+                          color: '#374151',
+                          backgroundColor: selectedPerformanceYear === year ? '#f3f4f6' : 'transparent',
+                          borderBottom: year < generateYears()[generateYears().length - 1] ? '1px solid #f3f4f6' : 'none'
+                        }}
+                      >
+                        {year}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Month Range Selector */}
               <div ref={performanceRangeRef} style={{ position: 'relative' }}>
                 <button
                   type="button"

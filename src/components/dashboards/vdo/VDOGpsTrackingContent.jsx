@@ -301,15 +301,9 @@ const VDOGpsTrackingContent = () => {
                 onClose={() => setShowAddVehicleModal(false)}
                 onSubmit={handleAddVehicle}
                 isSubmitting={addVehicleMutation.isPending}
-                districts={[
-                    { id: selectedLocation?.vdoDistrictId || 1, name: selectedLocation?.vdoDistrictName || 'District' }
-                ]}
-                blocks={[
-                    { id: selectedLocation?.vdoBlockId || 1, name: selectedLocation?.vdoBlockName || 'Block' }
-                ]}
-                gramPanchayats={[
-                    { id: selectedLocation?.vdoGPId || 1, name: selectedLocation?.vdoGPName || 'Village' }
-                ]}
+                districts={[]}
+                blocks={[]}
+                gramPanchayats={[]}
             />
         </div>
     );

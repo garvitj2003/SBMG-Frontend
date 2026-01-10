@@ -334,17 +334,9 @@ const BDOGpsTrackingContent = () => {
                 onClose={() => setShowAddVehicleModal(false)}
                 onSubmit={handleAddVehicle}
                 isSubmitting={addVehicleMutation.isPending}
-                districts={[
-                    { id: selectedLocation?.bdoDistrictId || 1, name: selectedLocation?.bdoDistrictName || 'District' }
-                ]}
-                blocks={[
-                    { id: selectedLocation?.bdoBlockId || 1, name: selectedLocation?.bdoBlockName || 'Block' }
-                ]}
-                gramPanchayats={[
-                    { id: 1, name: 'Sardar Market' },
-                    { id: 2, name: 'Gandhi Nagar' },
-                    { id: 3, name: 'Model Town' }
-                ]}
+                districts={[]}
+                blocks={[]}
+                gramPanchayats={[]}
             />
         </div>
     );

@@ -1209,6 +1209,17 @@ const VDOInspectionContent = () => {
     // Helper function to format boolean values
     const formatBoolean = (value) => value ? 'Yes' : 'No';
     
+    // Get visibly_clean value - check both top-level and nested locations
+    const visiblyClean = data.visibly_clean !== undefined ? data.visibly_clean : 
+                         (data.other_items && data.other_items.village_visibly_clean !== undefined ? data.other_items.village_visibly_clean : null);
+    
+    // Get comments - check multiple possible field names
+    const comments = data.comments || data.comment || data.inspector_comments || '';
+    
+    // Get photos/images - check multiple possible field names and structures
+    const photos = data.photos || data.images || data.attachments || data.photo_urls || [];
+    const photosArray = Array.isArray(photos) ? photos : (photos ? [photos] : []);
+    
     // Create a formatted HTML content for the PDF
     const htmlContent = `
       <!DOCTYPE html>
@@ -1227,6 +1238,12 @@ const VDOInspectionContent = () => {
           .no { color: #ef4444; font-weight: 600; }
           .header { text-align: center; margin-bottom: 30px; }
           .date { color: #6b7280; font-size: 14px; }
+          .comments-section { background-color: #f9fafb; padding: 15px; border-radius: 6px; margin-top: 10px; }
+          .comments-text { color: #111827; white-space: pre-wrap; word-wrap: break-word; }
+          .photos-section { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; margin-top: 10px; }
+          .photo-item { border: 1px solid #e5e7eb; border-radius: 6px; overflow: hidden; }
+          .photo-item img { width: 100%; height: 200px; object-fit: cover; display: block; }
+          .photo-caption { padding: 8px; font-size: 12px; color: #6b7280; text-align: center; }
         </style>
       </head>
       <body>
@@ -1252,6 +1269,10 @@ const VDOInspectionContent = () => {
             <div class="value">${data.start_time ? new Date(data.start_time).toLocaleString() : 'N/A'}</div>
             <div class="label">Register Maintenance:</div>
             <div class="value ${data.register_maintenance ? 'yes' : 'no'}">${formatBoolean(data.register_maintenance)}</div>
+            ${visiblyClean !== null ? `
+            <div class="label">Visibly Clean:</div>
+            <div class="value ${visiblyClean ? 'yes' : 'no'}">${formatBoolean(visiblyClean)}</div>
+            ` : ''}
             <div class="label">Remarks:</div>
             <div class="value">${data.remarks || 'N/A'}</div>
           </div>
@@ -1325,10 +1346,41 @@ const VDOInspectionContent = () => {
             <div class="value ${data.other_items.regular_feedback_register_entry ? 'yes' : 'no'}">${formatBoolean(data.other_items.regular_feedback_register_entry)}</div>
             <div class="label">Chart Prepared for Cleaning Work:</div>
             <div class="value ${data.other_items.chart_prepared_for_cleaning_work ? 'yes' : 'no'}">${formatBoolean(data.other_items.chart_prepared_for_cleaning_work)}</div>
+            ${visiblyClean === null && data.other_items.village_visibly_clean !== undefined ? `
             <div class="label">Village Visibly Clean:</div>
             <div class="value ${data.other_items.village_visibly_clean ? 'yes' : 'no'}">${formatBoolean(data.other_items.village_visibly_clean)}</div>
+            ` : ''}
             <div class="label">Rate Chart Displayed:</div>
             <div class="value ${data.other_items.rate_chart_displayed ? 'yes' : 'no'}">${formatBoolean(data.other_items.rate_chart_displayed)}</div>
+          </div>
+        </div>
+        ` : ''}
+
+        ${comments ? `
+        <div class="section">
+          <h2>Comments</h2>
+          <div class="comments-section">
+            <div class="comments-text">${comments}</div>
+          </div>
+        </div>
+        ` : ''}
+
+        ${photosArray.length > 0 ? `
+        <div class="section">
+          <h2>Photos</h2>
+          <div class="photos-section">
+            ${photosArray.map((photo, index) => {
+              // Handle different photo data structures
+              const photoUrl = typeof photo === 'string' ? photo : (photo.url || photo.path || photo.image_url || photo);
+              const photoCaption = typeof photo === 'object' && photo.caption ? photo.caption : 
+                                 (typeof photo === 'object' && photo.description ? photo.description : `Photo ${index + 1}`);
+              return `
+                <div class="photo-item">
+                  <img src="${photoUrl}" alt="${photoCaption}" onerror="this.style.display='none'; this.nextElementSibling.innerHTML='Image not available';" />
+                  <div class="photo-caption">${photoCaption}</div>
+                </div>
+              `;
+            }).join('')}
           </div>
         </div>
         ` : ''}

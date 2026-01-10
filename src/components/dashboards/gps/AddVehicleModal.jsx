@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { X, ChevronDown, Loader } from 'lucide-react';
+import apiClient from '../../../services/api';
 
 /**
  * AddVehicleModal component for adding new vehicles
@@ -22,19 +23,210 @@ const AddVehicleModal = ({
     gpId: ''
   });
 
+  // Local state for location data (will fetch if not provided as props)
+  const [localDistricts, setLocalDistricts] = useState(districts);
+  const [localBlocks, setLocalBlocks] = useState([]);
+  const [localGramPanchayats, setLocalGramPanchayats] = useState([]);
+  const [loadingDistricts, setLoadingDistricts] = useState(false);
+  const [loadingBlocks, setLoadingBlocks] = useState(false);
+  const [loadingGPs, setLoadingGPs] = useState(false);
+
+  // Validation errors
+  const [errors, setErrors] = useState({
+    vehicleNumber: '',
+    imeiNumber: '',
+    districtId: '',
+    blockId: '',
+    gpId: ''
+  });
+
+  // Vehicle number validation: Indian format (e.g., RJ01AB1234)
+  // Format: 2 letters (state code) + 2 digits + 2 letters + 4 digits
+  const validateVehicleNumber = (value) => {
+    if (!value) {
+      return 'Vehicle number is required';
+    }
+    // Remove spaces and convert to uppercase
+    const cleaned = value.replace(/\s+/g, '').toUpperCase();
+    // Indian vehicle number format: 2 letters + 2 digits + 2 letters + 4 digits
+    const vehicleRegex = /^[A-Z]{2}[0-9]{2}[A-Z]{2}[0-9]{4}$/;
+    if (!vehicleRegex.test(cleaned)) {
+      return 'Invalid format. Use format: RJ01AB1234 (2 letters, 2 digits, 2 letters, 4 digits)';
+    }
+    return '';
+  };
+
+  // IMEI validation: exactly 15 digits
+  const validateIMEI = (value) => {
+    if (!value) {
+      return 'IMEI number is required';
+    }
+    // Remove spaces and check if it's exactly 15 digits
+    const cleaned = value.replace(/\s+/g, '');
+    const imeiRegex = /^[0-9]{15}$/;
+    if (!imeiRegex.test(cleaned)) {
+      return 'IMEI must be exactly 15 digits';
+    }
+    return '';
+  };
+
+  // Fetch districts from API if not provided as props
+  useEffect(() => {
+    if (isOpen) {
+      if (districts.length === 0) {
+        const fetchDistricts = async () => {
+          try {
+            setLoadingDistricts(true);
+            const response = await apiClient.get('/geography/districts?skip=0&limit=100');
+            setLocalDistricts(response.data || []);
+          } catch (error) {
+            console.error('Error fetching districts:', error);
+            setLocalDistricts([]);
+          } finally {
+            setLoadingDistricts(false);
+          }
+        };
+        fetchDistricts();
+      } else {
+        setLocalDistricts(districts);
+      }
+    }
+  }, [isOpen, districts]);
+
+  // Fetch blocks when district is selected
+  const fetchBlocks = useCallback(async (districtId) => {
+    if (!districtId) {
+      setLocalBlocks([]);
+      setLocalGramPanchayats([]);
+      return;
+    }
+
+    try {
+      setLoadingBlocks(true);
+      const response = await apiClient.get('/geography/blocks', {
+        params: {
+          district_id: districtId,
+          skip: 0,
+          limit: 100
+        }
+      });
+      setLocalBlocks(response.data || []);
+      // Reset block and GP selections when district changes
+      setFormData(prev => ({
+        ...prev,
+        blockId: '',
+        gpId: ''
+      }));
+      setLocalGramPanchayats([]);
+    } catch (error) {
+      console.error('Error fetching blocks:', error);
+      setLocalBlocks([]);
+    } finally {
+      setLoadingBlocks(false);
+    }
+  }, []);
+
+  // Fetch gram panchayats when district and block are selected
+  const fetchGramPanchayats = useCallback(async (districtId, blockId) => {
+    if (!districtId || !blockId) {
+      setLocalGramPanchayats([]);
+      return;
+    }
+
+    try {
+      setLoadingGPs(true);
+      const response = await apiClient.get('/geography/grampanchayats', {
+        params: {
+          district_id: districtId,
+          block_id: blockId,
+          skip: 0,
+          limit: 100
+        }
+      });
+      setLocalGramPanchayats(response.data || []);
+      // Reset GP selection when block changes
+      setFormData(prev => ({
+        ...prev,
+        gpId: ''
+      }));
+    } catch (error) {
+      console.error('Error fetching gram panchayats:', error);
+      setLocalGramPanchayats([]);
+    } finally {
+      setLoadingGPs(false);
+    }
+  }, []);
+
+  // Effect to fetch blocks when district changes
+  useEffect(() => {
+    if (formData.districtId) {
+      fetchBlocks(formData.districtId);
+    }
+  }, [formData.districtId, fetchBlocks]);
+
+  // Effect to fetch GPs when district and block change
+  useEffect(() => {
+    if (formData.districtId && formData.blockId) {
+      fetchGramPanchayats(formData.districtId, formData.blockId);
+    }
+  }, [formData.districtId, formData.blockId, fetchGramPanchayats]);
+
+  // Use props data if available, otherwise use local state
+  const displayDistricts = districts.length > 0 ? districts : localDistricts;
+  const displayBlocks = blocks.length > 0 ? blocks : localBlocks;
+  const displayGramPanchayats = gramPanchayats.length > 0 ? gramPanchayats : localGramPanchayats;
+
   const handleInputChange = (field, value) => {
+    let processedValue = value;
+
+    // Auto-format vehicle number (uppercase, remove spaces)
+    if (field === 'vehicleNumber') {
+      processedValue = value.replace(/\s+/g, '').toUpperCase();
+      const error = validateVehicleNumber(processedValue);
+      setErrors(prev => ({ ...prev, vehicleNumber: error }));
+    }
+
+    // Auto-format IMEI (remove spaces, only digits)
+    if (field === 'imeiNumber') {
+      processedValue = value.replace(/\s+/g, '').replace(/[^0-9]/g, '');
+      const error = validateIMEI(processedValue);
+      setErrors(prev => ({ ...prev, imeiNumber: error }));
+    }
+
+    // Handle location changes
+    if (field === 'districtId') {
+      setErrors(prev => ({ ...prev, districtId: '', blockId: '', gpId: '' }));
+    }
+    if (field === 'blockId') {
+      setErrors(prev => ({ ...prev, blockId: '', gpId: '' }));
+    }
+    if (field === 'gpId') {
+      setErrors(prev => ({ ...prev, gpId: '' }));
+    }
+
     setFormData(prev => ({
       ...prev,
-      [field]: value
+      [field]: processedValue
     }));
   };
 
   const handleNext = () => {
-    // Basic validation for step 1
-    if (!formData.vehicleNumber || !formData.imeiNumber) {
-      alert('Please fill in vehicle number and IMEI');
+    // Validate vehicle number
+    const vehicleError = validateVehicleNumber(formData.vehicleNumber);
+    const imeiError = validateIMEI(formData.imeiNumber);
+    
+    setErrors({
+      vehicleNumber: vehicleError,
+      imeiNumber: imeiError,
+      districtId: '',
+      blockId: '',
+      gpId: ''
+    });
+
+    if (vehicleError || imeiError || !formData.vehicleNumber || !formData.imeiNumber) {
       return;
     }
+
     setModalStep(2);
   };
 
@@ -43,13 +235,30 @@ const AddVehicleModal = ({
   };
 
   const handleSubmit = async () => {
-    // Basic validation for step 2
-    if (!formData.gpId) {
-      alert('Please select a Gram Panchayat');
+    // Validate location fields
+    const locationErrors = {
+      districtId: !formData.districtId ? 'Please select a district' : '',
+      blockId: !formData.blockId ? 'Please select a block' : '',
+      gpId: !formData.gpId ? 'Please select a Gram Panchayat' : ''
+    };
+
+    setErrors(prev => ({
+      ...prev,
+      ...locationErrors
+    }));
+
+    if (locationErrors.districtId || locationErrors.blockId || locationErrors.gpId) {
       return;
     }
 
-    await onSubmit(formData);
+    // Format vehicle number and IMEI before submitting
+    const submitData = {
+      ...formData,
+      vehicleNumber: formData.vehicleNumber.replace(/\s+/g, '').toUpperCase(),
+      imeiNumber: formData.imeiNumber.replace(/\s+/g, '')
+    };
+
+    await onSubmit(submitData);
     
     // Reset form
     setFormData({
@@ -59,6 +268,15 @@ const AddVehicleModal = ({
       blockId: '',
       gpId: ''
     });
+    setErrors({
+      vehicleNumber: '',
+      imeiNumber: '',
+      districtId: '',
+      blockId: '',
+      gpId: ''
+    });
+    setLocalBlocks([]);
+    setLocalGramPanchayats([]);
     setModalStep(1);
   };
 
@@ -70,9 +288,41 @@ const AddVehicleModal = ({
       blockId: '',
       gpId: ''
     });
+    setErrors({
+      vehicleNumber: '',
+      imeiNumber: '',
+      districtId: '',
+      blockId: '',
+      gpId: ''
+    });
+    setLocalBlocks([]);
+    setLocalGramPanchayats([]);
     setModalStep(1);
     onClose();
   };
+
+  // Reset form when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setFormData({
+        imeiNumber: '',
+        vehicleNumber: '',
+        districtId: '',
+        blockId: '',
+        gpId: ''
+      });
+      setErrors({
+        vehicleNumber: '',
+        imeiNumber: '',
+        districtId: '',
+        blockId: '',
+        gpId: ''
+      });
+      setLocalBlocks([]);
+      setLocalGramPanchayats([]);
+      setModalStep(1);
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -214,14 +464,15 @@ const AddVehicleModal = ({
               </label>
               <input
                 type="text"
-                placeholder="Enter vehicle number (e.g., UP91T4309)"
+                placeholder="Enter vehicle number (e.g., RJ01AB1234)"
                 value={formData.vehicleNumber}
                 onChange={(e) => handleInputChange('vehicleNumber', e.target.value)}
+                maxLength={10}
                 disabled={isSubmitting}
                 style={{
                   width: '100%',
                   padding: '10px 12px',
-                  border: '1px solid #d1d5db',
+                  border: errors.vehicleNumber ? '1px solid #ef4444' : '1px solid #d1d5db',
                   borderRadius: '8px',
                   fontSize: '14px',
                   outline: 'none',
@@ -229,6 +480,24 @@ const AddVehicleModal = ({
                   opacity: isSubmitting ? 0.6 : 1,
                 }}
               />
+              {errors.vehicleNumber && (
+                <div style={{ 
+                  fontSize: '12px', 
+                  color: '#ef4444', 
+                  marginTop: '4px' 
+                }}>
+                  {errors.vehicleNumber}
+                </div>
+              )}
+              {!errors.vehicleNumber && formData.vehicleNumber && (
+                <div style={{ 
+                  fontSize: '12px', 
+                  color: '#10b981', 
+                  marginTop: '4px' 
+                }}>
+                  Format: 2 letters (state code) + 2 digits + 2 letters + 4 digits
+                </div>
+              )}
             </div>
 
             <div style={{ marginBottom: '20px' }}>
@@ -246,11 +515,12 @@ const AddVehicleModal = ({
                 placeholder="Enter IMEI number (e.g., 357803372737250)"
                 value={formData.imeiNumber}
                 onChange={(e) => handleInputChange('imeiNumber', e.target.value)}
+                maxLength={15}
                 disabled={isSubmitting}
                 style={{
                   width: '100%',
                   padding: '10px 12px',
-                  border: '1px solid #d1d5db',
+                  border: errors.imeiNumber ? '1px solid #ef4444' : '1px solid #d1d5db',
                   borderRadius: '8px',
                   fontSize: '14px',
                   outline: 'none',
@@ -258,13 +528,33 @@ const AddVehicleModal = ({
                   opacity: isSubmitting ? 0.6 : 1,
                 }}
               />
-              <div style={{ 
-                fontSize: '12px', 
-                color: '#6b7280', 
-                marginTop: '4px' 
-              }}>
-                GPS device IMEI for tracking
-              </div>
+              {errors.imeiNumber && (
+                <div style={{ 
+                  fontSize: '12px', 
+                  color: '#ef4444', 
+                  marginTop: '4px' 
+                }}>
+                  {errors.imeiNumber}
+                </div>
+              )}
+              {!errors.imeiNumber && formData.imeiNumber && (
+                <div style={{ 
+                  fontSize: '12px', 
+                  color: '#10b981', 
+                  marginTop: '4px' 
+                }}>
+                  {formData.imeiNumber.length}/15 digits - GPS device IMEI for tracking
+                </div>
+              )}
+              {!errors.imeiNumber && !formData.imeiNumber && (
+                <div style={{ 
+                  fontSize: '12px', 
+                  color: '#6b7280', 
+                  marginTop: '4px' 
+                }}>
+                  GPS device IMEI for tracking (must be exactly 15 digits)
+                </div>
+              )}
             </div>
 
             {/* Buttons */}
@@ -330,39 +620,62 @@ const AddVehicleModal = ({
                   <select
                     value={formData.districtId}
                     onChange={(e) => handleInputChange('districtId', e.target.value)}
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || loadingDistricts}
                     style={{
                       width: '100%',
                       padding: '10px 32px 10px 12px',
-                      border: '1px solid #d1d5db',
+                      border: errors.districtId ? '1px solid #ef4444' : '1px solid #d1d5db',
                       borderRadius: '8px',
                       fontSize: '14px',
                       outline: 'none',
                       appearance: 'none',
                       backgroundColor: 'white',
-                      cursor: isSubmitting ? 'not-allowed' : 'pointer',
+                      cursor: (isSubmitting || loadingDistricts) ? 'not-allowed' : 'pointer',
                       boxSizing: 'border-box',
-                      opacity: isSubmitting ? 0.6 : 1,
+                      opacity: (isSubmitting || loadingDistricts) ? 0.6 : 1,
                     }}
                   >
-                    <option value="">Select District</option>
-                    {districts.map((district) => (
-                      <option key={district.id || district} value={district.id || district}>
-                        {district.name || district}
+                    <option value="">{loadingDistricts ? 'Loading districts...' : 'Select District'}</option>
+                    {displayDistricts.map((district) => (
+                      <option key={district.id} value={district.id}>
+                        {district.name}
                       </option>
                     ))}
                   </select>
-                  <ChevronDown style={{
-                    position: 'absolute',
-                    right: '12px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    width: '16px',
-                    height: '16px',
-                    color: '#6b7280',
-                    pointerEvents: 'none'
-                  }} />
+                  {loadingDistricts && (
+                    <Loader style={{
+                      position: 'absolute',
+                      right: '12px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      width: '16px',
+                      height: '16px',
+                      color: '#6b7280',
+                      animation: 'spin 1s linear infinite',
+                    }} />
+                  )}
+                  {!loadingDistricts && (
+                    <ChevronDown style={{
+                      position: 'absolute',
+                      right: '12px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      width: '16px',
+                      height: '16px',
+                      color: '#6b7280',
+                      pointerEvents: 'none'
+                    }} />
+                  )}
                 </div>
+                {errors.districtId && (
+                  <div style={{ 
+                    fontSize: '12px', 
+                    color: '#ef4444', 
+                    marginTop: '4px' 
+                  }}>
+                    {errors.districtId}
+                  </div>
+                )}
               </div>
 
               <div>
@@ -379,39 +692,68 @@ const AddVehicleModal = ({
                   <select
                     value={formData.blockId}
                     onChange={(e) => handleInputChange('blockId', e.target.value)}
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || !formData.districtId || loadingBlocks}
                     style={{
                       width: '100%',
                       padding: '10px 32px 10px 12px',
-                      border: '1px solid #d1d5db',
+                      border: errors.blockId ? '1px solid #ef4444' : '1px solid #d1d5db',
                       borderRadius: '8px',
                       fontSize: '14px',
                       outline: 'none',
                       appearance: 'none',
                       backgroundColor: 'white',
-                      cursor: isSubmitting ? 'not-allowed' : 'pointer',
+                      cursor: (isSubmitting || !formData.districtId || loadingBlocks) ? 'not-allowed' : 'pointer',
                       boxSizing: 'border-box',
-                      opacity: isSubmitting ? 0.6 : 1,
+                      opacity: (isSubmitting || !formData.districtId || loadingBlocks) ? 0.6 : 1,
                     }}
                   >
-                    <option value="">Select Block</option>
-                    {blocks.map((block) => (
-                      <option key={block.id || block} value={block.id || block}>
-                        {block.name || block}
+                    <option value="">
+                      {!formData.districtId 
+                        ? 'Select district first' 
+                        : loadingBlocks 
+                        ? 'Loading blocks...' 
+                        : 'Select Block'}
+                    </option>
+                    {displayBlocks.map((block) => (
+                      <option key={block.id} value={block.id}>
+                        {block.name}
                       </option>
                     ))}
                   </select>
-                  <ChevronDown style={{
-                    position: 'absolute',
-                    right: '12px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    width: '16px',
-                    height: '16px',
-                    color: '#6b7280',
-                    pointerEvents: 'none'
-                  }} />
+                  {loadingBlocks && (
+                    <Loader style={{
+                      position: 'absolute',
+                      right: '12px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      width: '16px',
+                      height: '16px',
+                      color: '#6b7280',
+                      animation: 'spin 1s linear infinite',
+                    }} />
+                  )}
+                  {!loadingBlocks && (
+                    <ChevronDown style={{
+                      position: 'absolute',
+                      right: '12px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      width: '16px',
+                      height: '16px',
+                      color: '#6b7280',
+                      pointerEvents: 'none'
+                    }} />
+                  )}
                 </div>
+                {errors.blockId && (
+                  <div style={{ 
+                    fontSize: '12px', 
+                    color: '#ef4444', 
+                    marginTop: '4px' 
+                  }}>
+                    {errors.blockId}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -429,39 +771,68 @@ const AddVehicleModal = ({
                 <select
                   value={formData.gpId}
                   onChange={(e) => handleInputChange('gpId', e.target.value)}
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || !formData.blockId || loadingGPs}
                   style={{
                     width: '100%',
                     padding: '10px 32px 10px 12px',
-                    border: '1px solid #d1d5db',
+                    border: errors.gpId ? '1px solid #ef4444' : '1px solid #d1d5db',
                     borderRadius: '8px',
                     fontSize: '14px',
                     outline: 'none',
                     appearance: 'none',
                     backgroundColor: 'white',
-                    cursor: isSubmitting ? 'not-allowed' : 'pointer',
+                    cursor: (isSubmitting || !formData.blockId || loadingGPs) ? 'not-allowed' : 'pointer',
                     boxSizing: 'border-box',
-                    opacity: isSubmitting ? 0.6 : 1,
+                    opacity: (isSubmitting || !formData.blockId || loadingGPs) ? 0.6 : 1,
                   }}
                 >
-                  <option value="">Select Gram Panchayat</option>
-                  {gramPanchayats.map((gp) => (
-                    <option key={gp.id || gp} value={gp.id || gp}>
-                      {gp.name || gp}
+                  <option value="">
+                    {!formData.blockId 
+                      ? 'Select block first' 
+                      : loadingGPs 
+                      ? 'Loading Gram Panchayats...' 
+                      : 'Select Gram Panchayat'}
+                  </option>
+                  {displayGramPanchayats.map((gp) => (
+                    <option key={gp.id} value={gp.id}>
+                      {gp.name}
                     </option>
                   ))}
                 </select>
-                <ChevronDown style={{
-                  position: 'absolute',
-                  right: '12px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  width: '16px',
-                  height: '16px',
-                  color: '#6b7280',
-                  pointerEvents: 'none'
-                }} />
+                {loadingGPs && (
+                  <Loader style={{
+                    position: 'absolute',
+                    right: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    width: '16px',
+                    height: '16px',
+                    color: '#6b7280',
+                    animation: 'spin 1s linear infinite',
+                  }} />
+                )}
+                {!loadingGPs && (
+                  <ChevronDown style={{
+                    position: 'absolute',
+                    right: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    width: '16px',
+                    height: '16px',
+                    color: '#6b7280',
+                    pointerEvents: 'none'
+                  }} />
+                )}
               </div>
+              {errors.gpId && (
+                <div style={{ 
+                  fontSize: '12px', 
+                  color: '#ef4444', 
+                  marginTop: '4px' 
+                }}>
+                  {errors.gpId}
+                </div>
+              )}
             </div>
 
             {/* Buttons */}

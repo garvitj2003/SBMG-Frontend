@@ -337,21 +337,9 @@ const GpsTrackingContent = () => {
                 onClose={() => setShowAddVehicleModal(false)}
                 onSubmit={handleAddVehicle}
                 isSubmitting={addVehicleMutation.isPending}
-                districts={[
-                    { id: 1, name: 'Jodhpur' },
-                    { id: 2, name: 'Jaipur' },
-                    { id: 3, name: 'Udaipur' }
-                ]}
-                blocks={[
-                    { id: 1, name: 'Central' },
-                    { id: 2, name: 'North' },
-                    { id: 3, name: 'South' }
-                ]}
-                gramPanchayats={[
-                    { id: 1, name: 'Sardar Market' },
-                    { id: 2, name: 'Gandhi Nagar' },
-                    { id: 3, name: 'Model Town' }
-                ]}
+                districts={[]}
+                blocks={[]}
+                gramPanchayats={[]}
             />
         </div>
     );
