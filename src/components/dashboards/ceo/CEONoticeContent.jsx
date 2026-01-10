@@ -125,7 +125,9 @@ const CEONoticeContent = () => {
     const replyDate = latestReply?.reply_datetime || latestReply?.replyDatetime || latestReply?.created_at || latestReply?.createdAt || null;
     const hasReplies = replies.length > 0;
 
-    const statusText = hasReplies ? 'Reply received' : 'Reply not received';
+    const statusText = viewMode === 'received' 
+      ? (hasReplies ? 'Reply Submitted' : 'Reply not submitted')
+      : (hasReplies ? 'Reply received' : 'Reply not received');
     const statusColor = hasReplies ? '#047857' : '#dc2626';
 
     return {
