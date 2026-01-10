@@ -61,19 +61,37 @@ const EventsContent = () => {
         try {
             setLoading(true);
             setError(null);
-            // Determine active parameter based on filter
-            let activeParam;
-            if (eventFilter === 'active') {
-                activeParam = true;
-            } else if (eventFilter === 'inactive') {
-                activeParam = false;
+            // Fetch events based on filter - use API filtering when possible, but always apply client-side filtering as backup
+            let eventsData = [];
+            
+            if (eventFilter === 'all') {
+                // For 'all', fetch both active and inactive separately to ensure we get everything
+                const [activeResponse, inactiveResponse] = await Promise.all([
+                    eventsAPI.getEvents({ skip: 0, limit: 100, active: true }),
+                    eventsAPI.getEvents({ skip: 0, limit: 100, active: false })
+                ]);
+                const activeEvents = activeResponse.data || [];
+                const inactiveEvents = inactiveResponse.data || [];
+                eventsData = [...activeEvents, ...inactiveEvents];
             } else {
-                // 'all' filter - don't pass active parameter
-                activeParam = undefined;
+                // For 'active' or 'inactive', fetch with the appropriate parameter
+                const activeParam = eventFilter === 'active' ? true : false;
+                const response = await eventsAPI.getEvents({ skip: 0, limit: 100, active: activeParam });
+                eventsData = response.data || [];
             }
-            const response = await eventsAPI.getEvents({ skip: 0, limit: 100, active: activeParam });
-            console.log('Fetched events data:', response.data);
-            setEvents(response.data);
+            
+            console.log('Fetched events data:', eventsData);
+            
+            // Apply client-side filtering to ensure correct display (backup safety check)
+            let filteredEvents = eventsData;
+            if (eventFilter === 'active') {
+                filteredEvents = eventsData.filter(event => event.active === true);
+            } else if (eventFilter === 'inactive') {
+                filteredEvents = eventsData.filter(event => event.active === false);
+            }
+            // 'all' filter: show all events (no additional filtering needed)
+            
+            setEvents(filteredEvents);
         } catch (err) {
             console.error('Error fetching events:', err);
             setError('Failed to load events. Please try again.');

@@ -58,20 +58,26 @@ const CEOSchemesContent = () => {
         try {
             setLoading(true);
             setError(null);
-            // Determine active parameter based on filter
-            let activeParam;
-            if (schemeFilter === 'active') {
-                activeParam = true;
-            } else if (schemeFilter === 'inactive') {
-                activeParam = false;
+            // Fetch schemes based on filter - use API filtering when possible, but always apply client-side filtering as backup
+            let schemesData = [];
+            
+            if (schemeFilter === 'all') {
+                // For 'all', fetch both active and inactive separately to ensure we get everything
+                const [activeResponse, inactiveResponse] = await Promise.all([
+                    schemesAPI.getSchemes({ skip: 0, limit: 100, active: true }),
+                    schemesAPI.getSchemes({ skip: 0, limit: 100, active: false })
+                ]);
+                const activeSchemes = activeResponse.data || [];
+                const inactiveSchemes = inactiveResponse.data || [];
+                schemesData = [...activeSchemes, ...inactiveSchemes];
             } else {
-                // 'all' filter - don't pass active parameter
-                activeParam = undefined;
+                // For 'active' or 'inactive', fetch with the appropriate parameter
+                const activeParam = schemeFilter === 'active' ? true : false;
+                const response = await schemesAPI.getSchemes({ skip: 0, limit: 100, active: activeParam });
+                schemesData = response.data || [];
             }
-            const response = await schemesAPI.getSchemes({ skip: 0, limit: 100, active: activeParam });
             
             // Deduplicate schemes by ID and name to prevent duplicate entries
-            const schemesData = response.data || [];
             const uniqueSchemes = schemesData.reduce((acc, scheme) => {
                 // First check if scheme with same ID already exists
                 const existingById = acc.find(s => s.id === scheme.id);
@@ -95,7 +101,16 @@ const CEOSchemesContent = () => {
                 return acc;
             }, []);
             
-            setSchemes(uniqueSchemes);
+            // Apply client-side filtering to ensure correct display (backup safety check)
+            let filteredSchemes = uniqueSchemes;
+            if (schemeFilter === 'active') {
+                filteredSchemes = uniqueSchemes.filter(scheme => scheme.active === true);
+            } else if (schemeFilter === 'inactive') {
+                filteredSchemes = uniqueSchemes.filter(scheme => scheme.active === false);
+            }
+            // 'all' filter: show all schemes (no additional filtering needed)
+            
+            setSchemes(filteredSchemes);
         } catch (err) {
             console.error('Error fetching schemes:', err);
             setError('Failed to load schemes. Please try again.');
