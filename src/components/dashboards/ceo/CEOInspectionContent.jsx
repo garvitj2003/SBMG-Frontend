@@ -414,17 +414,16 @@ const CEOInspectionContent = () => {
         }
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     showLocationDropdown,
     activeScope,
-    districts,
-    blocks,
-    selectedDistrictForHierarchy,
-    selectedBlockForHierarchy,
+    districts.length,
+    blocks.length,
+    selectedDistrictForHierarchy?.id,
+    selectedBlockForHierarchy?.id,
     selectedDistrictId,
-    selectedBlockId,
-    fetchBlocks,
-    fetchGramPanchayats
+    selectedBlockId
   ]);
 
   // Date helper functions
@@ -1859,7 +1858,6 @@ const CEOInspectionContent = () => {
                       })
                     )}
                   </div>
-                )}
 
                 {activeScope === 'GPs' && (
                   <div
