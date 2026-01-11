@@ -17,6 +17,7 @@ const AddVehicleModal = ({
   const [modalStep, setModalStep] = useState(1);
   const [formData, setFormData] = useState({
     imeiNumber: '',
+    vehicleName: '',
     vehicleNumber: '',
     districtId: '',
     blockId: '',
@@ -35,6 +36,7 @@ const AddVehicleModal = ({
   const [errors, setErrors] = useState({
     vehicleNumber: '',
     imeiNumber: '',
+    vehicleName: '',
     districtId: '',
     blockId: '',
     gpId: ''
@@ -218,6 +220,7 @@ const AddVehicleModal = ({
     setErrors({
       vehicleNumber: vehicleError,
       imeiNumber: imeiError,
+      vehicleName: '',
       districtId: '',
       blockId: '',
       gpId: ''
@@ -460,54 +463,6 @@ const AddVehicleModal = ({
                 color: '#374151',
                 marginBottom: '8px'
               }}>
-                Vehicle Number <span style={{ color: '#ef4444' }}>*</span>
-              </label>
-              <input
-                type="text"
-                placeholder="Enter vehicle number (e.g., RJ01AB1234)"
-                value={formData.vehicleNumber}
-                onChange={(e) => handleInputChange('vehicleNumber', e.target.value)}
-                maxLength={10}
-                disabled={isSubmitting}
-                style={{
-                  width: '100%',
-                  padding: '10px 12px',
-                  border: errors.vehicleNumber ? '1px solid #ef4444' : '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  fontSize: '14px',
-                  outline: 'none',
-                  boxSizing: 'border-box',
-                  opacity: isSubmitting ? 0.6 : 1,
-                }}
-              />
-              {errors.vehicleNumber && (
-                <div style={{ 
-                  fontSize: '12px', 
-                  color: '#ef4444', 
-                  marginTop: '4px' 
-                }}>
-                  {errors.vehicleNumber}
-                </div>
-              )}
-              {!errors.vehicleNumber && formData.vehicleNumber && (
-                <div style={{ 
-                  fontSize: '12px', 
-                  color: '#10b981', 
-                  marginTop: '4px' 
-                }}>
-                  Format: 2 letters (state code) + 2 digits + 2 letters + 4 digits
-                </div>
-              )}
-            </div>
-
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{
-                display: 'block',
-                fontSize: '14px',
-                fontWeight: '500',
-                color: '#374151',
-                marginBottom: '8px'
-              }}>
                 IMEI Number <span style={{ color: '#ef4444' }}>*</span>
               </label>
               <input
@@ -553,6 +508,92 @@ const AddVehicleModal = ({
                   marginTop: '4px' 
                 }}>
                   GPS device IMEI for tracking (must be exactly 15 digits)
+                </div>
+              )}
+            </div>
+
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{
+                display: 'block',
+                fontSize: '14px',
+                fontWeight: '500',
+                color: '#374151',
+                marginBottom: '8px'
+              }}>
+                Vehicle Name
+              </label>
+              <input
+                type="text"
+                placeholder="Enter vehicle name"
+                value={formData.vehicleName}
+                onChange={(e) => handleInputChange('vehicleName', e.target.value)}
+                disabled={isSubmitting}
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  border: errors.vehicleName ? '1px solid #ef4444' : '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                  opacity: isSubmitting ? 0.6 : 1,
+                }}
+              />
+              {errors.vehicleName && (
+                <div style={{ 
+                  fontSize: '12px', 
+                  color: '#ef4444', 
+                  marginTop: '4px' 
+                }}>
+                  {errors.vehicleName}
+                </div>
+              )}
+            </div>
+
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{
+                display: 'block',
+                fontSize: '14px',
+                fontWeight: '500',
+                color: '#374151',
+                marginBottom: '8px'
+              }}>
+                Vehicle Number <span style={{ color: '#ef4444' }}>*</span>
+              </label>
+              <input
+                type="text"
+                placeholder="Enter vehicle number (e.g., RJ01AB1234)"
+                value={formData.vehicleNumber}
+                onChange={(e) => handleInputChange('vehicleNumber', e.target.value)}
+                maxLength={10}
+                disabled={isSubmitting}
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  border: errors.vehicleNumber ? '1px solid #ef4444' : '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                  opacity: isSubmitting ? 0.6 : 1,
+                }}
+              />
+              {errors.vehicleNumber && (
+                <div style={{ 
+                  fontSize: '12px', 
+                  color: '#ef4444', 
+                  marginTop: '4px' 
+                }}>
+                  {errors.vehicleNumber}
+                </div>
+              )}
+              {!errors.vehicleNumber && formData.vehicleNumber && (
+                <div style={{ 
+                  fontSize: '12px', 
+                  color: '#10b981', 
+                  marginTop: '4px' 
+                }}>
+                  Format: 2 letters (state code) + 2 digits + 2 letters + 4 digits
                 </div>
               )}
             </div>

@@ -9,7 +9,7 @@ const Tooltip = ({ children, text, maxWidth = '300px' }) => {
   const handleMouseEnter = (e) => {
     const rect = e.currentTarget.getBoundingClientRect();
     setPosition({
-      top: rect.top - 10,
+      top: rect.bottom + 10,
       left: rect.left + rect.width / 2
     });
     setIsVisible(true);
@@ -33,7 +33,7 @@ const Tooltip = ({ children, text, maxWidth = '300px' }) => {
             position: 'fixed',
             top: `${position.top}px`,
             left: `${position.left}px`,
-            transform: 'translate(-50%, -100%)',
+            transform: 'translate(-50%, 0%)',
             backgroundColor: '#1f2937',
             color: 'white',
             padding: '12px 16px',
@@ -53,14 +53,14 @@ const Tooltip = ({ children, text, maxWidth = '300px' }) => {
           <div
             style={{
               position: 'absolute',
-              bottom: '-6px',
+              top: '-6px',
               left: '50%',
               transform: 'translateX(-50%)',
               width: 0,
               height: 0,
               borderLeft: '6px solid transparent',
               borderRight: '6px solid transparent',
-              borderTop: '6px solid #1f2937'
+              borderBottom: '6px solid #1f2937'
             }}
           />
         </div>
