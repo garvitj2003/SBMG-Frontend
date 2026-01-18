@@ -1935,7 +1935,21 @@ const normalizeStatusForFilter = (rawStatus) => {
           color: '#6B7280',
           fontWeight: '600'
         }}>
-          {activeScope === 'State' ? selectedLocation : `Rajasthan / ${selectedLocation}`}
+          {(() => {
+            if (activeScope === 'State') {
+              return selectedLocation;
+            } else if (activeScope === 'Districts') {
+              return `Rajasthan / ${selectedLocation}`;
+            } else if (activeScope === 'Blocks') {
+              const districtName = selectedDistrictForHierarchy?.name || selectedLocation;
+              return `Rajasthan / ${districtName} / ${selectedLocation}`;
+            } else if (activeScope === 'GPs') {
+              const districtName = selectedDistrictForHierarchy?.name || '';
+              const blockName = selectedBlockForHierarchy?.name || '';
+              return `Rajasthan / ${districtName} / ${blockName} / ${selectedLocation}`;
+            }
+            return `Rajasthan / ${selectedLocation}`;
+          })()}
         </span>
       </div>
 
@@ -2571,6 +2585,26 @@ const normalizeStatusForFilter = (rawStatus) => {
                   color: '#374151',
                   position: 'relative'
                 }}>
+                  District
+                  <div style={{
+                    position: 'absolute',
+                    right: '8px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    fontSize: '12px',
+                    color: '#9ca3af'
+                  }}>
+                    ↕
+                  </div>
+                </th>
+                <th style={{
+                  padding: '12px',
+                  textAlign: 'left',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  color: '#374151',
+                  position: 'relative'
+                }}>
                   Address(GP)
                   <div style={{
                     position: 'absolute',
@@ -2648,7 +2682,7 @@ const normalizeStatusForFilter = (rawStatus) => {
             <tbody key={`complaints-${activeFilter}-${filteredComplaints.length}`}>
               {loadingComplaints ? (
                 <tr>
-                  <td colSpan="5" style={{
+                  <td colSpan="6" style={{
                     padding: '40px',
                     textAlign: 'center',
                     fontSize: '14px',
@@ -2659,7 +2693,7 @@ const normalizeStatusForFilter = (rawStatus) => {
                 </tr>
               ) : (complaintsError || filteredComplaints.length === 0) ? (
                 <tr>
-                  <td colSpan="5" style={{ padding: 0 }}>
+                  <td colSpan="6" style={{ padding: 0 }}>
                     <NoDataFound size="small" />
                   </td>
                 </tr>
@@ -2688,6 +2722,13 @@ const normalizeStatusForFilter = (rawStatus) => {
                           {complaint.submittedBy || 'N/A'}
                         </div>
                       </div>
+                    </td>
+                    <td style={{
+                      padding: '12px',
+                      fontSize: '14px',
+                      color: '#374151'
+                    }}>
+                      {complaint.district || 'N/A'}
                     </td>
                     <td style={{
                       padding: '12px',

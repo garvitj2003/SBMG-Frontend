@@ -458,11 +458,27 @@ const InspectionContent = () => {
     if (range.value === 'custom') {
       setIsCustomRange(true);
       setSelectedDateRange('Custom');
+      setStartDate(null);
+      setEndDate(null);
+      // Don't close dropdown for custom - let user select dates
     } else {
       setIsCustomRange(false);
       setSelectedDateRange(range.label);
       
-      if (range.days !== null) {
+      // For "Today" and "Yesterday", both start and end dates should be the same
+      if (range.value === 'today') {
+        // Today: start = today, end = today
+        setStartDate(todayStr);
+        setEndDate(todayStr);
+      } else if (range.value === 'yesterday') {
+        // Yesterday: start = yesterday, end = yesterday
+        const yesterday = new Date(today);
+        yesterday.setDate(today.getDate() - 1);
+        setStartDate(yesterday.toISOString().split('T')[0]);
+        setEndDate(yesterday.toISOString().split('T')[0]);
+      } else if (range.days !== null) {
+        // For ranges like "Last 7 Days", "Last 30 Days"
+        // start = today - N days, end = today
         const start = new Date(today);
         start.setDate(start.getDate() - range.days);
         const startStr = start.toISOString().split('T')[0];
@@ -514,15 +530,18 @@ const InspectionContent = () => {
       console.log('📊 Level:', level);
 
       // Add geography IDs based on selection
-      if (activeScope === 'Districts' && selectedDistrictId) {
-        params.append('district_id', selectedDistrictId);
-        console.log('🏙️  District ID:', selectedDistrictId);
-      } else if (activeScope === 'Blocks' && selectedBlockId) {
-        params.append('block_id', selectedBlockId);
-        console.log('🏘️  Block ID:', selectedBlockId);
-      } else if (activeScope === 'GPs' && selectedGPId) {
-        params.append('gp_id', selectedGPId);
-        console.log('🏡 GP ID:', selectedGPId);
+      // IMPORTANT: Do not send any IDs when level is DISTRICT (API requirement)
+      if (level !== 'DISTRICT') {
+        if (level === 'BLOCK' && selectedDistrictId) {
+          params.append('district_id', selectedDistrictId);
+          console.log('🏙️  District ID:', selectedDistrictId);
+        } else if (level === 'VILLAGE' && activeScope === 'Blocks' && selectedBlockId) {
+          params.append('block_id', selectedBlockId);
+          console.log('🏘️  Block ID:', selectedBlockId);
+        } else if (level === 'VILLAGE' && activeScope === 'GPs' && selectedGPId) {
+          params.append('gp_id', selectedGPId);
+          console.log('🏡 GP ID:', selectedGPId);
+        }
       }
 
       // Add date range if available
@@ -1972,7 +1991,21 @@ const InspectionContent = () => {
           color: '#6B7280',
           fontWeight: '600'
         }}>
-          {activeScope === 'State' ? selectedLocation : `Rajasthan / ${selectedLocation}`}
+          {(() => {
+            if (activeScope === 'State') {
+              return selectedLocation;
+            } else if (activeScope === 'Districts') {
+              return `Rajasthan / ${selectedLocation}`;
+            } else if (activeScope === 'Blocks') {
+              const districtName = selectedDistrictForHierarchy?.name || selectedLocation;
+              return `Rajasthan / ${districtName} / ${selectedLocation}`;
+            } else if (activeScope === 'GPs') {
+              const districtName = selectedDistrictForHierarchy?.name || '';
+              const blockName = selectedBlockForHierarchy?.name || '';
+              return `Rajasthan / ${districtName} / ${blockName} / ${selectedLocation}`;
+            }
+            return `Rajasthan / ${selectedLocation}`;
+          })()}
         </span>
         
         {/* My Inspections Button */}
@@ -3282,7 +3315,10 @@ const InspectionContent = () => {
             {/* Data State */}
             {!loadingYourInspections && !yourInspectionsError && (
               <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
-                {getYourInspections().map((inspection, index) => (
+                {getYourInspections().length === 0 ? (
+                  <NoDataFound size="small" />
+                ) : (
+                  getYourInspections().map((inspection, index) => (
                   <div key={inspection.id || index} style={{
                     display: 'grid',
                     gridTemplateColumns: activeScope === 'GPs' 
@@ -3358,10 +3394,11 @@ const InspectionContent = () => {
                       </button>
                     </div>
                   </div>
-                ))}
+                  ))
+                )}
                 
                 {/* Pagination */}
-                {totalPages > 1 && (
+                {getYourInspections().length > 0 && totalPages > 1 && (
                   <div style={{
                     display: 'flex',
                     justifyContent: 'center',

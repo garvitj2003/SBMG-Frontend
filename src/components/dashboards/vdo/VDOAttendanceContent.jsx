@@ -1250,6 +1250,15 @@ const VDOAttendanceContent = () => {
         historyEndDate
       });
 
+      // Validate date range before making API call
+      if (!historyStartDate || !historyEndDate) {
+        console.warn('⚠️ Invalid date range: start_date or end_date is missing');
+        setHistoryError('Please select both start and end dates');
+        setAttendanceHistoryData([]);
+        setLoadingHistory(false);
+        return;
+      }
+
       // Build query parameters based on current scope
       const params = new URLSearchParams();
       
@@ -1267,7 +1276,7 @@ const VDOAttendanceContent = () => {
         params.append('gp_id', selectedGPId);
       }
 
-      // Add date range
+      // Add date range (already validated above)
       params.append('start_date', historyStartDate);
       params.append('end_date', historyEndDate);
       params.append('limit', '500');
@@ -1297,9 +1306,15 @@ const VDOAttendanceContent = () => {
       return [];
     }
 
+    // Ensure response is an array before calling .map()
+    const responseData = Array.isArray(apiData.response) ? apiData.response : [];
+    if (responseData.length === 0) {
+      return [];
+    }
+
     // For GP view, show date-wise data
     if (activeScope === 'GPs') {
-      return apiData.response.map(item => {
+      return responseData.map(item => {
         const status = (item.present_count || 0) > 0 ? 'Present' : 'Absent';
         return {
           id: `${item.geography_id}_${item.date}`,
@@ -1317,7 +1332,7 @@ const VDOAttendanceContent = () => {
     // For other views, group data by geography and calculate average attendance
     const geographyMap = new Map();
 
-    apiData.response.forEach(item => {
+    responseData.forEach(item => {
       const key = item.geography_id;
       if (!geographyMap.has(key)) {
         geographyMap.set(key, {

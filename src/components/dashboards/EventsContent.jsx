@@ -72,7 +72,14 @@ const EventsContent = () => {
                 ]);
                 const activeEvents = activeResponse.data || [];
                 const inactiveEvents = inactiveResponse.data || [];
-                eventsData = [...activeEvents, ...inactiveEvents];
+                // Merge and deduplicate by event ID to prevent duplicates
+                const eventsMap = new Map();
+                [...activeEvents, ...inactiveEvents].forEach(event => {
+                    if (event.id && !eventsMap.has(event.id)) {
+                        eventsMap.set(event.id, event);
+                    }
+                });
+                eventsData = Array.from(eventsMap.values());
             } else {
                 // For 'active' or 'inactive', fetch with the appropriate parameter
                 const activeParam = eventFilter === 'active' ? true : false;

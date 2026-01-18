@@ -1374,6 +1374,15 @@ const AttendanceContent = () => {
         historyEndDate
       });
 
+      // Validate date range before making API call
+      if (!historyStartDate || !historyEndDate) {
+        console.warn('⚠️ Invalid date range: start_date or end_date is missing');
+        setHistoryError('Please select both start and end dates');
+        setAttendanceHistoryData([]);
+        setLoadingHistory(false);
+        return;
+      }
+
       // Build query parameters based on current scope
       const params = new URLSearchParams();
       
@@ -1395,7 +1404,7 @@ const AttendanceContent = () => {
         params.append('gp_id', selectedGPId);
       }
 
-      // Add date range
+      // Add date range (already validated above)
       params.append('start_date', historyStartDate);
       params.append('end_date', historyEndDate);
       params.append('limit', '500');
@@ -1425,9 +1434,15 @@ const AttendanceContent = () => {
       return [];
     }
 
+    // Ensure response is an array before calling .map()
+    const responseData = Array.isArray(apiData.response) ? apiData.response : [];
+    if (responseData.length === 0) {
+      return [];
+    }
+
     // For GP view, show date-wise data
     if (activeScope === 'GPs') {
-      return apiData.response.map(item => {
+      return responseData.map(item => {
         const status = (item.present_count || 0) > 0 ? 'Present' : 'Absent';
         return {
           id: `${item.geography_id}_${item.date}`,
@@ -1445,7 +1460,7 @@ const AttendanceContent = () => {
     // For other views, group data by geography and calculate average attendance
     const geographyMap = new Map();
 
-    apiData.response.forEach(item => {
+    responseData.forEach(item => {
       const key = item.geography_id;
       if (!geographyMap.has(key)) {
         geographyMap.set(key, {
@@ -2416,7 +2431,21 @@ const AttendanceContent = () => {
           color: '#6B7280',
           fontWeight: '600'
         }}>
-          {activeScope === 'State' ? selectedLocation : `Rajasthan / ${selectedLocation}`}
+          {(() => {
+            if (activeScope === 'State') {
+              return selectedLocation;
+            } else if (activeScope === 'Districts') {
+              return `Rajasthan / ${selectedLocation}`;
+            } else if (activeScope === 'Blocks') {
+              const districtName = selectedDistrictForHierarchy?.name || selectedLocation;
+              return `Rajasthan / ${districtName} / ${selectedLocation}`;
+            } else if (activeScope === 'GPs') {
+              const districtName = selectedDistrictForHierarchy?.name || '';
+              const blockName = selectedBlockForHierarchy?.name || '';
+              return `Rajasthan / ${districtName} / ${blockName} / ${selectedLocation}`;
+            }
+            return `Rajasthan / ${selectedLocation}`;
+          })()}
         </span>
       </div>
 

@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Plus, Calendar, ChevronDown, X, Upload, Search, Download, Info, List, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
+import { Plus, Calendar, ChevronDown, X, Upload, Search, Download, List, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
 import apiClient from '../../services/api';
 import NoDataFound from './common/NoDataFound';
+import { InfoTooltip } from '../common/Tooltip';
 
 const NotoficationContent = () => {
   const [sentNotices, setSentNotices] = useState([]);
@@ -21,11 +22,13 @@ const NotoficationContent = () => {
   const [submittingReply, setSubmittingReply] = useState(false);
   
   // Pagination state
-  const pageSize = 1000; // Number of items per page
+  const pageSize = 20; // Number of items per page
   const [sentPage, setSentPage] = useState(1);
   const [receivedPage, setReceivedPage] = useState(1);
-  const [sentTotal, setSentTotal] = useState(0);
-  const [receivedTotal, setReceivedTotal] = useState(0);
+  const [sentTotal, setSentTotal] = useState(null); // null means we don't know the total
+  const [receivedTotal, setReceivedTotal] = useState(null); // null means we don't know the total
+  const [sentHasMore, setSentHasMore] = useState(false);
+  const [receivedHasMore, setReceivedHasMore] = useState(false);
 
   // Fetch sent notices
   useEffect(() => {
@@ -40,13 +43,23 @@ const NotoficationContent = () => {
         // Handle both array response and paginated response
         if (Array.isArray(response.data)) {
           setSentNotices(response.data);
-          setSentTotal(response.data.length);
+          // If we got a full page, there might be more
+          const hasMore = response.data.length === pageSize;
+          setSentHasMore(hasMore);
+          // For array responses without total count, we don't know the total
+          setSentTotal(null);
         } else if (response.data.items && Array.isArray(response.data.items)) {
           setSentNotices(response.data.items);
-          setSentTotal(response.data.total || response.data.items.length);
+          const total = response.data.total || response.data.items.length;
+          setSentTotal(total);
+          setSentHasMore(total > sentPage * pageSize);
         } else {
-          setSentNotices(response.data || []);
-          setSentTotal(response.data?.length || 0);
+          const data = Array.isArray(response.data) ? response.data : [];
+          setSentNotices(data);
+          const hasMore = data.length === pageSize;
+          setSentHasMore(hasMore);
+          // For array responses without total count, we don't know the total
+          setSentTotal(null);
         }
         
         setErrorSent(null);
@@ -54,7 +67,8 @@ const NotoficationContent = () => {
         console.error('❌ Error fetching sent notices:', error);
         setErrorSent(error.message || 'Failed to fetch sent notices');
         setSentNotices([]);
-        setSentTotal(0);
+        setSentTotal(null);
+        setSentHasMore(false);
       } finally {
         setLoadingSent(false);
       }
@@ -76,13 +90,23 @@ const NotoficationContent = () => {
         // Handle both array response and paginated response
         if (Array.isArray(response.data)) {
           setReceivedNotices(response.data);
-          setReceivedTotal(response.data.length);
+          // If we got a full page, there might be more
+          const hasMore = response.data.length === pageSize;
+          setReceivedHasMore(hasMore);
+          // For array responses without total count, we don't know the total
+          setReceivedTotal(null);
         } else if (response.data.items && Array.isArray(response.data.items)) {
           setReceivedNotices(response.data.items);
-          setReceivedTotal(response.data.total || response.data.items.length);
+          const total = response.data.total || response.data.items.length;
+          setReceivedTotal(total);
+          setReceivedHasMore(total > receivedPage * pageSize);
         } else {
-          setReceivedNotices(response.data || []);
-          setReceivedTotal(response.data?.length || 0);
+          const data = Array.isArray(response.data) ? response.data : [];
+          setReceivedNotices(data);
+          const hasMore = data.length === pageSize;
+          setReceivedHasMore(hasMore);
+          // For array responses without total count, we don't know the total
+          setReceivedTotal(null);
         }
         
         setErrorReceived(null);
@@ -90,7 +114,8 @@ const NotoficationContent = () => {
         console.error('❌ Error fetching received notices:', error);
         setErrorReceived(error.message || 'Failed to fetch received notices');
         setReceivedNotices([]);
-        setReceivedTotal(0);
+        setReceivedTotal(null);
+        setReceivedHasMore(false);
       } finally {
         setLoadingReceived(false);
       }
@@ -375,7 +400,7 @@ const NotoficationContent = () => {
                         top: '16px',
                         right: '16px'
                     }}>
-                        <Info style={{ width: '16px', height: '16px', color: '#6b7280' }} />
+                        <InfoTooltip tooltipKey="TOTAL_NOTICES_SENT" size={16} color="#6b7280" />
                     </div>
                     <h3 style={{
                                 fontSize: '14px',
@@ -391,7 +416,7 @@ const NotoficationContent = () => {
                         color: '#111827',
                         lineHeight: '1'
                     }}>
-                        {loadingSent ? '...' : errorSent ? '0' : sentTotal.toLocaleString()}
+                        {loadingSent ? '...' : errorSent ? '0' : (sentTotal !== null ? sentTotal.toLocaleString() : '...')}
                         </div>
                     </div>
 
@@ -409,7 +434,7 @@ const NotoficationContent = () => {
                         top: '16px',
                         right: '16px'
                     }}>
-                        <Info style={{ width: '16px', height: '16px', color: '#6b7280' }} />
+                        <InfoTooltip tooltipKey="TOTAL_NOTICES_RECEIVED" size={16} color="#6b7280" />
                     </div>
                             <div style={{
                                 display: 'flex',
@@ -432,7 +457,7 @@ const NotoficationContent = () => {
                         color: '#111827',
                         lineHeight: '1'
                     }}>
-                        {loadingReceived ? '...' : errorReceived ? '0' : receivedTotal.toLocaleString()}
+                        {loadingReceived ? '...' : errorReceived ? '0' : (receivedTotal !== null ? receivedTotal.toLocaleString() : '...')}
                     </div>
                 </div>
             </div>
@@ -742,7 +767,7 @@ const NotoficationContent = () => {
                 </div>
                 
                 {/* Pagination Controls */}
-                {viewMode === 'sent' && sentTotal > pageSize && (
+                {viewMode === 'sent' && (sentPage > 1 || sentHasMore || sentNotices.length === pageSize) && (
                   <div style={{
                     display: 'flex',
                     justifyContent: 'center',
@@ -753,14 +778,14 @@ const NotoficationContent = () => {
                   }}>
                     <button
                       onClick={() => setSentPage(prev => Math.max(1, prev - 1))}
-                      disabled={sentPage <= 1}
+                      disabled={sentPage <= 1 || loadingSent}
                       style={{
                         padding: '8px 16px',
                         border: '1px solid #d1d5db',
                         borderRadius: '8px',
-                        backgroundColor: sentPage <= 1 ? '#f9fafb' : 'white',
-                        color: sentPage <= 1 ? '#9ca3af' : '#374151',
-                        cursor: sentPage <= 1 ? 'not-allowed' : 'pointer',
+                        backgroundColor: (sentPage <= 1 || loadingSent) ? '#f9fafb' : 'white',
+                        color: (sentPage <= 1 || loadingSent) ? '#9ca3af' : '#374151',
+                        cursor: (sentPage <= 1 || loadingSent) ? 'not-allowed' : 'pointer',
                         fontSize: '14px',
                         fontWeight: '500'
                       }}
@@ -769,19 +794,19 @@ const NotoficationContent = () => {
                     </button>
                     
                     <span style={{ fontSize: '14px', color: '#6b7280', padding: '0 16px' }}>
-                      Page {sentPage} of {Math.ceil(sentTotal / pageSize)}
+                      Page {sentPage}{sentTotal !== null ? ` of ${Math.ceil(sentTotal / pageSize)}` : ''}
                     </span>
                     
                     <button
                       onClick={() => setSentPage(prev => prev + 1)}
-                      disabled={sentPage >= Math.ceil(sentTotal / pageSize)}
+                      disabled={!sentHasMore && sentNotices.length < pageSize || loadingSent}
                       style={{
                         padding: '8px 16px',
                         border: '1px solid #d1d5db',
                         borderRadius: '8px',
-                        backgroundColor: sentPage >= Math.ceil(sentTotal / pageSize) ? '#f9fafb' : 'white',
-                        color: sentPage >= Math.ceil(sentTotal / pageSize) ? '#9ca3af' : '#374151',
-                        cursor: sentPage >= Math.ceil(sentTotal / pageSize) ? 'not-allowed' : 'pointer',
+                        backgroundColor: ((!sentHasMore && sentNotices.length < pageSize) || loadingSent) ? '#f9fafb' : 'white',
+                        color: ((!sentHasMore && sentNotices.length < pageSize) || loadingSent) ? '#9ca3af' : '#374151',
+                        cursor: ((!sentHasMore && sentNotices.length < pageSize) || loadingSent) ? 'not-allowed' : 'pointer',
                         fontSize: '14px',
                         fontWeight: '500'
                       }}
@@ -791,7 +816,7 @@ const NotoficationContent = () => {
                   </div>
                 )}
                 
-                {viewMode === 'received' && receivedTotal > pageSize && (
+                {viewMode === 'received' && (receivedPage > 1 || receivedHasMore || receivedNotices.length === pageSize) && (
                   <div style={{
                     display: 'flex',
                     justifyContent: 'center',
@@ -802,14 +827,14 @@ const NotoficationContent = () => {
                   }}>
                     <button
                       onClick={() => setReceivedPage(prev => Math.max(1, prev - 1))}
-                      disabled={receivedPage <= 1}
+                      disabled={receivedPage <= 1 || loadingReceived}
                       style={{
                         padding: '8px 16px',
                         border: '1px solid #d1d5db',
                         borderRadius: '8px',
-                        backgroundColor: receivedPage <= 1 ? '#f9fafb' : 'white',
-                        color: receivedPage <= 1 ? '#9ca3af' : '#374151',
-                        cursor: receivedPage <= 1 ? 'not-allowed' : 'pointer',
+                        backgroundColor: (receivedPage <= 1 || loadingReceived) ? '#f9fafb' : 'white',
+                        color: (receivedPage <= 1 || loadingReceived) ? '#9ca3af' : '#374151',
+                        cursor: (receivedPage <= 1 || loadingReceived) ? 'not-allowed' : 'pointer',
                         fontSize: '14px',
                         fontWeight: '500'
                       }}
@@ -818,19 +843,19 @@ const NotoficationContent = () => {
                     </button>
                     
                     <span style={{ fontSize: '14px', color: '#6b7280', padding: '0 16px' }}>
-                      Page {receivedPage} of {Math.ceil(receivedTotal / pageSize)}
+                      Page {receivedPage}{receivedTotal !== null ? ` of ${Math.ceil(receivedTotal / pageSize)}` : ''}
                     </span>
                     
                     <button
                       onClick={() => setReceivedPage(prev => prev + 1)}
-                      disabled={receivedPage >= Math.ceil(receivedTotal / pageSize)}
+                      disabled={!receivedHasMore && receivedNotices.length < pageSize || loadingReceived}
                       style={{
                         padding: '8px 16px',
                         border: '1px solid #d1d5db',
                         borderRadius: '8px',
-                        backgroundColor: receivedPage >= Math.ceil(receivedTotal / pageSize) ? '#f9fafb' : 'white',
-                        color: receivedPage >= Math.ceil(receivedTotal / pageSize) ? '#9ca3af' : '#374151',
-                        cursor: receivedPage >= Math.ceil(receivedTotal / pageSize) ? 'not-allowed' : 'pointer',
+                        backgroundColor: ((!receivedHasMore && receivedNotices.length < pageSize) || loadingReceived) ? '#f9fafb' : 'white',
+                        color: ((!receivedHasMore && receivedNotices.length < pageSize) || loadingReceived) ? '#9ca3af' : '#374151',
+                        cursor: ((!receivedHasMore && receivedNotices.length < pageSize) || loadingReceived) ? 'not-allowed' : 'pointer',
                         fontSize: '14px',
                         fontWeight: '500'
                       }}

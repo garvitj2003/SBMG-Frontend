@@ -451,11 +451,27 @@ const VDOInspectionContent = () => {
     if (range.value === 'custom') {
       setIsCustomRange(true);
       setSelectedDateRange('Custom');
+      setStartDate(null);
+      setEndDate(null);
+      // Don't close dropdown for custom - let user select dates
     } else {
       setIsCustomRange(false);
       setSelectedDateRange(range.label);
       
-      if (range.days !== null) {
+      // For "Today" and "Yesterday", both start and end dates should be the same
+      if (range.value === 'today') {
+        // Today: start = today, end = today
+        setStartDate(todayStr);
+        setEndDate(todayStr);
+      } else if (range.value === 'yesterday') {
+        // Yesterday: start = yesterday, end = yesterday
+        const yesterday = new Date(today);
+        yesterday.setDate(today.getDate() - 1);
+        setStartDate(yesterday.toISOString().split('T')[0]);
+        setEndDate(yesterday.toISOString().split('T')[0]);
+      } else if (range.days !== null) {
+        // For ranges like "Last 7 Days", "Last 30 Days"
+        // start = today - N days, end = today
         const start = new Date(today);
         start.setDate(start.getDate() - range.days);
         const startStr = start.toISOString().split('T')[0];
@@ -2992,7 +3008,10 @@ const VDOInspectionContent = () => {
             {/* Data State */}
             {!loadingYourInspections && !yourInspectionsError && (
               <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
-                {getYourInspections().map((inspection, index) => (
+                {getYourInspections().length === 0 ? (
+                  <NoDataFound size="small" />
+                ) : (
+                  getYourInspections().map((inspection, index) => (
                   <div key={inspection.id || index} style={{
                     display: 'grid',
                     gridTemplateColumns: activeScope === 'GPs' 
@@ -3054,10 +3073,11 @@ const VDOInspectionContent = () => {
                       </button>
                     </div>
                   </div>
-                ))}
+                  ))
+                )}
                 
                 {/* Pagination */}
-                {totalPages > 1 && (
+                {getYourInspections().length > 0 && totalPages > 1 && (
                   <div style={{
                     display: 'flex',
                     justifyContent: 'center',

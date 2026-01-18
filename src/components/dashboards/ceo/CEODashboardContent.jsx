@@ -2285,7 +2285,21 @@ const CEODashboardContent = () => {
           color: '#6B7280',
           fontWeight: '600'
         }}>
-          {activeScope === 'State' ? selectedLocation : `Rajasthan / ${selectedLocation}`}
+          {(() => {
+            if (activeScope === 'State') {
+              return selectedLocation;
+            } else if (activeScope === 'Districts') {
+              return `Rajasthan / ${selectedLocation}`;
+            } else if (activeScope === 'Blocks') {
+              const districtName = selectedDistrictForHierarchy?.name || selectedLocation;
+              return `Rajasthan / ${districtName} / ${selectedLocation}`;
+            } else if (activeScope === 'GPs') {
+              const districtName = selectedDistrictForHierarchy?.name || '';
+              const blockName = selectedBlockForHierarchy?.name || '';
+              return `Rajasthan / ${districtName} / ${blockName} / ${selectedLocation}`;
+            }
+            return `Rajasthan / ${selectedLocation}`;
+          })()}
         </span>
       </div>
 
