@@ -1,11 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { MapPin, ChevronDown, ChevronRight, Calendar, List, Search, Filter, Download, Eye, Edit, Trash2, CheckCircle, XCircle, Clock , Plus, Upload, X, Star, User} from 'lucide-react';
+import { Calendar, CheckCircle, ChevronDown, ChevronRight, Clock, Download, List, MapPin, Search, Star, Upload, User, X, XCircle } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
 import Chart from 'react-apexcharts';
-import apiClient, { noticesAPI } from '../../../services/api';
-import LocationDisplay from '../../common/LocationDisplay';
 import { useCEOLocation } from '../../../context/CEOLocationContext';
-import NoDataFound from '../common/NoDataFound';
+import apiClient, { noticesAPI } from '../../../services/api';
 import { InfoTooltip } from '../../common/Tooltip';
+import NoDataFound from '../common/NoDataFound';
 
 const CEOComplaintsContent = () => {
   // Shared location state via context
@@ -1709,7 +1708,8 @@ const normalizeStatusForFilter = (rawStatus) => {
                   marginTop: '6px',
                   display: 'flex',
                   overflow: 'hidden',
-                  minWidth: activeScope === 'Districts' ? '280px' : activeScope === 'Blocks' ? '520px' : '780px'
+                  // minWidth: activeScope === 'Districts' ? '280px' : activeScope === 'Blocks' ? '520px' : '780px'
+                   minWidth: activeScope === 'Blocks' ? '280px' : '540px'
                 }}
               >
                 {/* CEO: First column is BLOCKS (no districts!) */}
@@ -1725,7 +1725,7 @@ const normalizeStatusForFilter = (rawStatus) => {
                       <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
                         Loading blocks...
                       </div>
-                    ) : blocksForActiveDistrict.length === 0 ? (
+                    )  : blocksForActiveDistrict.length === 0 ? (
                       <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
                         No blocks found
                       </div>

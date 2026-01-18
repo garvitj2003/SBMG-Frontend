@@ -47,7 +47,7 @@ apiClient.interceptors.response.use(
       localStorage.removeItem('user');
       
       // Redirect to login page
-      window.location.href = '/login';
+      // window.location.href = '/login';
     }
     return Promise.reject(error);
   }

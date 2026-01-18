@@ -958,7 +958,8 @@ const BDOEventsContent = () => {
                                     {selectedEvent?.name || 'Event Details'}
                                 </h2>
                                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                    <button
+                                    {/* Comment edit delete buttons */}
+                                    {/* <button
                                         onClick={() => handleEditClick(selectedEvent)}
                                         style={{
                                             display: 'flex',
@@ -1002,7 +1003,7 @@ const BDOEventsContent = () => {
                                             <Trash2 style={{ width: '16px', height: '16px' }} />
                                         )}
                                         {isDeleting ? 'Deleting...' : 'Delete Event'}
-                                    </button>
+                                    </button> */}
                                     <button
                                         onClick={() => setShowDetailsModal(false)}
                                         style={{

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { Plus, Calendar, ChevronDown, X, Upload, Loader2, Edit, Trash2 } from 'lucide-react';
+import { Calendar, Loader2, Plus, Upload, X } from 'lucide-react';
+import { useEffect, useState } from "react";
 import { eventsAPI } from '../../../services/api';
 
 const VDOEventsContent = () => {
@@ -957,7 +957,8 @@ const VDOEventsContent = () => {
                                     {selectedEvent?.name || 'Event Details'}
                                 </h2>
                                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                    <button
+                                    {/* Comment edit delete buttons */}
+                                    {/* <button
                                         onClick={() => handleEditClick(selectedEvent)}
                                         style={{
                                             display: 'flex',
@@ -1001,7 +1002,7 @@ const VDOEventsContent = () => {
                                             <Trash2 style={{ width: '16px', height: '16px' }} />
                                         )}
                                         {isDeleting ? 'Deleting...' : 'Delete Event'}
-                                    </button>
+                                    </button> */}
                                     <button
                                         onClick={() => setShowDetailsModal(false)}
                                         style={{

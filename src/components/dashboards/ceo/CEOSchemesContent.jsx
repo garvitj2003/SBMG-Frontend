@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { Plus, Calendar, ChevronDown, X, Upload, Loader2, Edit, Trash2 } from 'lucide-react';
+import { Loader2, Plus, Upload, X } from 'lucide-react';
+import { useEffect, useState } from "react";
 import { schemesAPI } from '../../../services/api';
 import NoDataFound from '../common/NoDataFound';
 
@@ -896,7 +896,8 @@ const CEOSchemesContent = () => {
                   {selectedScheme?.name || 'Scheme Details'}
                 </h2>
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                  <button
+                {/* Comment edit delete buttons */}
+                  {/* <button
                     onClick={() => handleEditClick(selectedScheme)}
                     style={{
                       display: 'flex',
@@ -940,7 +941,7 @@ const CEOSchemesContent = () => {
                       <Trash2 style={{ width: '16px', height: '16px' }} />
                     )}
                     {isDeleting ? 'Deleting...' : 'Delete Scheme'}
-                  </button>
+                  </button> */}
                   <button
                     onClick={() => setShowDetailsModal(false)}
                     style={{

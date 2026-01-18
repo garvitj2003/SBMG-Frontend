@@ -895,7 +895,9 @@ const VDOSchemesContent = () => {
                   {selectedScheme?.name || 'Scheme Details'}
                 </h2>
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                  <button
+                {/* Comment edit delete buttons */}
+                
+                  {/* <button
                     onClick={() => handleEditClick(selectedScheme)}
                     style={{
                       display: 'flex',
@@ -939,7 +941,8 @@ const VDOSchemesContent = () => {
                       <Trash2 style={{ width: '16px', height: '16px' }} />
                     )}
                     {isDeleting ? 'Deleting...' : 'Delete Scheme'}
-                  </button>
+                  </button> */}
+
                   <button
                     onClick={() => setShowDetailsModal(false)}
                     style={{
