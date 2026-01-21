@@ -1,4 +1,4 @@
-import { Calendar, Loader2, Plus, Upload, X } from 'lucide-react';
+import { Calendar, Loader2, X } from 'lucide-react';
 import { useEffect, useState } from "react";
 import { eventsAPI } from '../../../services/api';
 
@@ -20,7 +20,7 @@ const VDOEventsContent = () => {
     const [selectedFile, setSelectedFile] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitProgress, setSubmitProgress] = useState('');
-    
+
     // Edit event state
     const [showEditModal, setShowEditModal] = useState(false);
     const [editFormData, setEditFormData] = useState({
@@ -62,7 +62,7 @@ const VDOEventsContent = () => {
             setError(null);
             // Fetch events based on filter - use API filtering when possible, but always apply client-side filtering as backup
             let eventsData = [];
-            
+
             if (eventFilter === 'all') {
                 // For 'all', fetch both active and inactive separately to ensure we get everything
                 const [activeResponse, inactiveResponse] = await Promise.all([
@@ -85,9 +85,9 @@ const VDOEventsContent = () => {
                 const response = await eventsAPI.getEvents({ skip: 0, limit: 100, active: activeParam });
                 eventsData = response.data || [];
             }
-            
+
             console.log('Fetched events data:', eventsData);
-            
+
             // Apply client-side filtering to ensure correct display (backup safety check)
             let filteredEvents = eventsData;
             if (eventFilter === 'active') {
@@ -96,7 +96,7 @@ const VDOEventsContent = () => {
                 filteredEvents = eventsData.filter(event => event.active === false);
             }
             // 'all' filter: show all events (no additional filtering needed)
-            
+
             setEvents(filteredEvents);
         } catch (err) {
             console.error('Error fetching events:', err);
@@ -141,7 +141,7 @@ const VDOEventsContent = () => {
         if (event.media && event.media.length > 0) {
             const mediaUrl = `http://139.59.34.99:8000/api/v1/public/media/${encodeURIComponent(event.media[0].media_url)}`;
             console.log('Generated media URL:', mediaUrl);
-            
+
             // Test if the URL is accessible
             fetch(mediaUrl, { method: 'HEAD' })
                 .then(response => {
@@ -150,7 +150,7 @@ const VDOEventsContent = () => {
                 .catch(error => {
                     console.log('Media URL accessibility test failed:', error);
                 });
-            
+
             return mediaUrl;
         }
         console.log('No media found, using fallback');
@@ -267,12 +267,12 @@ const VDOEventsContent = () => {
             };
 
             await eventsAPI.updateEvent(selectedEvent.id, updatePayload);
-            
+
             // If event is set to inactive, switch filter to "All" so user can see it as inactive
             if (!editFormData.active && eventFilter === 'active') {
                 setEventFilter('all');
             }
-            
+
             // Close modal and refresh
             setShowEditModal(false);
             setIsUpdating(false);
@@ -311,13 +311,13 @@ const VDOEventsContent = () => {
 
             {/* Overview Section */}
             <div style={{
-                 backgroundColor: 'white',
-                 padding: '24px',
-                 marginLeft: '16px',
-                 marginRight: '16px',
-                 marginTop: '16px',
-                 borderRadius: '8px',
-                 border: '1px solid lightgray'
+                backgroundColor: 'white',
+                padding: '24px',
+                marginLeft: '16px',
+                marginRight: '16px',
+                marginTop: '16px',
+                borderRadius: '8px',
+                border: '1px solid lightgray'
             }}>
 
                 {/* Overview Header */}
@@ -353,7 +353,7 @@ const VDOEventsContent = () => {
 
                     </div>
                     {/* Right side - Filter and Add Event button */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', paddingRight: '5px' }}>
                         {/* Event Filter Toggle */}
                         <div style={{
                             display: 'flex',
@@ -411,25 +411,7 @@ const VDOEventsContent = () => {
                                 All
                             </button>
                         </div>
-                        <button
-                            onClick={() => setShowModal(true)}
-                            style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '8px',
-                                backgroundColor: '#10b981',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '8px',
-                                padding: '6px 10px',
-                                cursor: 'pointer',
-                                fontSize: '14px',
-                                fontWeight: '500',
-                                transition: 'all 0.2s'
-                            }}>
-                            <Plus style={{ width: '16px', height: '16px' }} />
-                            Add Event
-                        </button>
+                        
                     </div>
                 </div>
 
@@ -456,27 +438,27 @@ const VDOEventsContent = () => {
 
                 {/* Event Cards Grid */}
                 {!loading && !error && (
-                <div style={{
-                    display: 'grid',
+                    <div style={{
+                        display: 'grid',
                         gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-                    gap: '20px',
-                    marginTop: '24px'
-                }}>
+                        gap: '20px',
+                        marginTop: '24px'
+                    }}>
                         {events.map((event) => (
-                    <div
+                            <div
                                 key={event.id}
-                        onClick={() => {
+                                onClick={() => {
                                     setSelectedEvent(event);
-                            setShowDetailsModal(true);
-                            setActiveTab('Details');
-                        }}
-                        style={{
-                            backgroundColor: 'white',
-                            borderRadius: '12px',
-                            border: '1px solid #e5e7eb',
-                            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s',
+                                    setShowDetailsModal(true);
+                                    setActiveTab('Details');
+                                }}
+                                style={{
+                                    backgroundColor: 'white',
+                                    borderRadius: '12px',
+                                    border: '1px solid #e5e7eb',
+                                    boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s',
                                     minHeight: '250px',
                                     '&:hover': {
                                         boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
@@ -492,11 +474,11 @@ const VDOEventsContent = () => {
                                     e.currentTarget.style.transform = 'translateY(0)';
                                 }}
                             >
-                        <div style={{
-                            height: '160px',
+                                <div style={{
+                                    height: '160px',
                                     marginBottom: '8px',
-                            borderTopLeftRadius: '8px',
-                            borderTopRightRadius: '8px',
+                                    borderTopLeftRadius: '8px',
+                                    borderTopRightRadius: '8px',
                                     position: 'relative',
                                     overflow: 'hidden'
                                 }}>
@@ -517,7 +499,7 @@ const VDOEventsContent = () => {
                                             console.log('Image loaded successfully:', getEventImage(event));
                                         }}
                                     />
-                                <div style={{
+                                    <div style={{
                                         position: 'absolute',
                                         top: '12px',
                                         right: '12px',
@@ -529,7 +511,7 @@ const VDOEventsContent = () => {
                                         fontWeight: '500'
                                     }}>
                                         {event.active ? 'Active' : 'Inactive'}
-                                </div>
+                                    </div>
                                     {/* Media count indicator if multiple images */}
                                     {event.media && event.media.length > 1 && (
                                         <div style={{
@@ -541,67 +523,67 @@ const VDOEventsContent = () => {
                                             padding: '4px 8px',
                                             borderRadius: '12px',
                                             fontSize: '12px',
-                                fontWeight: '500'
-                            }}>
+                                            fontWeight: '500'
+                                        }}>
                                             +{event.media.length - 1} more
-                        </div>
+                                        </div>
                                     )}
-                    </div>
+                                </div>
                                 <div style={{ padding: '16px' }}>
-                            {/* Title and Date Range in same row */}
-                            <div style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '10px',
-                                marginBottom: '8px',
-                                minWidth: 0
-                            }}>
-                                <h3 style={{
-                                    fontSize: '16px',
-                                    fontWeight: '600',
-                                    color: '#111827',
-                                    margin: 0,
-                                    lineHeight: '1.4',
-                                    flex: 1,
-                                    minWidth: 0,
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
-                                    whiteSpace: 'nowrap'
-                                }}>
-                                            {event.name || 'Untitled Event'}
-                                </h3>
-                                {/* Date Range Display */}
-                                <div style={{
-                                    backgroundColor: '#f9fafb',
-                                    border: '1px solid #e5e7eb',
-                                    borderRadius: '6px',
-                                            padding: '6px 8px',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '6px',
-                                    boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
-                                    flexShrink: 0
-                                }}>
-                                    <Calendar style={{ width: '14px', height: '14px', color: '#6b7280' }} />
-                                    <span style={{
-                                        fontSize: '12px',
-                                        color: '#6b7280',
-                                        fontWeight: '500'
+                                    {/* Title and Date Range in same row */}
+                                    <div style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '10px',
+                                        marginBottom: '8px',
+                                        minWidth: 0
                                     }}>
+                                        <h3 style={{
+                                            fontSize: '16px',
+                                            fontWeight: '600',
+                                            color: '#111827',
+                                            margin: 0,
+                                            lineHeight: '1.4',
+                                            flex: 1,
+                                            minWidth: 0,
+                                            overflow: 'hidden',
+                                            textOverflow: 'ellipsis',
+                                            whiteSpace: 'nowrap'
+                                        }}>
+                                            {event.name || 'Untitled Event'}
+                                        </h3>
+                                        {/* Date Range Display */}
+                                        <div style={{
+                                            backgroundColor: '#f9fafb',
+                                            border: '1px solid #e5e7eb',
+                                            borderRadius: '6px',
+                                            padding: '6px 8px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '6px',
+                                            boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+                                            flexShrink: 0
+                                        }}>
+                                            <Calendar style={{ width: '14px', height: '14px', color: '#6b7280' }} />
+                                            <span style={{
+                                                fontSize: '12px',
+                                                color: '#6b7280',
+                                                fontWeight: '500'
+                                            }}>
                                                 {formatDateRange(event.start_time, event.end_time)}
-                                    </span>
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <p style={{
+                                        fontSize: '14px',
+                                        color: '#6b7280',
+                                        margin: 0,
+                                        lineHeight: '1.5'
+                                    }}>
+                                        {truncateText(event.description, 80)}
+                                    </p>
                                 </div>
                             </div>
-                            <p style={{
-                                fontSize: '14px',
-                                color: '#6b7280',
-                                margin: 0,
-                                        lineHeight: '1.5'
-                            }}>
-                                        {truncateText(event.description, 80)}
-                            </p>
-                        </div>
-                    </div>
                         ))}
                     </div>
                 )}
@@ -616,305 +598,7 @@ const VDOEventsContent = () => {
                     }}><div style={{ padding: '60px', textAlign: 'center', color: '#6b7280', fontSize: '14px' }}>No data available</div>
                     </div>
                 )}
-                {/* Add Event Modal */}
-                {showModal && (
-                    <div style={{
-                        position: 'fixed',
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        zIndex: 1000
-                    }}>
-                        <div style={{
-                            backgroundColor: 'white',
-                            borderRadius: '12px',
-                            width: '500px',
-                            maxHeight: '80vh',
-                            overflow: 'auto',
-                            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
-                        }}>
-                            {/* Modal Header */}
-                            <div style={{
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center',
-                                padding: '20px 24px',
-                                borderBottom: '1px solid #e5e7eb'
-                            }}>
-                                <h2 style={{
-                                    fontSize: '18px',
-                                    fontWeight: '600',
-                                    color: '#111827',
-                                    margin: 0
-                                }}>
-                                    Add Event
-                                </h2>
-                                <button
-                                    onClick={() => setShowModal(false)}
-                                    style={{
-                                        background: 'none',
-                                        border: 'none',
-                                        cursor: 'pointer',
-                                        padding: '4px',
-                                        borderRadius: '4px',
-                                        color: '#6b7280'
-                                    }}
-                                >
-                                    <X style={{ width: '20px', height: '20px' }} />
-                                </button>
-                            </div>
-
-                            {/* Modal Content */}
-                            <div style={{ padding: '24px' }}>
-                                {/* Image Upload Area */}
-                                <div style={{
-                                    border: '2px dashed #d1d5db',
-                                    borderRadius: '8px',
-                                    padding: '40px 20px',
-                                    textAlign: 'center',
-                                    marginBottom: '24px',
-                                    cursor: 'pointer',
-                                    transition: 'all 0.2s',
-                                    backgroundColor: selectedFile ? '#f0f9ff' : 'transparent',
-                                    borderColor: selectedFile ? '#10b981' : '#d1d5db'
-                                }}
-                                onClick={() => document.getElementById('fileInput').click()}>
-                                    <input
-                                        id="fileInput"
-                                        type="file"
-                                        accept="image/*"
-                                        onChange={handleFileSelect}
-                                        style={{ display: 'none' }}
-                                    />
-                                    <Upload style={{ 
-                                        width: '32px', 
-                                        height: '32px', 
-                                        color: selectedFile ? '#10b981' : '#9ca3af', 
-                                        margin: '0 auto 12px' 
-                                    }} />
-                                    <p style={{
-                                        fontSize: '14px',
-                                        color: selectedFile ? '#10b981' : '#6b7280',
-                                        margin: 0
-                                    }}>
-                                        {selectedFile ? selectedFile.name : 'Drag and drop your image or click to upload'}
-                                    </p>
-                                    {selectedFile && (
-                                        <p style={{
-                                            fontSize: '12px',
-                                            color: '#10b981',
-                                            margin: '8px 0 0 0'
-                                        }}>
-                                            ✓ File selected
-                                        </p>
-                                    )}
-                                </div>
-
-                                {/* Form Fields */}
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                                    {/* Title Field */}
-                                    <div>
-                                        <label style={{
-                                            display: 'block',
-                                            fontSize: '14px',
-                                            fontWeight: '500',
-                                            color: '#374151',
-                                            marginBottom: '8px'
-                                        }}>
-                                            Event Title
-                                        </label>
-                                        <input
-                                            type="text"
-                                            placeholder="Enter event title"
-                                            value={formData.title}
-                                            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                                            style={{
-                                                width: '100%',
-                                                padding: '12px',
-                                                border: '1px solid #d1d5db',
-                                                borderRadius: '8px',
-                                                fontSize: '14px',
-                                                outline: 'none'
-                                            }}
-                                        />
-                                    </div>
-
-                                    {/* Description Field */}
-                                    <div>
-                                        <label style={{
-                                            display: 'block',
-                                            fontSize: '14px',
-                                            fontWeight: '500',
-                                            color: '#374151',
-                                            marginBottom: '8px'
-                                        }}>
-                                            Description
-                                        </label>
-                                        <input
-                                            type="text"
-                                            placeholder="Event description"
-                                            value={formData.description}
-                                            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                            style={{
-                                                width: '100%',
-                                                padding: '12px',
-                                                border: '1px solid #d1d5db',
-                                                borderRadius: '8px',
-                                                fontSize: '14px',
-                                                outline: 'none'
-                                            }}
-                                        />
-                                    </div>
-
-                                    {/* From & To Date Fields */}
-                                    <div style={{ display: 'flex', gap: '12px' }}>
-                                        <div style={{ flex: 1 }}>
-                                            <label style={{
-                                                display: 'block',
-                                                fontSize: '14px',
-                                                fontWeight: '500',
-                                                color: '#374151',
-                                                marginBottom: '8px'
-                                            }}>
-                                                From
-                                            </label>
-                                            <div style={{ position: 'relative' }}>
-                                                <input
-                                                    type="date"
-                                                    placeholder="From"
-                                                    value={formData.fromDate || ''}
-                                                    onKeyDown={handleDateKeyDown}
-                                                    onChange={(e) => setFormData({ ...formData, fromDate: e.target.value })}
-                                                    style={{
-                                                        width: '100%',
-                                                        padding: '12px',
-                                                        paddingRight: '40px',
-                                                        border: '1px solid #d1d5db',
-                                                        borderRadius: '8px',
-                                                        fontSize: '14px',
-                                                        outline: 'none'
-                                                    }}
-                                                />
-                                              
-                                            </div>
-                                        </div>
-                                        <div style={{ flex: 1 }}>
-                                            <label style={{
-                                                display: 'block',
-                                                fontSize: '14px',
-                                                fontWeight: '500',
-                                                color: '#374151',
-                                                marginBottom: '8px'
-                                            }}>
-                                                To
-                                            </label>
-                                            <div style={{ position: 'relative' }}>
-                                                <input
-                                                    type="date"
-                                                    placeholder="To"
-                                                    value={formData.toDate || ''}
-                                                    onKeyDown={handleDateKeyDown}
-                                                    onChange={(e) => setFormData({ ...formData, toDate: e.target.value })}
-                                                    style={{
-                                                        width: '100%',
-                                                        padding: '12px',
-                                                        paddingRight: '40px',
-                                                        border: '1px solid #d1d5db',
-                                                        borderRadius: '8px',
-                                                        fontSize: '14px',
-                                                        outline: 'none'
-                                                    }}
-                                                />
-                                              
-                                            </div>
-                                        </div>
-                                    </div>
-
-
-
-
-
-
-                                </div>
-                            </div>
-
-                            {/* Modal Footer */}
-                            <div style={{
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center',
-                                padding: '20px 24px',
-                                borderTop: '1px solid #e5e7eb'
-                            }}>
-                                {/* Progress indicator */}
-                                {isSubmitting && (
-                                    <div style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '8px',
-                                        color: '#10b981',
-                                        fontSize: '14px'
-                                    }}>
-                                        <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} />
-                                        {submitProgress}
-                                    </div>
-                                )}
-                                
-                                {/* Buttons */}
-                                <div style={{ display: 'flex', gap: '12px', marginLeft: 'auto' }}>
-                                <button
-                                        onClick={() => {
-                                            if (!isSubmitting) {
-                                                setShowModal(false);
-                                                setFormData({ title: '', description: '', fromDate: '', toDate: '' });
-                                                setSelectedFile(null);
-                                            }
-                                        }}
-                                        disabled={isSubmitting}
-                                    style={{
-                                        padding: '10px 20px',
-                                        border: '1px solid #d1d5db',
-                                        borderRadius: '8px',
-                                        backgroundColor: 'white',
-                                        color: '#374151',
-                                        fontSize: '14px',
-                                        fontWeight: '500',
-                                            cursor: isSubmitting ? 'not-allowed' : 'pointer',
-                                            opacity: isSubmitting ? 0.6 : 1
-                                    }}
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                        onClick={handleSubmit}
-                                        disabled={isSubmitting}
-                                    style={{
-                                        padding: '10px 20px',
-                                        border: 'none',
-                                        borderRadius: '8px',
-                                            backgroundColor: isSubmitting ? '#9ca3af' : '#10b981',
-                                        color: 'white',
-                                        fontSize: '14px',
-                                        fontWeight: '500',
-                                            cursor: isSubmitting ? 'not-allowed' : 'pointer',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '8px'
-                                    }}
-                                >
-                                        {isSubmitting && <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} />}
-                                        {isSubmitting ? 'Creating...' : 'Add Event'}
-                                </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                )}
+                
 
                 {/* Event Details Modal */}
                 {showDetailsModal && selectedEvent && (
@@ -957,52 +641,6 @@ const VDOEventsContent = () => {
                                     {selectedEvent?.name || 'Event Details'}
                                 </h2>
                                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                    {/* Comment edit delete buttons */}
-                                    {/* <button
-                                        onClick={() => handleEditClick(selectedEvent)}
-                                        style={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '6px',
-                                            padding: '6px 12px',
-                                            border: '1px solid #10b981',
-                                            borderRadius: '6px',
-                                            backgroundColor: 'transparent',
-                                            color: '#10b981',
-                                            fontSize: '14px',
-                                            fontWeight: '500',
-                                            cursor: 'pointer',
-                                            transition: 'all 0.2s'
-                                        }}
-                                    >
-                                        <Edit style={{ width: '16px', height: '16px' }} />
-                                        Edit Event
-                                    </button>
-                                    <button
-                                        onClick={() => handleDeleteEvent(selectedEvent?.id)}
-                                        disabled={isDeleting}
-                                        style={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '6px',
-                                            padding: '6px 12px',
-                                            border: '1px solid #ef4444',
-                                            borderRadius: '6px',
-                                            backgroundColor: isDeleting ? '#fecaca' : 'transparent',
-                                            color: '#ef4444',
-                                            fontSize: '14px',
-                                            fontWeight: '500',
-                                            cursor: isDeleting ? 'not-allowed' : 'pointer',
-                                            transition: 'all 0.2s'
-                                        }}
-                                    >
-                                        {isDeleting ? (
-                                            <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} />
-                                        ) : (
-                                            <Trash2 style={{ width: '16px', height: '16px' }} />
-                                        )}
-                                        {isDeleting ? 'Deleting...' : 'Delete Event'}
-                                    </button> */}
                                     <button
                                         onClick={() => setShowDetailsModal(false)}
                                         style={{
@@ -1043,7 +681,7 @@ const VDOEventsContent = () => {
                                     </button>
                                 ))}
                             </div>
-                           
+
 
                             {/* Tab Content */}
                             <div style={{ padding: '24px' }}>
@@ -1063,14 +701,14 @@ const VDOEventsContent = () => {
                                             gap: '16px',
                                             marginTop: '20px'
                                         }}>
-                                           
-                                          
-                                          
+
+
+
                                         </div>
                                     </div>
                                 )}
 
-                               
+
                             </div>
                         </div>
                     </div>
@@ -1147,7 +785,7 @@ const VDOEventsContent = () => {
                                             type="text"
                                             placeholder="Enter event name"
                                             value={editFormData.name}
-                                            onChange={(e) => setEditFormData({...editFormData, name: e.target.value})}
+                                            onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
                                             style={{
                                                 width: '100%',
                                                 padding: '12px',
@@ -1173,7 +811,7 @@ const VDOEventsContent = () => {
                                         <textarea
                                             placeholder="Description"
                                             value={editFormData.description}
-                                            onChange={(e) => setEditFormData({...editFormData, description: e.target.value})}
+                                            onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
                                             rows={4}
                                             style={{
                                                 width: '100%',
@@ -1201,7 +839,7 @@ const VDOEventsContent = () => {
                                         <input
                                             type="datetime-local"
                                             value={editFormData.start_time ? new Date(editFormData.start_time).toISOString().slice(0, 16) : ''}
-                                            onChange={(e) => setEditFormData({...editFormData, start_time: e.target.value})}
+                                            onChange={(e) => setEditFormData({ ...editFormData, start_time: e.target.value })}
                                             style={{
                                                 width: '100%',
                                                 padding: '12px',
@@ -1227,7 +865,7 @@ const VDOEventsContent = () => {
                                         <input
                                             type="datetime-local"
                                             value={editFormData.end_time ? new Date(editFormData.end_time).toISOString().slice(0, 16) : ''}
-                                            onChange={(e) => setEditFormData({...editFormData, end_time: e.target.value})}
+                                            onChange={(e) => setEditFormData({ ...editFormData, end_time: e.target.value })}
                                             style={{
                                                 width: '100%',
                                                 padding: '12px',
@@ -1253,7 +891,7 @@ const VDOEventsContent = () => {
                                             <input
                                                 type="checkbox"
                                                 checked={editFormData.active}
-                                                onChange={(e) => setEditFormData({...editFormData, active: e.target.checked})}
+                                                onChange={(e) => setEditFormData({ ...editFormData, active: e.target.checked })}
                                                 style={{
                                                     width: '16px',
                                                     height: '16px',
