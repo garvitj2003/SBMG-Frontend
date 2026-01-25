@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Loader } from 'lucide-react';
+import { X, Loader, Pencil, Trash2 } from 'lucide-react';
 
 /**
  * VehicleDetailsPanel component to display detailed vehicle information
@@ -9,6 +9,8 @@ const VehicleDetailsPanel = ({
   details = null,
   isLoading = false,
   onClose = () => {},
+  onEdit = null,
+  onDelete = null,
 }) => {
   if (!vehicle) return null;
 
@@ -38,20 +40,76 @@ const VehicleDetailsPanel = ({
         }}>
           Vehicle Details
         </h2>
-        <button
-          onClick={onClose}
-          style={{
-            border: 'none',
-            background: 'none',
-            cursor: 'pointer',
-            padding: '4px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <X style={{ width: '20px', height: '20px', color: '#6b7280' }} />
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          {onEdit && (
+            <button
+              onClick={() => onEdit(vehicle)}
+              title="Edit vehicle"
+              style={{
+                padding: '6px',
+                border: 'none',
+                background: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                color: '#6b7280',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#f3f4f6';
+                e.currentTarget.style.color = '#374151';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.color = '#6b7280';
+              }}
+            >
+              <Pencil style={{ width: '18px', height: '18px' }} />
+            </button>
+          )}
+          {onDelete && (
+            <button
+              onClick={() => onDelete(vehicle)}
+              title="Delete vehicle"
+              style={{
+                padding: '6px',
+                border: 'none',
+                background: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                color: '#6b7280',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#fef2f2';
+                e.currentTarget.style.color = '#ef4444';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.color = '#6b7280';
+              }}
+            >
+              <Trash2 style={{ width: '18px', height: '18px' }} />
+            </button>
+          )}
+          <button
+            onClick={onClose}
+            style={{
+              border: 'none',
+              background: 'none',
+              cursor: 'pointer',
+              padding: '4px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <X style={{ width: '20px', height: '20px', color: '#6b7280' }} />
+          </button>
+        </div>
       </div>
 
       {/* Vehicle Basic Info */}

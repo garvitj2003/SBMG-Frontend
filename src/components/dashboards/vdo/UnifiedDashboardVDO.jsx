@@ -34,7 +34,7 @@ const Sidebar = ({ activeItem, setActiveItem }) => {
     { name: 'Complaints', icon: FileText },
     { name: 'Attendance', icon: CheckCircle },
     { name: 'Inspection', icon: ListChecks },
-    { name: 'Village Master Data', icon: Database },
+    { name: 'GP Master Data', icon: Database },
     { name: 'Schemes', icon: Briefcase },
     { name: 'Events', icon: Calendar },
     { name: 'GPS Tracking', icon: Truck },
@@ -199,7 +199,7 @@ const UnifiedDashboardVDO = () => {
         return <VDOAttendanceContent />;
       case 'Inspection':
         return <VDOInspectionContent />;
-      case 'Village Master Data':
+      case 'GP Master Data':
         return <VDOVillageMasterContent />;
       case 'Schemes':
         return <VDOSchemesContent />;

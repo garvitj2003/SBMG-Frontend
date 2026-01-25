@@ -320,6 +320,8 @@ const AttendanceContent = () => {
     return today.toISOString().split('T')[0];
   });
   const [isCustomRange, setIsCustomRange] = useState(false);
+  const [customStartDraft, setCustomStartDraft] = useState('');
+  const [customEndDraft, setCustomEndDraft] = useState('');
   const handleDateKeyDown = (event) => {
     if (event.key !== 'Tab') {
       event.preventDefault();
@@ -403,9 +405,11 @@ const AttendanceContent = () => {
       setLoadingDistricts(true);
       const response = await apiClient.get('/geography/districts?skip=0&limit=100');
       console.log('Districts API Response:', response.data);
-      setDistricts(response.data);
+      const raw = response.data;
+      setDistricts(Array.isArray(raw) ? raw : (raw?.data ?? raw?.districts ?? []));
     } catch (error) {
       console.error('Error fetching districts:', error);
+      setDistricts([]);
     } finally {
       setLoadingDistricts(false);
     }
@@ -428,7 +432,8 @@ const AttendanceContent = () => {
         }
       });
       console.log('Blocks API Response:', response.data);
-      setBlocks(response.data);
+      const raw = response.data;
+      setBlocks(Array.isArray(raw) ? raw : (raw?.data ?? raw?.blocks ?? []));
     } catch (error) {
       console.error('Error fetching blocks:', error);
       setBlocks([]);
@@ -456,8 +461,10 @@ const AttendanceContent = () => {
         }
       });
       console.log('✅ GPs API Response:', response.data);
-      console.log('📊 Number of GPs fetched:', response.data?.length || 0);
-      setGramPanchayats(response.data);
+      const raw = response.data;
+      const arr = Array.isArray(raw) ? raw : (raw?.data ?? raw?.grampanchayats ?? raw?.gram_panchayats ?? []);
+      console.log('📊 Number of GPs fetched:', arr?.length || 0);
+      setGramPanchayats(arr);
     } catch (error) {
       console.error('❌ Error fetching gram panchayats:', error);
       setGramPanchayats([]);
@@ -579,6 +586,14 @@ const AttendanceContent = () => {
 
   // Fetch attendance overview data from API
   const fetchAnalyticsData = useCallback(async () => {
+    // Require both start and end dates to avoid 422 (e.g. when Custom is selected but dates not yet chosen)
+    if (!startDate || !endDate) {
+      setAnalyticsError('Please select both start and end dates');
+      setAnalyticsData(null);
+      setLoadingAnalytics(false);
+      return;
+    }
+
     // Prevent duplicate calls
     if (analyticsCallInProgress.current) {
       console.log('⏸️ Overview API call already in progress, skipping...');
@@ -605,14 +620,10 @@ const AttendanceContent = () => {
       const params = new URLSearchParams();
 
       // Add date range (required)
-      if (startDate) {
-        params.append('start_date', startDate);
-        console.log('📅 Start Date:', startDate);
-      }
-      if (endDate) {
-        params.append('end_date', endDate);
-        console.log('📅 End Date:', endDate);
-      }
+      params.append('start_date', startDate);
+      params.append('end_date', endDate);
+      console.log('📅 Start Date:', startDate);
+      console.log('📅 End Date:', endDate);
 
       // Add geography IDs based on selection (conditional)
       if (activeScope === 'Districts' && selectedDistrictId) {
@@ -670,7 +681,14 @@ const AttendanceContent = () => {
       console.error('Status Code:', error.response?.status);
       console.error('🔄 ===== END ATTENDANCE ANALYTICS API ERROR =====\n');
       
-      setAnalyticsError(error.message || 'Failed to fetch analytics data');
+      const errMsg = error.response?.status === 422
+        ? (typeof error.response?.data?.detail === 'string'
+            ? error.response.data.detail
+            : (Array.isArray(error.response?.data?.detail)
+                ? error.response.data.detail.map(d => d.msg || JSON.stringify(d)).join('; ')
+                : error.response?.data?.message || error.message))
+        : (error.message || 'Failed to fetch analytics data');
+      setAnalyticsError(errMsg);
       setAnalyticsData(null);
     } finally {
       setLoadingAnalytics(false);
@@ -785,12 +803,15 @@ const AttendanceContent = () => {
 
   // Process and rank Top 3 data
   const processTop3Data = (apiData) => {
-    if (!apiData || !Array.isArray(apiData)) {
+    const arr = Array.isArray(apiData)
+      ? apiData
+      : (apiData?.data ?? apiData?.response ?? []);
+    if (!Array.isArray(arr) || arr.length === 0) {
       return [];
     }
 
     // Map API data to our format
-    const processedItems = apiData.map((item) => {
+    const processedItems = arr.map((item) => {
       return {
         id: item.geo_id,
         name: item.geo_name,
@@ -915,7 +936,9 @@ const AttendanceContent = () => {
       setSelectedDateRange('Custom');
       setStartDate(null);
       setEndDate(null);
-      // Don't close dropdown for custom - let user select dates
+      setCustomStartDraft('');
+      setCustomEndDraft('');
+      // Don't close dropdown for custom - let user select dates. API not called until Apply.
     } else {
       setIsCustomRange(false);
       setSelectedDateRange(range.label);
@@ -1346,10 +1369,21 @@ const AttendanceContent = () => {
         historyEndDate
       });
 
-      // Validate date range before making API call
-      if (!historyStartDate || !historyEndDate) {
+      // Validate date range before making API call (avoids 422 when Custom is selected but dates missing)
+      const start = String(historyStartDate || '').trim();
+      const end = String(historyEndDate || '').trim();
+      if (!start || !end) {
         console.warn('⚠️ Invalid date range: start_date or end_date is missing');
         setHistoryError('Please select both start and end dates');
+        setAttendanceHistoryData([]);
+        setLoadingHistory(false);
+        return;
+      }
+      // Ensure start <= end to reduce 422 from backend validation
+      const startDateParam = start;
+      const endDateParam = end;
+      if (new Date(start) > new Date(end)) {
+        setHistoryError('Start date must be on or before end date');
         setAttendanceHistoryData([]);
         setLoadingHistory(false);
         return;
@@ -1376,9 +1410,9 @@ const AttendanceContent = () => {
         params.append('gp_id', selectedGPId);
       }
 
-      // Add date range (already validated above)
-      params.append('start_date', historyStartDate);
-      params.append('end_date', historyEndDate);
+      // Add date range (already validated above; YYYY-MM-DD from input[type=date])
+      params.append('start_date', startDateParam);
+      params.append('end_date', endDateParam);
       params.append('limit', '500');
 
       const url = `/attendance/analytics?${params.toString()}`;
@@ -1393,7 +1427,14 @@ const AttendanceContent = () => {
 
     } catch (error) {
       console.error('❌ History API Error:', error);
-      setHistoryError(error.message || 'Failed to fetch attendance history');
+      const msg = error.response?.status === 422
+        ? (typeof error.response?.data?.detail === 'string'
+            ? error.response.data.detail
+            : (Array.isArray(error.response?.data?.detail)
+                ? error.response.data.detail.map(d => d.msg || JSON.stringify(d)).join('; ')
+                : error.response?.data?.message || error.message))
+        : (error.message || 'Failed to fetch attendance history');
+      setHistoryError(msg);
       setAttendanceHistoryData([]);
     } finally {
       setLoadingHistory(false);
@@ -1671,16 +1712,20 @@ const AttendanceContent = () => {
 
   // Process chart data from API response and match with x-axis entities
   const processChartData = (apiData) => {
-    // Check if it's the new API format (array directly) or old format (wrapped in response)
-    const isNewAPIFormat = Array.isArray(apiData);
-    const dataArray = isNewAPIFormat ? apiData : apiData?.response;
+    // Support: array, { response: [] }, or { data: [] }
+    const dataArray = Array.isArray(apiData)
+      ? apiData
+      : (apiData?.response ?? apiData?.data ?? []);
+    const safeArray = Array.isArray(dataArray) ? dataArray : [];
     
-    if (!dataArray || dataArray.length === 0) {
+    if (safeArray.length === 0) {
       return { chartData: generateEmptyChartData(), averageRate: 65 };
     }
 
+    const isNewAPIFormat = Array.isArray(apiData);
+
     // Calculate average attendance rate from all API data
-    const allAttendanceRates = dataArray.map(item => item.attendance_rate || 0);
+    const allAttendanceRates = safeArray.map(item => item.attendance_rate || 0);
     console.log('🔍 Raw Attendance Rates:', allAttendanceRates);
     
     // For new API, attendance_rate is already a percentage, for old API it's decimal
@@ -1692,14 +1737,14 @@ const AttendanceContent = () => {
 
     if (activePerformance === 'Time') {
       // Time tab - check if data has month field (new APIs) or date field (old API)
-      const hasMonthField = dataArray.length > 0 && dataArray[0].hasOwnProperty('month');
+      const hasMonthField = safeArray.length > 0 && safeArray[0].hasOwnProperty('month');
       
       // Create map of API data by month
       const monthMap = new Map();
       
       if (hasMonthField) {
         // New API format - data has month field directly
-        dataArray.forEach(item => {
+        safeArray.forEach(item => {
           const monthKey = item.month - 1; // Convert to 0-indexed (1=Jan becomes 0)
           
           console.log('📅 API Month:', item.month, 'Year:', item.year, 'Geography:', item.geo_name || 'State', 'Rate:', item.attendance_rate);
@@ -1711,7 +1756,7 @@ const AttendanceContent = () => {
         });
       } else {
         // Old API format - extract month from date
-        dataArray.forEach(item => {
+        safeArray.forEach(item => {
           const date = new Date(item.date);
           const month = date.getMonth(); // 0-indexed (0 = January, 11 = December)
           const monthKey = month;
@@ -1765,7 +1810,7 @@ const AttendanceContent = () => {
       // Location tab
       if (isNewAPIFormat) {
         // New API - data is already in array format with geo_id, geo_name
-        const chartItems = dataArray.map(item => {
+        const chartItems = safeArray.map(item => {
           const attendancePercentage = Math.round(item.attendance_rate); // Already a percentage
           
           return {
@@ -1778,11 +1823,12 @@ const AttendanceContent = () => {
         return { chartData: chartItems, averageRate };
       } else {
         // Old API - ALWAYS show all districts (State Performance)
-        let entities = districts.map(d => ({ id: d.id, name: d.name }));
+        const districtsList = Array.isArray(districts) ? districts : [];
+        let entities = districtsList.map(d => ({ id: d.id, name: d.name }));
         
         // Create map of API data by geography_id
         const geoMap = new Map();
-        dataArray.forEach(item => {
+        safeArray.forEach(item => {
           const key = item.geography_id;
           if (!geoMap.has(key)) {
             geoMap.set(key, []);
@@ -1834,8 +1880,9 @@ const AttendanceContent = () => {
       return { chartData: chartItems, averageRate: 65 };
     } else {
       // Location tab - ALWAYS show all districts (State Performance)
+      const districtsList = Array.isArray(districts) ? districts : [];
       return { 
-        chartData: districts.map(district => ({
+        chartData: districtsList.map(district => ({
           x: district.name,
           y: 0,
           fillColor: '#d1d5db'
@@ -2509,7 +2556,7 @@ const AttendanceContent = () => {
                         Select Date Range
                       </h3>
                       
-                      {/* Custom Date Inputs */}
+                      {/* Custom Date Inputs - use drafts; only commit on Apply to avoid API call until then */}
                       <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
                         <div>
                           <label style={{ 
@@ -2522,9 +2569,9 @@ const AttendanceContent = () => {
                           </label>
                           <input
                             type="date"
-                            value={startDate || ''}
+                            value={customStartDraft || ''}
                             onKeyDown={handleDateKeyDown}
-                            onChange={(e) => setStartDate(e.target.value)}
+                            onChange={(e) => setCustomStartDraft(e.target.value)}
                             style={{
                               padding: '8px 12px',
                               border: '1px solid #d1d5db',
@@ -2545,9 +2592,9 @@ const AttendanceContent = () => {
                           </label>
                           <input
                             type="date"
-                            value={endDate || ''}
+                            value={customEndDraft || ''}
                             onKeyDown={handleDateKeyDown}
-                            onChange={(e) => setEndDate(e.target.value)}
+                            onChange={(e) => setCustomEndDraft(e.target.value)}
                             style={{
                               padding: '8px 12px',
                               border: '1px solid #d1d5db',
@@ -2573,6 +2620,8 @@ const AttendanceContent = () => {
                             setEndDate(todayStr);
                             setIsCustomRange(false);
                             setSelectedDateRange('Today');
+                            setCustomStartDraft('');
+                            setCustomEndDraft('');
                           }}
                           style={{
                             padding: '8px 16px',
@@ -2588,16 +2637,24 @@ const AttendanceContent = () => {
                         </button>
                         
                         <button
-                          onClick={() => setShowDateDropdown(false)}
-                          disabled={!startDate || !endDate}
+                          onClick={() => {
+                            const s = (customStartDraft || '').trim();
+                            const e = (customEndDraft || '').trim();
+                            if (s && e) {
+                              setStartDate(s);
+                              setEndDate(e);
+                              setShowDateDropdown(false);
+                            }
+                          }}
+                          disabled={!customStartDraft || !customEndDraft}
                           style={{
                             padding: '8px 16px',
-                            backgroundColor: startDate && endDate ? '#10b981' : '#d1d5db',
+                            backgroundColor: (customStartDraft && customEndDraft) ? '#10b981' : '#d1d5db',
                             color: 'white',
                             border: 'none',
                             borderRadius: '6px',
                             fontSize: '14px',
-                            cursor: startDate && endDate ? 'pointer' : 'not-allowed'
+                            cursor: (customStartDraft && customEndDraft) ? 'pointer' : 'not-allowed'
                           }}
                         >
                           Apply
@@ -3502,7 +3559,7 @@ const AttendanceContent = () => {
               }
               
               // Show error state or empty state with NoDataFound component
-              if (chartError || currentChartData.length === 0) {
+              if (chartError || !Array.isArray(currentChartData) || currentChartData.length === 0) {
                 return (
                   <div style={{ height: '300px' }}>
                     <NoDataFound size="medium" />
@@ -3587,7 +3644,7 @@ const AttendanceContent = () => {
               }}
               series={[{
                 name: 'Performance Score',
-                data: currentChartData
+                data: Array.isArray(currentChartData) ? currentChartData : []
               }]}
               type="bar"
               height={340}

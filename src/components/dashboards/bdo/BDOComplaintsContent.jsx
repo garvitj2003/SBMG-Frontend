@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { MapPin, ChevronDown, ChevronRight, Calendar, List, Search, Filter, Download, Eye, Edit, Trash2, CheckCircle, XCircle, Clock , Plus, Upload, X, Star, User} from 'lucide-react';
+import { MapPin, ChevronDown, ChevronRight, Calendar, List, Search, Filter, Download, Eye, Edit, Trash2, CheckCircle, XCircle, Clock , Plus, X, Star, User} from 'lucide-react';
 import Chart from 'react-apexcharts';
 import apiClient, { noticesAPI } from '../../../services/api';
 import LocationDisplay from '../../common/LocationDisplay';
@@ -119,12 +119,12 @@ const BDOComplaintsContent = () => {
   const [complaintForm, setComplaintForm] = useState({
     complaintTypeId: '',
     details: '',
+    phone_number: '',
     districtId: '',
     blockId: '',
     gpId: '',
     village: '',
-    wardArea: '',
-    images: []
+    wardArea: ''
   });
 
   // Analytics data state
@@ -2652,101 +2652,6 @@ const normalizeStatusForFilter = (rawStatus) => {
               </button>
             </div>
 
-            {/* Image Upload Section */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: '16px',
-              marginBottom: '24px'
-            }}>
-              {/* Uploaded Image Preview */}
-              {complaintForm.images.length > 0 && (
-                <div style={{
-                  position: 'relative',
-                  width: '100%',
-                  height: '150px',
-                  borderRadius: '8px',
-                  overflow: 'hidden',
-                  border: '1px solid #e5e7eb'
-                }}>
-                  <img 
-                    src={URL.createObjectURL(complaintForm.images[0])} 
-                    alt="Uploaded"
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover'
-                    }}
-                  />
-                  <button
-                    onClick={() => {
-                      setComplaintForm(prev => ({ ...prev, images: [] }));
-                    }}
-                    style={{
-                      position: 'absolute',
-                      top: '8px',
-                      right: '8px',
-                      width: '24px',
-                      height: '24px',
-                      borderRadius: '50%',
-                      backgroundColor: '#ef4444',
-                      border: 'none',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      padding: 0
-                    }}
-                  >
-                    <X style={{ width: '14px', height: '14px', color: 'white' }} />
-                  </button>
-                </div>
-              )}
-
-              {/* Upload Area */}
-              <div
-                onClick={() => document.getElementById('image-upload').click()}
-                style={{
-                  width: '100%',
-                  height: '150px',
-                  border: '2px dashed #d1d5db',
-                  borderRadius: '8px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  backgroundColor: '#f9fafb',
-                  transition: 'background-color 0.2s',
-                  gap: '8px'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
-              >
-                <Upload style={{ width: '32px', height: '32px', color: '#6b7280' }} />
-                <span style={{
-                  fontSize: '14px',
-                  color: '#6b7280',
-                  textAlign: 'center',
-                  padding: '0 16px'
-                }}>
-                  Drag and drop your image or click to upload
-                </span>
-              </div>
-              <input
-                id="image-upload"
-                type="file"
-                accept="image/*"
-                style={{ display: 'none' }}
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) {
-                    setComplaintForm(prev => ({ ...prev, images: [file] }));
-                  }
-                }}
-              />
-            </div>
-
             {/* Complaint Type */}
             <div style={{ marginBottom: '20px' }}>
               <label style={{
@@ -2834,6 +2739,33 @@ const normalizeStatusForFilter = (rawStatus) => {
               }}>
                 {complaintForm.details.length}/100
               </div>
+            </div>
+
+            {/* Phone Number */}
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{
+                display: 'block',
+                fontSize: '14px',
+                fontWeight: '500',
+                color: '#374151',
+                marginBottom: '8px'
+              }}>
+                Phone Number <span style={{ color: '#ef4444' }}>*</span>
+              </label>
+              <input
+                type="tel"
+                value={complaintForm.phone_number}
+                onChange={(e) => setComplaintForm(prev => ({ ...prev, phone_number: e.target.value }))}
+                placeholder="Phone number"
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  color: '#374151'
+                }}
+              />
             </div>
 
             {/* District and Block */}
@@ -3095,12 +3027,12 @@ const normalizeStatusForFilter = (rawStatus) => {
                   setComplaintForm({
                     complaintTypeId: '',
                     details: '',
+                    phone_number: '',
                     districtId: '',
                     blockId: '',
                     gpId: '',
                     village: '',
-                    wardArea: '',
-                    images: []
+                    wardArea: ''
                   });
                 }}
                 style={{
@@ -3121,45 +3053,32 @@ const normalizeStatusForFilter = (rawStatus) => {
                   try {
                     setSubmittingComplaint(true);
                     
-                    // Create FormData for file upload
-                    const formData = new FormData();
-                    formData.append('complaint_type_id', complaintForm.complaintTypeId);
-                    formData.append('description', complaintForm.details);
-                    formData.append('district_id', complaintForm.districtId);
-                    formData.append('block_id', complaintForm.blockId);
-                    formData.append('gp_id', complaintForm.gpId);
-                    formData.append('village', complaintForm.village);
-                    formData.append('ward_area', complaintForm.wardArea);
+                    const location = [complaintForm.village, complaintForm.wardArea].filter(Boolean).join(', ');
+                    const params = {
+                      phone_number: complaintForm.phone_number,
+                      description: complaintForm.details,
+                      complaint_type_id: complaintForm.complaintTypeId,
+                      gp_id: complaintForm.gpId,
+                      location
+                    };
+                    const body = new URLSearchParams(params).toString();
                     
-                    // Append image if available
-                    if (complaintForm.images.length > 0) {
-                      formData.append('image', complaintForm.images[0]);
-                    }
-                    
-                    // Submit complaint
-                    await apiClient.post('/complaints', formData, {
-                      headers: {
-                        'Content-Type': 'multipart/form-data'
-                      }
+                    await apiClient.post('/complaints/smd/complaints', body, {
+                      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
                     });
                     
-                    // Reset form and close modal
                     setComplaintForm({
                       complaintTypeId: '',
                       details: '',
+                      phone_number: '',
                       districtId: '',
                       blockId: '',
                       gpId: '',
                       village: '',
-                      wardArea: '',
-                      images: []
+                      wardArea: ''
                     });
                     setShowComplaintModal(false);
-                    
-                    // Show success dialog
                     setShowSuccessDialog(true);
-                    
-                    // Refresh complaints list
                     fetchComplaintsData();
                   } catch (error) {
                     console.error('Error submitting complaint:', error);
@@ -3168,17 +3087,17 @@ const normalizeStatusForFilter = (rawStatus) => {
                     setSubmittingComplaint(false);
                   }
                 }}
-                disabled={submittingComplaint || !complaintForm.complaintTypeId || !complaintForm.details}
+                disabled={submittingComplaint || !complaintForm.complaintTypeId || !complaintForm.details || !complaintForm.phone_number || !complaintForm.gpId || !(complaintForm.village || complaintForm.wardArea)}
                 style={{
                   padding: '10px 20px',
-                  backgroundColor: (submittingComplaint || !complaintForm.complaintTypeId || !complaintForm.details) ? '#d1d5db' : '#10b981',
+                  backgroundColor: (submittingComplaint || !complaintForm.complaintTypeId || !complaintForm.details || !complaintForm.phone_number || !complaintForm.gpId || !(complaintForm.village || complaintForm.wardArea)) ? '#d1d5db' : '#10b981',
                   color: 'white',
                   border: 'none',
                   borderRadius: '8px',
                   fontSize: '14px',
                   fontWeight: '500',
-                  cursor: (submittingComplaint || !complaintForm.complaintTypeId || !complaintForm.details) ? 'not-allowed' : 'pointer',
-                  opacity: (submittingComplaint || !complaintForm.complaintTypeId || !complaintForm.details) ? 0.6 : 1
+                  cursor: (submittingComplaint || !complaintForm.complaintTypeId || !complaintForm.details || !complaintForm.phone_number || !complaintForm.gpId || !(complaintForm.village || complaintForm.wardArea)) ? 'not-allowed' : 'pointer',
+                  opacity: (submittingComplaint || !complaintForm.complaintTypeId || !complaintForm.details || !complaintForm.phone_number || !complaintForm.gpId || !(complaintForm.village || complaintForm.wardArea)) ? 0.6 : 1
                 }}
               >
                 {submittingComplaint ? 'Submitting...' : 'Add'}
