@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, X, Truck, Circle, AlertCircle } from 'lucide-react';
+import { Search, X, Truck, Circle, AlertCircle, Pencil, Trash2 } from 'lucide-react';
 
 /**
  * FleetSidebar component to display vehicle list with filters
@@ -12,6 +12,8 @@ const FleetSidebar = ({
   onSearchChange = () => {},
   onTabChange = () => {},
   onVehicleClick = () => {},
+  onEdit = null,
+  onDelete = null,
   selectedVehicle = null,
   showFlaggedToggle = false,
   flaggedCount = 0,
@@ -278,6 +280,66 @@ const FleetSidebar = ({
                       {vehicle.status || 'Unknown'}
                     </span>
                   </div>
+
+                  {/* Edit & Delete actions */}
+                  {(onEdit || onDelete) && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginLeft: '4px' }} onClick={(e) => e.stopPropagation()}>
+                      {onEdit && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); onEdit(vehicle); }}
+                          title="Edit vehicle"
+                          style={{
+                            padding: '6px',
+                            border: 'none',
+                            backgroundColor: 'transparent',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            color: '#6b7280',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = '#f3f4f6';
+                            e.currentTarget.style.color = '#374151';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = 'transparent';
+                            e.currentTarget.style.color = '#6b7280';
+                          }}
+                        >
+                          <Pencil style={{ width: '14px', height: '14px' }} />
+                        </button>
+                      )}
+                      {onDelete && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); onDelete(vehicle); }}
+                          title="Delete vehicle"
+                          style={{
+                            padding: '6px',
+                            border: 'none',
+                            backgroundColor: 'transparent',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            color: '#6b7280',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = '#fef2f2';
+                            e.currentTarget.style.color = '#ef4444';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = 'transparent';
+                            e.currentTarget.style.color = '#6b7280';
+                          }}
+                        >
+                          <Trash2 style={{ width: '14px', height: '14px' }} />
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             })

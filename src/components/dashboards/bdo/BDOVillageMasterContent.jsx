@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { MapPin, ChevronDown, ChevronRight, List, Search, Filter, Download, Eye, Edit, Trash2, CheckCircle, XCircle, Clock, Users, UserCheck, UserX, DollarSign, Target, TrendingUp, Database, BarChart3, ArrowUpDown } from 'lucide-react';
+import { MapPin, ChevronDown, ChevronRight, List, Search, Filter, Download, Eye, Edit, Trash2, CheckCircle, XCircle, Clock, Users, UserCheck, UserX, DollarSign, Target, TrendingUp, Database, BarChart3, ArrowUpDown, Calendar } from 'lucide-react';
 import Chart from 'react-apexcharts';
-import apiClient from '../../../services/api';
+import apiClient, { annualSurveysAPI } from '../../../services/api';
 import { useBDOLocation } from '../../../context/BDOLocationContext';
 import SendNoticeModal from '../common/SendNoticeModal';
 import NoDataFound from '../common/NoDataFound';
 import { InfoTooltip } from '../../common/Tooltip';
+import { generateAnnualSurveysPDF } from '../../../utils/annualSurveysPdf';
+import EditGPMasterModal from '../EditGPMasterModal';
 
 const BDOVillageMasterContent = () => {
     // Refs to prevent duplicate API calls
@@ -67,14 +69,22 @@ const BDOVillageMasterContent = () => {
       kpiFigure: ''
     });
 
-    // Annual Survey state
-    const [activeFyData, setActiveFyData] = useState([]);
+    // Year / FY state for master data (current and previous years)
+    const [fyList, setFyList] = useState([]);
+    const [selectedFyId, setSelectedFyId] = useState(null);
     const [loadingFy, setLoadingFy] = useState(false);
 
     // Analytics state
     const [analyticsData, setAnalyticsData] = useState(null);
     const [loadingAnalytics, setLoadingAnalytics] = useState(false);
     const [analyticsError, setAnalyticsError] = useState(null);
+    const [downloadingId, setDownloadingId] = useState(null);
+
+    // GP Report: surveys for selected GP + FY, and edit modal
+    const [gpSurveyList, setGpSurveyList] = useState([]);
+    const [loadingGpSurvey, setLoadingGpSurvey] = useState(false);
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [editSurveyId, setEditSurveyId] = useState(null);
 
   const buildNoticeTarget = useCallback((item) => {
     if (!item) {
@@ -387,6 +397,29 @@ const BDOVillageMasterContent = () => {
         };
     };
 
+    // Handler for downloading annual surveys by district as PDF (District Wise Coverage table)
+    const handleDownloadAnnualSurveys = useCallback(async (item) => {
+        const districtId = item.district_id ?? (activeScope === 'State' ? item.geography_id : (selectedDistrictId || selectedDistrictForHierarchy?.id));
+        if (!districtId) {
+            alert('District information not available for download.');
+            return;
+        }
+        try {
+            setDownloadingId(item.geography_id);
+            const response = await apiClient.get(`/annual-surveys/?skip=0&limit=100&district_id=${districtId}`);
+            const raw = response.data;
+            const list = Array.isArray(raw) ? raw : (raw?.data ?? raw?.items ?? raw?.results ?? []);
+            const title = `Annual Surveys — ${item.geography_name || 'District ' + districtId}`;
+            const filename = `annual-surveys-${(item.geography_name || 'data').replace(/\s+/g, '-')}-district-${districtId}.pdf`;
+            generateAnnualSurveysPDF(list, title, filename);
+        } catch (error) {
+            console.error('Download failed:', error);
+            alert('Failed to download PDF. Please try again.');
+        } finally {
+            setDownloadingId(null);
+        }
+    }, [activeScope, selectedDistrictId, selectedDistrictForHierarchy]);
+
     // BDO: Districts are not fetched - district is fixed from /me API
   const fetchDistricts = () => {
     // No-op for CEO - district ID comes from /me API (bdoDistrictId)
@@ -448,30 +481,47 @@ const BDOVillageMasterContent = () => {
         }
     }, []);
 
-    // Fetch active annual survey data
-    const fetchActiveAnnualSurveys = async () => {
+    // Fetch FYs (years) for master data from /annual-surveys/fy/active
+    // Response: [{"id":1,"fy":"2025-26","active":true}, ...]
+    const fetchFyList = async () => {
         try {
             setLoadingFy(true);
-            console.log('🔄 Fetching active annual surveys...');
-            const response = await apiClient.get('/annual-surveys/fy/active');
-            console.log('✅ Active FY API Response:', response.data);
-            
-            // Store active FYs (where active is true)
-            const activeData = response.data.filter(item => item.active === true);
-            console.log('📊 Active FYs:', activeData);
-            setActiveFyData(activeData);
-            
-            // Log the stored data
-            activeData.forEach(item => {
-                console.log(`✅ Stored FY: ID=${item.id}, FY=${item.fy}`);
-            });
+            const res = await apiClient.get('/annual-surveys/fy/active');
+            const raw = Array.isArray(res.data) ? res.data : (res.data?.items || res.data?.data || []);
+            const list = raw.filter((x) => x && (x.id != null) && (x.fy != null));
+            const sorted = [...list].sort((a, b) => String(b.fy || '').localeCompare(String(a.fy || '')));
+            setFyList(sorted);
         } catch (error) {
-            console.error('❌ Error fetching active annual surveys:', error);
-            setActiveFyData([]);
+            console.error('❌ Error fetching FY list from /annual-surveys/fy/active:', error);
+            setFyList([]);
         } finally {
             setLoadingFy(false);
         }
     };
+
+    // Fetch annual surveys for the selected GP and FY (for Report table and Edit)
+    const fetchGpSurveys = useCallback(async () => {
+        if (activeScope !== 'GPs' || !selectedGPId || !selectedFyId) {
+            setGpSurveyList([]);
+            return;
+        }
+        try {
+            setLoadingGpSurvey(true);
+            const res = await annualSurveysAPI.listSurveys({ gp_id: selectedGPId, fy_id: selectedFyId, limit: 10 });
+            const raw = Array.isArray(res.data) ? res.data : (res.data?.data ?? res.data?.items ?? []);
+            const list = (raw || []).filter((x) => x && x.id != null);
+            const filtered = list.filter((x) =>
+                (x.gp_id == null || Number(x.gp_id) === Number(selectedGPId)) &&
+                (x.fy_id == null || Number(x.fy_id) === Number(selectedFyId))
+            );
+            setGpSurveyList(filtered.length > 0 ? filtered : list);
+        } catch (err) {
+            console.error('Error fetching GP surveys:', err);
+            setGpSurveyList([]);
+        } finally {
+            setLoadingGpSurvey(false);
+        }
+    }, [activeScope, selectedGPId, selectedFyId]);
 
     // Fetch analytics data (state or district level)
     const fetchAnalytics = useCallback(async () => {
@@ -485,15 +535,14 @@ const BDOVillageMasterContent = () => {
                 selectedDistrictId,
                 selectedBlockId,
                 selectedGPId,
-                activeFyData
+                selectedFyId
             });
 
-            // Get the first active FY ID
-            const fyId = activeFyData.length > 0 ? activeFyData[0].id : null;
+            const fyId = selectedFyId;
             
             if (!fyId) {
-                console.log('⚠️ No active FY ID available, skipping analytics call');
-                setAnalyticsError('No active financial year available');
+                console.log('⚠️ No year selected, skipping analytics call');
+                setAnalyticsError('No year selected');
                 return;
             }
 
@@ -549,7 +598,7 @@ const BDOVillageMasterContent = () => {
         } finally {
             setLoadingAnalytics(false);
         }
-    }, [activeScope, selectedDistrictId, selectedBlockId, selectedGPId, activeFyData]);
+    }, [activeScope, selectedDistrictId, selectedBlockId, selectedGPId, selectedFyId]);
 
     // Handle scope change
     const handleScopeChange = async (scope) => {
@@ -798,63 +847,58 @@ const BDOVillageMasterContent = () => {
         };
     }, []);
 
-    // Fetch districts and active FY data immediately when component loads
+    // Fetch FY list when component loads (BDO: districts come from /me)
     useEffect(() => {
-        // Prevent duplicate API calls (React StrictMode calls effects twice in development)
         if (hasFetchedInitialData.current) {
             console.log('⏸️ Initial data already fetched, skipping...');
             return;
         }
-
-        console.log('🔄 Fetching initial data (districts and active FY)...');
+        console.log('🔄 Fetching initial data (FY list)...');
         hasFetchedInitialData.current = true;
-        fetchActiveAnnualSurveys();
+        fetchFyList();
     }, []);
 
-    // Log active FY data when it changes
+    // Set default selected year when fyList loads or selection becomes invalid
     useEffect(() => {
-        if (activeFyData.length > 0) {
-            console.log('📅 Active FY Data stored in state:', activeFyData);
-            console.log('📅 Total active FYs:', activeFyData.length);
-            activeFyData.forEach((item, index) => {
-                console.log(`📅 FY ${index + 1}: ID=${item.id}, FY=${item.fy}, Active=${item.active}`);
-            });
+        if (fyList.length > 0 && (selectedFyId == null || !fyList.some((f) => f.id === selectedFyId))) {
+            setSelectedFyId(fyList[0].id);
         }
-    }, [activeFyData]);
+    }, [fyList, selectedFyId]);
 
-    // Fetch analytics data when scope or district changes
+    // Fetch analytics data when scope, location, or selected year changes
     useEffect(() => {
         console.log('🔄 Analytics useEffect triggered:', {
             activeScope,
             selectedDistrictId,
             selectedBlockId,
             selectedGPId,
-            hasFyData: activeFyData.length > 0,
+            selectedFyId,
             loadingAnalytics
         });
         
-        // Fetch for State scope when FY data is available
-        if (activeScope === 'State' && activeFyData.length > 0) {
+        if (activeScope === 'State' && selectedFyId) {
             console.log('📡 Calling state analytics API');
             fetchAnalytics();
-        }
-        // Fetch for Districts scope when district is selected and FY data is available
-        else if (activeScope === 'Districts' && selectedDistrictId && activeFyData.length > 0) {
+        } else if (activeScope === 'Districts' && selectedDistrictId && selectedFyId) {
             console.log('📡 Calling district analytics API');
             fetchAnalytics();
-        }
-        // Fetch for Blocks scope when block is selected and FY data is available
-        else if (activeScope === 'Blocks' && selectedBlockId && activeFyData.length > 0) {
+        } else if (activeScope === 'Blocks' && selectedBlockId && selectedFyId) {
             console.log('📡 Calling block analytics API');
             fetchAnalytics();
-        }
-        // Fetch for GPs scope when GP is selected and FY data is available
-        else if (activeScope === 'GPs' && selectedGPId && activeFyData.length > 0) {
+        } else if (activeScope === 'GPs' && selectedGPId && selectedFyId) {
             console.log('📡 Calling GP analytics API');
             fetchAnalytics();
         }
-    }, [activeScope, selectedDistrictId, selectedBlockId, selectedGPId, activeFyData, fetchAnalytics]);
+    }, [activeScope, selectedDistrictId, selectedBlockId, selectedGPId, selectedFyId, fetchAnalytics]);
 
+    // Fetch GP surveys when in GP scope with selected GP and FY
+    useEffect(() => {
+        if (activeScope === 'GPs' && selectedGPId && selectedFyId) {
+            fetchGpSurveys();
+        } else {
+            setGpSurveyList([]);
+        }
+    }, [activeScope, selectedGPId, selectedFyId, fetchGpSurveys]);
 
     // Helper function to format numbers
     const formatNumber = (num) => {
@@ -974,7 +1018,7 @@ const BDOVillageMasterContent = () => {
             color: '#374151',
             margin: 0
           }}>
-            GP Master
+            GP Master Data
           </h1>
         </div>
 
@@ -1161,6 +1205,39 @@ const BDOVillageMasterContent = () => {
             }}>
               Overview
             </h2>
+          </div>
+          {/* Year dropdown - view previous years' master data */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '120px' }}>
+            <Calendar style={{ width: '16px', height: '16px', color: '#9ca3af', flexShrink: 0 }} />
+            <select
+              aria-label="Select year"
+              value={selectedFyId ?? ''}
+              onChange={(e) => setSelectedFyId(e.target.value ? Number(e.target.value) : null)}
+              disabled={loadingFy || fyList.length === 0}
+              style={{
+                flex: 1,
+                minWidth: 0,
+                padding: '5px 12px',
+                border: '1px solid #d1d5db',
+                borderRadius: '10px',
+                fontSize: '14px',
+                color: fyList.length === 0 ? '#9ca3af' : '#374151',
+                backgroundColor: loadingFy || fyList.length === 0 ? '#f9fafb' : 'white',
+                cursor: loadingFy || fyList.length === 0 ? 'not-allowed' : 'pointer'
+              }}
+            >
+              {loadingFy ? (
+                <option value="">Loading...</option>
+              ) : fyList.length === 0 ? (
+                <option value="">No years</option>
+              ) : (
+                fyList.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {f.fy}
+                  </option>
+                ))
+              )}
+            </select>
           </div>
         </div>
 
@@ -1627,6 +1704,12 @@ const BDOVillageMasterContent = () => {
             </div>
 
             {/* Table Body */}
+            {(() => {
+              const survey = gpSurveyList[0];
+              const fyLabel = fyList.find((f) => f.id === selectedFyId)?.fy || selectedFyId || '—';
+              const hasData = !!survey;
+              const masterDataLabel = loadingGpSurvey ? '...' : (hasData ? 'Available' : 'Not Available');
+              return (
             <div style={{
               display: 'grid',
               gridTemplateColumns: '120px 1fr 200px',
@@ -1635,10 +1718,10 @@ const BDOVillageMasterContent = () => {
               borderBottom: '1px solid #f3f4f6'
             }}>
               <div style={{ fontSize: '14px', color: '#374151' }}>
-                2025
+                {fyLabel}
               </div>
-              <div style={{ fontSize: '14px', color: '#10b981', fontWeight: '600' }}>
-                Available
+              <div style={{ fontSize: '14px', color: hasData ? '#10b981' : '#6b7280', fontWeight: '600' }}>
+                {masterDataLabel}
               </div>
               <div style={{ 
                 display: 'flex', 
@@ -1646,7 +1729,6 @@ const BDOVillageMasterContent = () => {
                 gap: '8px' 
               }}>
                 <button
-                  onClick={() => handleOpenNoticeModal({ id: 1, name: 'GP Report', type: 'GP' })}
                   style={{
                     padding: '6px 12px',
                     backgroundColor: '#f3f4f6',
@@ -1656,29 +1738,62 @@ const BDOVillageMasterContent = () => {
                     color: '#374151',
                     cursor: 'pointer'
                   }}
+                  onClick={() => handleOpenNoticeModal({ id: survey?.id ?? 1, name: 'GP Report', type: 'GP' })}
                 >
                   Send notice
                 </button>
                 <button
-                  onClick={() => handleDownloadPDF(1)}
+                  onClick={() => { if (survey) { setEditSurveyId(survey.id); setShowEditModal(true); } }}
+                  disabled={!hasData}
+                  title={hasData ? 'Edit GP Master Data' : 'No data to edit'}
                   style={{
                     padding: '6px',
-                    backgroundColor: '#f3f4f6',
+                    backgroundColor: hasData ? '#f3f4f6' : '#f9fafb',
                     border: '1px solid #d1d5db',
                     borderRadius: '8px',
-                    cursor: 'pointer',
+                    cursor: hasData ? 'pointer' : 'not-allowed',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center'
+                    justifyContent: 'center',
+                    opacity: hasData ? 1 : 0.6
+                  }}
+                >
+                  <Edit style={{ width: '16px', height: '16px', color: '#374151' }} />
+                </button>
+                <button
+                  onClick={() => hasData && handleDownloadPDF(survey.id)}
+                  disabled={!hasData}
+                  title={hasData ? 'Download PDF' : 'No data to download'}
+                  style={{
+                    padding: '6px',
+                    backgroundColor: hasData ? '#f3f4f6' : '#f9fafb',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    cursor: hasData ? 'pointer' : 'not-allowed',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    opacity: hasData ? 1 : 0.6
                   }}
                 >
                   <Download style={{ width: '16px', height: '16px', color: '#374151' }} />
                 </button>
               </div>
             </div>
+              );
+            })()}
           </div>
         </div>
       )}
+
+      {/* Edit GP Master Data modal */}
+      <EditGPMasterModal
+        isOpen={showEditModal}
+        onClose={() => { setShowEditModal(false); setEditSurveyId(null); }}
+        surveyId={editSurveyId}
+        gpName={selectedLocation}
+        onSuccess={() => { fetchGpSurveys(); fetchAnalytics(); }}
+      />
 
         {/* Coverage Table Section - Only for State, Districts, and Blocks */}
         {activeScope !== 'GPs' && (
@@ -1737,7 +1852,7 @@ const BDOVillageMasterContent = () => {
                     {/* Table Header - Sticky */}
             <div style={{
               display: 'grid',
-                      gridTemplateColumns: '2fr 1fr 1fr 1fr 1.5fr',
+                      gridTemplateColumns: '2fr 1fr 1fr 1fr 1.5fr 60px',
               backgroundColor: '#f9fafb',
               padding: '12px 16px',
                       borderBottom: '1px solid #e5e7eb',
@@ -1803,13 +1918,22 @@ const BDOVillageMasterContent = () => {
                         Status
                         <ArrowUpDown style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
             </div>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                fontSize: '14px',
+                fontWeight: '600',
+                color: '#374151'
+              }}>
+                Action
+              </div>
             </div>
 
                     {/* Table Rows */}
                     {coverageData.map((item, index) => (
                       <div key={item.geography_id || index} style={{
               display: 'grid',
-                        gridTemplateColumns: '2fr 1fr 1fr 1fr 1.5fr',
+                        gridTemplateColumns: '2fr 1fr 1fr 1fr 1.5fr 60px',
               padding: '12px 16px',
                         borderBottom: index < coverageData.length - 1 ? '1px solid #e5e7eb' : 'none',
                         backgroundColor: 'white',
@@ -1841,6 +1965,27 @@ const BDOVillageMasterContent = () => {
                             {item.master_data_status || 'Not Available'}
                           </span>
             </div>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <button
+                            type="button"
+                            onClick={() => handleDownloadAnnualSurveys(item)}
+                            disabled={downloadingId === item.geography_id}
+                            title="Download PDF"
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              padding: '6px',
+                              border: '1px solid #e5e7eb',
+                              borderRadius: '6px',
+                              backgroundColor: 'white',
+                              cursor: downloadingId === item.geography_id ? 'wait' : 'pointer',
+                              color: '#374151'
+                            }}
+                          >
+                            <Download style={{ width: '18px', height: '18px' }} />
+                          </button>
+                        </div>
           </div>
                     ))}
         </div>

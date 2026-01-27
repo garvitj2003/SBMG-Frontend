@@ -4,9 +4,10 @@ import GoogleMapView from '../gps/GoogleMapView';
 import FleetSidebar from '../gps/FleetSidebar';
 import VehicleDetailsPanel from '../gps/VehicleDetailsPanel';
 import AddVehicleModal from '../gps/AddVehicleModal';
+import DeleteConfirmModal from '../gps/DeleteConfirmModal';
 import { useVehicles, filterVehiclesByStatus, searchVehicles } from '../../../hooks/useVehicles';
 import { useVehicleDetails } from '../../../hooks/useVehicleDetails';
-import { useAddVehicle } from '../../../hooks/useAddVehicle';
+import { useAddVehicle, useUpdateVehicle, useDeleteVehicle } from '../../../hooks/useAddVehicle';
 import { useBDOLocation } from '../../../context/BDOLocationContext';
 
 const BDOGpsTrackingContent = () => {
@@ -18,6 +19,8 @@ const BDOGpsTrackingContent = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [showOnlyFlagged, setShowOnlyFlagged] = useState(false);
     const [showAddVehicleModal, setShowAddVehicleModal] = useState(false);
+    const [editingVehicle, setEditingVehicle] = useState(null);
+    const [deleteConfirmVehicle, setDeleteConfirmVehicle] = useState(null);
     const [selectedVehicle, setSelectedVehicle] = useState(null);
     
     const scopeButtons = ['GPs']; // BDO can only view GPs within their block
@@ -46,11 +49,33 @@ const BDOGpsTrackingContent = () => {
     const addVehicleMutation = useAddVehicle({
         onSuccess: () => {
             setShowAddVehicleModal(false);
+            setEditingVehicle(null);
             alert('Vehicle added successfully!');
         },
         onError: (error) => {
             console.error('Failed to add vehicle:', error);
             alert('Failed to add vehicle. Please try again.');
+        },
+    });
+
+    // Update vehicle mutation
+    const updateVehicleMutation = useUpdateVehicle({
+        onSuccess: () => {
+            setShowAddVehicleModal(false);
+            setEditingVehicle(null);
+            alert('Vehicle updated successfully!');
+        },
+        onError: (error) => {
+            console.error('Failed to update vehicle:', error);
+            alert('Failed to update vehicle. Please try again.');
+        },
+    });
+
+    // Delete vehicle mutation
+    const deleteVehicleMutation = useDeleteVehicle({
+        onError: (error) => {
+            console.error('Failed to delete vehicle:', error);
+            alert('Failed to delete vehicle. Please try again.');
         },
     });
 
@@ -97,11 +122,44 @@ const BDOGpsTrackingContent = () => {
 
     const flaggedCount = vehiclesData.filter(v => v.isFlagged).length;
 
-    const handleAddVehicle = async (formData) => {
-        await addVehicleMutation.mutateAsync({
-            gp_id: formData.gpId,
-            vehicle_no: formData.vehicleNumber,
-            imei: formData.imeiNumber,
+    const handleAddOrUpdateVehicle = async (formData) => {
+        if (editingVehicle) {
+            await updateVehicleMutation.mutateAsync({
+                vehicleId: editingVehicle.id,
+                vehicleData: {
+                    gp_id: editingVehicle.gp_id,
+                    vehicle_no: formData.vehicleNumber,
+                    imei: formData.imeiNumber,
+                    name: formData.vehicleName || '',
+                },
+            });
+        } else {
+            await addVehicleMutation.mutateAsync({
+                gp_id: formData.gpId,
+                vehicle_no: formData.vehicleNumber,
+                imei: formData.imeiNumber,
+                name: formData.vehicleName || '',
+            });
+        }
+    };
+
+    const handleEditVehicle = (vehicle) => {
+        setEditingVehicle(vehicle);
+        setShowAddVehicleModal(true);
+    };
+
+    const handleDeleteVehicle = (vehicle) => {
+        setDeleteConfirmVehicle(vehicle);
+    };
+
+    const handleConfirmDelete = () => {
+        if (!deleteConfirmVehicle) return;
+        deleteVehicleMutation.mutate(deleteConfirmVehicle.id, {
+            onSuccess: () => {
+                setDeleteConfirmVehicle(null);
+                setSelectedVehicle(null);
+                alert('Vehicle deleted successfully.');
+            },
         });
     };
 
@@ -230,6 +288,8 @@ const BDOGpsTrackingContent = () => {
                     onSearchChange={setSearchQuery}
                     onTabChange={setActiveFleetTab}
                     onVehicleClick={handleVehicleSelect}
+                    onEdit={handleEditVehicle}
+                    onDelete={handleDeleteVehicle}
                     selectedVehicle={selectedVehicle}
                     showFlaggedToggle={true}
                     flaggedCount={flaggedCount}
@@ -253,7 +313,7 @@ const BDOGpsTrackingContent = () => {
                         zIndex: 10
                     }}>
                         <button 
-                            onClick={() => setShowAddVehicleModal(true)}
+                            onClick={() => { setEditingVehicle(null); setShowAddVehicleModal(true); }}
                             style={{
                                 display: 'flex',
                                 alignItems: 'center',
@@ -324,19 +384,31 @@ const BDOGpsTrackingContent = () => {
                         details={vehicleDetails}
                         isLoading={isLoadingDetails}
                         onClose={() => setSelectedVehicle(null)}
+                        onEdit={handleEditVehicle}
+                        onDelete={handleDeleteVehicle}
                     />
                 )}
             </div>
 
-            {/* Add Vehicle Modal */}
+            {/* Add/Edit Vehicle Modal */}
             <AddVehicleModal
                 isOpen={showAddVehicleModal}
-                onClose={() => setShowAddVehicleModal(false)}
-                onSubmit={handleAddVehicle}
-                isSubmitting={addVehicleMutation.isPending}
+                onClose={() => { setShowAddVehicleModal(false); setEditingVehicle(null); }}
+                onSubmit={handleAddOrUpdateVehicle}
+                isSubmitting={addVehicleMutation.isPending || updateVehicleMutation.isPending}
+                editingVehicle={editingVehicle}
                 districts={[]}
                 blocks={[]}
                 gramPanchayats={[]}
+            />
+
+            {/* Delete Confirmation Modal */}
+            <DeleteConfirmModal
+                isOpen={!!deleteConfirmVehicle}
+                vehicle={deleteConfirmVehicle}
+                onClose={() => setDeleteConfirmVehicle(null)}
+                onConfirm={handleConfirmDelete}
+                isDeleting={deleteVehicleMutation.isPending}
             />
         </div>
     );

@@ -27,6 +27,11 @@ apiClient.interceptors.request.use(
     } else {
       console.warn('⚠️ No access token found in localStorage');
     }
+    // When sending FormData, do not set Content-Type so the browser sets
+    // multipart/form-data with the correct boundary (fixes 405 on some servers)
+    if (config.data && config.data instanceof FormData) {
+      delete config.headers['Content-Type'];
+    }
     return config;
   },
   (error) => {
@@ -153,23 +158,44 @@ export const vehiclesAPI = {
     return apiClient.get(`/gps/vehicles/${vehicleId}/details?${queryParams}`);
   },
   
-  // Add vehicle with gp_id, vehicle_no, and imei
+  // Add vehicle with gp_id, vehicle_no, imei, and name
   addVehicle: (vehicleData) => {
     return apiClient.post('/gps/vehicles', {
       gp_id: vehicleData.gp_id,
       vehicle_no: vehicleData.vehicle_no,
-      imei: vehicleData.imei
+      imei: vehicleData.imei,
+      name: vehicleData.name || ''
     });
   },
   
-  // Update vehicle
+  // Update vehicle (gp_id, vehicle_no, imei, name)
   updateVehicle: (vehicleId, vehicleData) => {
-    return apiClient.put(`/gps/vehicles/${vehicleId}`, vehicleData);
+    return apiClient.put(`/gps/vehicles/${vehicleId}`, {
+      gp_id: vehicleData.gp_id,
+      vehicle_no: vehicleData.vehicle_no,
+      imei: vehicleData.imei,
+      name: vehicleData.name || ''
+    });
   },
   
   // Delete vehicle
   deleteVehicle: (vehicleId) => {
     return apiClient.delete(`/gps/vehicles/${vehicleId}`);
+  },
+};
+
+export const annualSurveysAPI = {
+  getSurvey: (id) => apiClient.get(`/annual-surveys/${id}`),
+  updateSurvey: (id, data) => apiClient.put(`/annual-surveys/${id}`, data),
+  listSurveys: (params = {}) => {
+    const q = new URLSearchParams();
+    if (params.skip != null) q.append('skip', params.skip);
+    if (params.limit != null) q.append('limit', params.limit);
+    if (params.district_id != null) q.append('district_id', params.district_id);
+    if (params.gp_id != null) q.append('gp_id', params.gp_id);
+    if (params.fy_id != null) q.append('fy_id', params.fy_id);
+    if (params.block_id != null) q.append('block_id', params.block_id);
+    return apiClient.get(`/annual-surveys/?${q.toString()}`);
   },
 };
 

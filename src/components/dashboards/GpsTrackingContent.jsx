@@ -4,57 +4,82 @@ import GoogleMapView from './gps/GoogleMapView';
 import FleetSidebar from './gps/FleetSidebar';
 import VehicleDetailsPanel from './gps/VehicleDetailsPanel';
 import AddVehicleModal from './gps/AddVehicleModal';
+import DeleteConfirmModal from './gps/DeleteConfirmModal';
 import { useVehicles, filterVehiclesByStatus, searchVehicles } from '../../hooks/useVehicles';
 import { useVehicleDetails } from '../../hooks/useVehicleDetails';
-import { useAddVehicle } from '../../hooks/useAddVehicle';
+import { useAddVehicle, useUpdateVehicle, useDeleteVehicle } from '../../hooks/useAddVehicle';
 
 const GpsTrackingContent = () => {
-  const [activeScope, setActiveScope] = useState('Districts');
-  const [activeFleetTab, setActiveFleetTab] = useState('All(03)');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showOnlyFlagged, setShowOnlyFlagged] = useState(false);
-  const [showAddVehicleModal, setShowAddVehicleModal] = useState(false);
-  const [selectedVehicle, setSelectedVehicle] = useState(null);
-  const [selectedLocation, setSelectedLocation] = useState({
-    districtId: null,
-    blockId: null,
-    gpId: null
-  });
+    const [activeScope, setActiveScope] = useState('Districts');
+    const [activeFleetTab, setActiveFleetTab] = useState('All(03)');
+    const [searchQuery, setSearchQuery] = useState('');
+    const [showOnlyFlagged, setShowOnlyFlagged] = useState(false);
+    const [showAddVehicleModal, setShowAddVehicleModal] = useState(false);
+    const [editingVehicle, setEditingVehicle] = useState(null);
+    const [deleteConfirmVehicle, setDeleteConfirmVehicle] = useState(null);
+    const [selectedVehicle, setSelectedVehicle] = useState(null);
+    const [selectedLocation, setSelectedLocation] = useState({
+        districtId: null,
+        blockId: null,
+        gpId: null
+    });
+    
+    const scopeButtons = ['All', 'Districts', 'Blocks', 'GPs'];
+    
+    // Fetch vehicles from API using location IDs
+    // TODO: Connect to actual location context when available
+    const { data: vehiclesData = [], isLoading: isLoadingVehicles, error: vehiclesError } = useVehicles({
+        districtId: selectedLocation.districtId || 1, // Default to district 1 for demo
+        blockId: selectedLocation.blockId || 1, // Default to block 1 for demo
+        gpId: selectedLocation.gpId || 1, // Default to gp 1 for demo
+    });
+    
+    // Fetch selected vehicle details
+    const currentDate = new Date();
+    const { data: vehicleDetails, isLoading: isLoadingDetails } = useVehicleDetails(
+        selectedVehicle?.vehicle_id || selectedVehicle?.id,
+        {
+            month: currentDate.getMonth() + 1,
+            year: currentDate.getFullYear(),
+        },
+        {
+            enabled: !!selectedVehicle,
+        }
+    );
 
-  const scopeButtons = ['All', 'Districts', 'Blocks', 'GPs'];
+    // Add vehicle mutation
+    const addVehicleMutation = useAddVehicle({
+        onSuccess: () => {
+            setShowAddVehicleModal(false);
+            setEditingVehicle(null);
+            alert('Vehicle added successfully!');
+        },
+        onError: (error) => {
+            console.error('Failed to add vehicle:', error);
+            alert('Failed to add vehicle. Please try again.');
+        },
+    });
 
-  // Fetch vehicles from API using location IDs
-  // TODO: Connect to actual location context when available
-  const { data: vehiclesData = [], isLoading: isLoadingVehicles, error: vehiclesError } = useVehicles({
-    districtId: selectedLocation.districtId || 1, // Default to district 1 for demo
-    blockId: selectedLocation.blockId || 1, // Default to block 1 for demo
-    gpId: selectedLocation.gpId || 1, // Default to gp 1 for demo
-  });
+    // Update vehicle mutation
+    const updateVehicleMutation = useUpdateVehicle({
+        onSuccess: () => {
+            setShowAddVehicleModal(false);
+            setEditingVehicle(null);
+            alert('Vehicle updated successfully!');
+        },
+        onError: (error) => {
+            console.error('Failed to update vehicle:', error);
+            alert('Failed to update vehicle. Please try again.');
+        },
+    });
 
-  // Fetch selected vehicle details
-  const currentDate = new Date();
-  const { data: vehicleDetails, isLoading: isLoadingDetails } = useVehicleDetails(
-    selectedVehicle?.vehicle_id || selectedVehicle?.id,
-    {
-      month: currentDate.getMonth() + 1,
-      year: currentDate.getFullYear(),
-    },
-    {
-      enabled: !!selectedVehicle,
-    }
-  );
-
-  // Add vehicle mutation
-  const addVehicleMutation = useAddVehicle({
-    onSuccess: () => {
-      setShowAddVehicleModal(false);
-      alert('Vehicle added successfully!');
-    },
-    onError: (error) => {
-      console.error('Failed to add vehicle:', error);
-      alert('Failed to add vehicle. Please try again.');
-    },
-  });
+    // Delete vehicle mutation
+    const deleteVehicleMutation = useDeleteVehicle({
+        onError: (error) => {
+            console.error('Failed to delete vehicle:', error);
+            alert('Failed to delete vehicle. Please try again.');
+        },
+    });
 
   // Filter and search vehicles
   const filteredVehicles = useMemo(() => {
@@ -99,13 +124,46 @@ const GpsTrackingContent = () => {
 
   const flaggedCount = vehiclesData.filter(v => v.isFlagged).length;
 
-  const handleAddVehicle = async (formData) => {
-    await addVehicleMutation.mutateAsync({
-      gp_id: formData.gpId, // Use GP ID from form
-      vehicle_no: formData.vehicleNumber,
-      imei: formData.imeiNumber,
-    });
-  };
+    const handleAddOrUpdateVehicle = async (formData) => {
+        if (editingVehicle) {
+            await updateVehicleMutation.mutateAsync({
+                vehicleId: editingVehicle.id,
+                vehicleData: {
+                    gp_id: editingVehicle.gp_id,
+                    vehicle_no: formData.vehicleNumber,
+                    imei: formData.imeiNumber,
+                    name: formData.vehicleName || '',
+                },
+            });
+        } else {
+            await addVehicleMutation.mutateAsync({
+                gp_id: formData.gpId,
+                vehicle_no: formData.vehicleNumber,
+                imei: formData.imeiNumber,
+                name: formData.vehicleName || '',
+            });
+        }
+    };
+
+    const handleEditVehicle = (vehicle) => {
+        setEditingVehicle(vehicle);
+        setShowAddVehicleModal(true);
+    };
+
+    const handleDeleteVehicle = (vehicle) => {
+        setDeleteConfirmVehicle(vehicle);
+    };
+
+    const handleConfirmDelete = () => {
+        if (!deleteConfirmVehicle) return;
+        deleteVehicleMutation.mutate(deleteConfirmVehicle.id, {
+            onSuccess: () => {
+                setDeleteConfirmVehicle(null);
+                setSelectedVehicle(null);
+                alert('Vehicle deleted successfully.');
+            },
+        });
+    };
 
   const handleVehicleSelect = (vehicle) => {
     setSelectedVehicle(vehicle);
@@ -225,20 +283,22 @@ const GpsTrackingContent = () => {
         gap: '0'
       }}>
         {/* Left Panel - Fleet Overview */}
-        <FleetSidebar
-          vehicles={filteredVehicles}
-          activeFleetTab={activeFleetTab}
-          fleetTabs={fleetTabs}
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          onTabChange={setActiveFleetTab}
-          onVehicleClick={handleVehicleSelect}
-          selectedVehicle={selectedVehicle}
-          showFlaggedToggle={true}
-          flaggedCount={flaggedCount}
-          showOnlyFlagged={showOnlyFlagged}
-          onFlaggedToggle={() => setShowOnlyFlagged(!showOnlyFlagged)}
-        />
+                <FleetSidebar
+                    vehicles={filteredVehicles}
+                    activeFleetTab={activeFleetTab}
+                    fleetTabs={fleetTabs}
+                    searchQuery={searchQuery}
+                    onSearchChange={setSearchQuery}
+                    onTabChange={setActiveFleetTab}
+                    onVehicleClick={handleVehicleSelect}
+                    onEdit={handleEditVehicle}
+                    onDelete={handleDeleteVehicle}
+                    selectedVehicle={selectedVehicle}
+                    showFlaggedToggle={true}
+                    flaggedCount={flaggedCount}
+                    showOnlyFlagged={showOnlyFlagged}
+                    onFlaggedToggle={() => setShowOnlyFlagged(!showOnlyFlagged)}
+                />
 
         {/* Center Panel - Map View */}
         <div style={{
@@ -255,8 +315,8 @@ const GpsTrackingContent = () => {
             right: '20px',
             zIndex: 10
           }}>
-            <button
-              onClick={() => setShowAddVehicleModal(true)}
+            <button 
+                            onClick={() => { setEditingVehicle(null); setShowAddVehicleModal(true); }}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -320,29 +380,41 @@ const GpsTrackingContent = () => {
           )}
         </div>
 
-        {/* Right Panel - Vehicle Details */}
-        {selectedVehicle && (
-          <VehicleDetailsPanel
-            vehicle={selectedVehicle}
-            details={vehicleDetails}
-            isLoading={isLoadingDetails}
-            onClose={() => setSelectedVehicle(null)}
-          />
-        )}
-      </div>
+                {/* Right Panel - Vehicle Details */}
+                {selectedVehicle && (
+                    <VehicleDetailsPanel
+                        vehicle={selectedVehicle}
+                        details={vehicleDetails}
+                        isLoading={isLoadingDetails}
+                        onClose={() => setSelectedVehicle(null)}
+                        onEdit={handleEditVehicle}
+                        onDelete={handleDeleteVehicle}
+                    />
+                )}
+                </div>
 
-      {/* Add Vehicle Modal */}
-      <AddVehicleModal
-        isOpen={showAddVehicleModal}
-        onClose={() => setShowAddVehicleModal(false)}
-        onSubmit={handleAddVehicle}
-        isSubmitting={addVehicleMutation.isPending}
-        districts={[]}
-        blocks={[]}
-        gramPanchayats={[]}
-      />
-    </div>
-  );
+            {/* Add/Edit Vehicle Modal */}
+            <AddVehicleModal
+                isOpen={showAddVehicleModal}
+                onClose={() => { setShowAddVehicleModal(false); setEditingVehicle(null); }}
+                onSubmit={handleAddOrUpdateVehicle}
+                isSubmitting={addVehicleMutation.isPending || updateVehicleMutation.isPending}
+                editingVehicle={editingVehicle}
+                districts={[]}
+                blocks={[]}
+                gramPanchayats={[]}
+            />
+
+            {/* Delete Confirmation Modal */}
+            <DeleteConfirmModal
+                isOpen={!!deleteConfirmVehicle}
+                vehicle={deleteConfirmVehicle}
+                onClose={() => setDeleteConfirmVehicle(null)}
+                onConfirm={handleConfirmDelete}
+                isDeleting={deleteVehicleMutation.isPending}
+            />
+        </div>
+    );
 };
 
 export default GpsTrackingContent;

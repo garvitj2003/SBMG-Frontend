@@ -15,6 +15,7 @@ export const useCEOLocation = () => {
 
 export const CEOLocationProvider = ({ children }) => {
   const { user } = useAuth();
+
   
   // CEO's district ID from /me API (constant for CEO)
   const [ceoDistrictId, setCeoDistrictId] = useState(null);

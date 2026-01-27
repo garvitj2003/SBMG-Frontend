@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Plus, Calendar, ChevronDown, X, Upload, Search, Download, List, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
+import { Plus, Calendar, ChevronDown, X, Upload, Search, Download, List, ArrowUpRight, ArrowDownLeft, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import apiClient from '../../../services/api';
 import { InfoTooltip } from '../../common/Tooltip';
 
@@ -741,104 +741,61 @@ const VDONoticeContent = () => {
                     </table>
                 </div>
                 
-                {/* Pagination Controls */}
-                {viewMode === 'sent' && sentTotal > pageSize && (
-                  <div style={{
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    gap: '8px',
-                    padding: '20px',
-                    borderTop: '1px solid #e5e7eb'
-                  }}>
-                    <button
-                      onClick={() => setSentPage(prev => Math.max(1, prev - 1))}
-                      disabled={sentPage <= 1}
-                      style={{
-                        padding: '8px 16px',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '8px',
-                        backgroundColor: sentPage <= 1 ? '#f9fafb' : 'white',
-                        color: sentPage <= 1 ? '#9ca3af' : '#374151',
-                        cursor: sentPage <= 1 ? 'not-allowed' : 'pointer',
-                        fontSize: '14px',
-                        fontWeight: '500'
-                      }}
-                    >
-                      Previous
-                    </button>
-                    
-                    <span style={{ fontSize: '14px', color: '#6b7280', padding: '0 16px' }}>
-                      Page {sentPage} of {Math.ceil(sentTotal / pageSize)}
-                    </span>
-                    
-                    <button
-                      onClick={() => setSentPage(prev => prev + 1)}
-                      disabled={sentPage >= Math.ceil(sentTotal / pageSize)}
-                      style={{
-                        padding: '8px 16px',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '8px',
-                        backgroundColor: sentPage >= Math.ceil(sentTotal / pageSize) ? '#f9fafb' : 'white',
-                        color: sentPage >= Math.ceil(sentTotal / pageSize) ? '#9ca3af' : '#374151',
-                        cursor: sentPage >= Math.ceil(sentTotal / pageSize) ? 'not-allowed' : 'pointer',
-                        fontSize: '14px',
-                        fontWeight: '500'
-                      }}
-                    >
-                      Next
-                    </button>
-                  </div>
-                )}
-                
-                {viewMode === 'received' && receivedTotal > pageSize && (
-                  <div style={{
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    gap: '8px',
-                    padding: '20px',
-                    borderTop: '1px solid #e5e7eb'
-                  }}>
-                    <button
-                      onClick={() => setReceivedPage(prev => Math.max(1, prev - 1))}
-                      disabled={receivedPage <= 1}
-                      style={{
-                        padding: '8px 16px',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '8px',
-                        backgroundColor: receivedPage <= 1 ? '#f9fafb' : 'white',
-                        color: receivedPage <= 1 ? '#9ca3af' : '#374151',
-                        cursor: receivedPage <= 1 ? 'not-allowed' : 'pointer',
-                        fontSize: '14px',
-                        fontWeight: '500'
-                      }}
-                    >
-                      Previous
-                    </button>
-                    
-                    <span style={{ fontSize: '14px', color: '#6b7280', padding: '0 16px' }}>
-                      Page {receivedPage} of {Math.ceil(receivedTotal / pageSize)}
-                    </span>
-                    
-                    <button
-                      onClick={() => setReceivedPage(prev => prev + 1)}
-                      disabled={receivedPage >= Math.ceil(receivedTotal / pageSize)}
-                      style={{
-                        padding: '8px 16px',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '8px',
-                        backgroundColor: receivedPage >= Math.ceil(receivedTotal / pageSize) ? '#f9fafb' : 'white',
-                        color: receivedPage >= Math.ceil(receivedTotal / pageSize) ? '#9ca3af' : '#374151',
-                        cursor: receivedPage >= Math.ceil(receivedTotal / pageSize) ? 'not-allowed' : 'pointer',
-                        fontSize: '14px',
-                        fontWeight: '500'
-                      }}
-                    >
-                      Next
-                    </button>
-                  </div>
-                )}
+                {/* Pagination Controls - Sent */}
+                {viewMode === 'sent' && sentTotal > pageSize && (() => {
+                  const sentTotalPages = Math.ceil(sentTotal / pageSize);
+                  const getPageNumbers = () => {
+                    if (sentTotalPages <= 7) return Array.from({ length: sentTotalPages }, (_, i) => i + 1);
+                    const set = new Set([1, sentTotalPages, sentPage, sentPage - 1, sentPage + 1]);
+                    const nums = [...set].filter(p => p >= 1 && p <= sentTotalPages).sort((a, b) => a - b);
+                    const result = [];
+                    for (let i = 0; i < nums.length; i++) {
+                      if (i > 0 && nums[i] - nums[i - 1] > 1) result.push('...');
+                      result.push(nums[i]);
+                    }
+                    return result;
+                  };
+                  const btn = (on, dis) => ({ onClick: on, disabled: dis, style: { padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '8px', backgroundColor: dis ? '#f9fafb' : 'white', color: dis ? '#9ca3af' : '#374151', cursor: dis ? 'not-allowed' : 'pointer', fontSize: '14px', fontWeight: '500', display: 'inline-flex', alignItems: 'center', gap: '4px' } });
+                  return (
+                    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', padding: '20px', borderTop: '1px solid #e5e7eb', flexWrap: 'wrap' }}>
+                      <button {...btn(() => setSentPage(1), sentPage <= 1 || loadingSent)} aria-label="First page"><ChevronsLeft size={16} /> First</button>
+                      <button {...btn(() => setSentPage(prev => Math.max(1, prev - 1)), sentPage <= 1 || loadingSent)}>Previous</button>
+                      {getPageNumbers().map((n, i) => typeof n === 'number' ? (
+                        <button key={n} onClick={() => setSentPage(n)} disabled={loadingSent} style={{ minWidth: '36px', padding: '8px', border: '1px solid #d1d5db', borderRadius: '8px', backgroundColor: sentPage === n ? '#3b82f6' : 'white', color: sentPage === n ? 'white' : '#374151', cursor: loadingSent ? 'not-allowed' : 'pointer', fontSize: '14px', fontWeight: sentPage === n ? '600' : '500' }}>{n}</button>
+                      ) : (<span key={`e-${i}`} style={{ padding: '0 4px', color: '#9ca3af' }}>…</span>))}
+                      <button {...btn(() => setSentPage(prev => prev + 1), sentPage >= sentTotalPages || loadingSent)}>Next</button>
+                      <button {...btn(() => setSentPage(sentTotalPages), sentPage >= sentTotalPages || loadingSent)} aria-label="Last page">Last <ChevronsRight size={16} /></button>
+                    </div>
+                  );
+                })()}
+
+                {/* Pagination Controls - Received */}
+                {viewMode === 'received' && receivedTotal > pageSize && (() => {
+                  const recvTotalPages = Math.ceil(receivedTotal / pageSize);
+                  const getPageNumbers = () => {
+                    if (recvTotalPages <= 7) return Array.from({ length: recvTotalPages }, (_, i) => i + 1);
+                    const set = new Set([1, recvTotalPages, receivedPage, receivedPage - 1, receivedPage + 1]);
+                    const nums = [...set].filter(p => p >= 1 && p <= recvTotalPages).sort((a, b) => a - b);
+                    const result = [];
+                    for (let i = 0; i < nums.length; i++) {
+                      if (i > 0 && nums[i] - nums[i - 1] > 1) result.push('...');
+                      result.push(nums[i]);
+                    }
+                    return result;
+                  };
+                  const btn = (on, dis) => ({ onClick: on, disabled: dis, style: { padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '8px', backgroundColor: dis ? '#f9fafb' : 'white', color: dis ? '#9ca3af' : '#374151', cursor: dis ? 'not-allowed' : 'pointer', fontSize: '14px', fontWeight: '500', display: 'inline-flex', alignItems: 'center', gap: '4px' } });
+                  return (
+                    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', padding: '20px', borderTop: '1px solid #e5e7eb', flexWrap: 'wrap' }}>
+                      <button {...btn(() => setReceivedPage(1), receivedPage <= 1 || loadingReceived)} aria-label="First page"><ChevronsLeft size={16} /> First</button>
+                      <button {...btn(() => setReceivedPage(prev => Math.max(1, prev - 1)), receivedPage <= 1 || loadingReceived)}>Previous</button>
+                      {getPageNumbers().map((n, i) => typeof n === 'number' ? (
+                        <button key={n} onClick={() => setReceivedPage(n)} disabled={loadingReceived} style={{ minWidth: '36px', padding: '8px', border: '1px solid #d1d5db', borderRadius: '8px', backgroundColor: receivedPage === n ? '#3b82f6' : 'white', color: receivedPage === n ? 'white' : '#374151', cursor: loadingReceived ? 'not-allowed' : 'pointer', fontSize: '14px', fontWeight: receivedPage === n ? '600' : '500' }}>{n}</button>
+                      ) : (<span key={`e-${i}`} style={{ padding: '0 4px', color: '#9ca3af' }}>…</span>))}
+                      <button {...btn(() => setReceivedPage(prev => prev + 1), receivedPage >= recvTotalPages || loadingReceived)}>Next</button>
+                      <button {...btn(() => setReceivedPage(recvTotalPages), receivedPage >= recvTotalPages || loadingReceived)} aria-label="Last page">Last <ChevronsRight size={16} /></button>
+                    </div>
+                  );
+                })()}
             </div>
 
             {actionMenu.isOpen && actionMenu.notice && (

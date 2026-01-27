@@ -3,17 +3,20 @@ import { X, ChevronDown, Loader } from 'lucide-react';
 import apiClient from '../../../services/api';
 
 /**
- * AddVehicleModal component for adding new vehicles
+ * AddVehicleModal component for adding new vehicles or editing existing ones
+ * @param {Object} editingVehicle - When set, modal works in edit mode (single step: vehicle details only)
  */
 const AddVehicleModal = ({
   isOpen = false,
   onClose = () => {},
   onSubmit = () => {},
   isSubmitting = false,
+  editingVehicle = null,
   districts = [],
   blocks = [],
   gramPanchayats = [],
 }) => {
+  const isEditMode = !!editingVehicle;
   const [modalStep, setModalStep] = useState(1);
   const [formData, setFormData] = useState({
     imeiNumber: '',
@@ -237,6 +240,25 @@ const AddVehicleModal = ({
     setModalStep(1);
   };
 
+  const handleUpdate = async () => {
+    const vehicleError = validateVehicleNumber(formData.vehicleNumber);
+    const imeiError = validateIMEI(formData.imeiNumber);
+    setErrors({
+      vehicleNumber: vehicleError,
+      imeiNumber: imeiError,
+      vehicleName: '',
+      districtId: '',
+      blockId: '',
+      gpId: ''
+    });
+    if (vehicleError || imeiError || !formData.vehicleNumber || !formData.imeiNumber) return;
+    await onSubmit({
+      vehicleNumber: formData.vehicleNumber.replace(/\s+/g, '').toUpperCase(),
+      imeiNumber: formData.imeiNumber.replace(/\s+/g, ''),
+      vehicleName: formData.vehicleName || ''
+    });
+  };
+
   const handleSubmit = async () => {
     // Validate location fields
     const locationErrors = {
@@ -304,11 +326,12 @@ const AddVehicleModal = ({
     onClose();
   };
 
-  // Reset form when modal closes
+  // Prefill when editing, reset when modal closes or when switching to add mode
   useEffect(() => {
     if (!isOpen) {
       setFormData({
         imeiNumber: '',
+        vehicleName: '',
         vehicleNumber: '',
         districtId: '',
         blockId: '',
@@ -317,6 +340,7 @@ const AddVehicleModal = ({
       setErrors({
         vehicleNumber: '',
         imeiNumber: '',
+        vehicleName: '',
         districtId: '',
         blockId: '',
         gpId: ''
@@ -324,8 +348,19 @@ const AddVehicleModal = ({
       setLocalBlocks([]);
       setLocalGramPanchayats([]);
       setModalStep(1);
+    } else if (editingVehicle) {
+      setFormData({
+        imeiNumber: editingVehicle.imei || '',
+        vehicleName: editingVehicle.name || editingVehicle.vehicle_name || '',
+        vehicleNumber: editingVehicle.vehicle_no || editingVehicle.vehicle_number || '',
+        districtId: '',
+        blockId: '',
+        gpId: editingVehicle.gp_id ? String(editingVehicle.gp_id) : ''
+      });
+      setErrors({ vehicleNumber: '', imeiNumber: '', vehicleName: '', districtId: '', blockId: '', gpId: '' });
+      setModalStep(1);
     }
-  }, [isOpen]);
+  }, [isOpen, editingVehicle]);
 
   if (!isOpen) return null;
 
@@ -364,7 +399,7 @@ const AddVehicleModal = ({
             color: '#111827',
             margin: 0
           }}>
-            Add Vehicle
+            {isEditMode ? 'Edit Vehicle' : 'Add Vehicle'}
           </h2>
           <button
             onClick={handleClose}
@@ -384,7 +419,8 @@ const AddVehicleModal = ({
           </button>
         </div>
 
-        {/* Step Indicator */}
+        {/* Step Indicator - hide in edit mode */}
+        {!isEditMode && (
         <div style={{
           display: 'flex',
           alignItems: 'center',
@@ -451,6 +487,7 @@ const AddVehicleModal = ({
             </span>
           </div>
         </div>
+        )}
 
         {/* Step 1: Vehicle Details */}
         {modalStep === 1 && (
@@ -623,7 +660,7 @@ const AddVehicleModal = ({
                 Cancel
               </button>
               <button
-                onClick={handleNext}
+                onClick={isEditMode ? handleUpdate : handleNext}
                 disabled={isSubmitting}
                 style={{
                   padding: '10px 24px',
@@ -635,9 +672,15 @@ const AddVehicleModal = ({
                   color: 'white',
                   cursor: isSubmitting ? 'not-allowed' : 'pointer',
                   opacity: isSubmitting ? 0.6 : 1,
+                  display: isEditMode ? 'flex' : undefined,
+                  alignItems: isEditMode ? 'center' : undefined,
+                  gap: isEditMode ? '8px' : undefined,
                 }}
               >
-                Next
+                {isEditMode && isSubmitting && (
+                  <Loader style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} />
+                )}
+                {isEditMode ? (isSubmitting ? 'Updating...' : 'Update Vehicle') : 'Next'}
               </button>
             </div>
           </div>

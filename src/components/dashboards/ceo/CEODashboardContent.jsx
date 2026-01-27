@@ -807,7 +807,7 @@ const CEODashboardContent = () => {
         return districts.map(district => ({ id: district.id, name: district.name }));
       case 'Blocks':
         if (dropdownLevel === 'districts') {
-          return districts.map(district => ({ id: district.id, name: district.name }));
+          return districts.map(district => ({ id: district.id, name: district.name}));
         } else if (dropdownLevel === 'blocks') {
           return blocks.filter(block => block.district_id === selectedDistrictForHierarchy?.id)
                       .map(block => ({ id: block.id, name: block.name }));
