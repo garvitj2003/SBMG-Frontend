@@ -1080,8 +1080,17 @@ const AttendanceContent = () => {
       selectedBlockId,
       selectedGPId,
       startDate,
-      endDate
+      endDate,
+      isCustomRange
     });
+
+    // When Custom is selected, do NOT call API until user picks dates and clicks Apply
+    if (isCustomRange && (!startDate || !endDate)) {
+      console.log('⏸️ Custom selected without dates – skipping API until Apply');
+      setAnalyticsError('Select start and end dates, then click Apply');
+      setAnalyticsData(null);
+      return;
+    }
     
     // For State scope, we can call API immediately (no need to wait for districts)
     if (activeScope === 'State') {
@@ -1126,7 +1135,7 @@ const AttendanceContent = () => {
     
     console.log('📡 Calling API for other scopes');
     fetchAnalyticsData();
-  }, [activeScope, selectedDistrictId, selectedBlockId, selectedGPId, startDate, endDate, districts.length]);
+  }, [activeScope, selectedDistrictId, selectedBlockId, selectedGPId, startDate, endDate, isCustomRange, districts.length]);
 
   // Fetch Top 3 data when scope, period, or date selection changes
   useEffect(() => {

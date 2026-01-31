@@ -985,11 +985,19 @@ const VDOAttendanceContent = () => {
     console.log('Current Location Info:', locationInfo);
   }, [activeScope, selectedLocation, selectedLocationId, selectedDistrictId, selectedBlockId, selectedGPId]);
 
-  // BDO: Fetch analytics data when scope, location, or date range changes
+  // VDO: Fetch analytics data when scope, location, or date range changes
   useEffect(() => {
     if (!vdoDistrictId) return;
+
+    // When Custom is selected, do NOT call API until user picks dates and clicks Apply
+    if (isCustomRange && (!startDate || !endDate)) {
+      console.log('⏸️ VDO: Custom selected without dates – skipping API until Apply');
+      setAnalyticsError('Select start and end dates, then click Apply');
+      setAnalyticsData(null);
+      return;
+    }
     
-    console.log('🔄 CEO Analytics useEffect triggered:', {
+    console.log('🔄 VDO Analytics useEffect triggered:', {
       activeScope,
       vdoDistrictId,
       selectedBlockId,
@@ -998,21 +1006,21 @@ const VDOAttendanceContent = () => {
       endDate
     });
     
-    // CEO only has Blocks and GPs scopes
+    // VDO only has Blocks and GPs scopes
     if (activeScope === 'Blocks') {
-      console.log('📡 BDO: Calling analytics for Blocks scope');
+      console.log('📡 VDO: Calling analytics for Blocks scope');
       fetchAnalyticsData();
       return;
     }
     
     if (activeScope === 'GPs' && !selectedGPId) {
-      console.log('⏳ BDO: Waiting for GP selection');
+      console.log('⏳ VDO: Waiting for GP selection');
       return;
     }
     
-    console.log('📡 BDO: Calling analytics API');
+    console.log('📡 VDO: Calling analytics API');
     fetchAnalyticsData();
-  }, [activeScope, selectedBlockId, selectedGPId, startDate, endDate, vdoDistrictId]);
+  }, [activeScope, selectedBlockId, selectedGPId, startDate, endDate, isCustomRange, vdoDistrictId]);
 
   // Fetch Top 3 data when scope, period, or date selection changes
   useEffect(() => {

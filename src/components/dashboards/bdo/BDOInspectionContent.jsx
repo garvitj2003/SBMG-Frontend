@@ -925,6 +925,13 @@ const BDOInspectionContent = () => {
   // Effect to fetch analytics when scope or location changes
   // Use refs to track previous values and only call API when relevant values actually change
   useEffect(() => {
+    // When Custom is selected, do NOT call API until user picks dates and clicks Apply
+    if (isCustomRange && (!startDate || !endDate)) {
+      setAnalyticsError('Select start and end dates, then click Apply');
+      setAnalyticsData(null);
+      return;
+    }
+
     const currentParams = { activeScope, selectedDistrictId, selectedBlockId, selectedGPId, startDate, endDate };
     if (!prevAnalyticsParams.current) {
       // First render - initialize and fetch
@@ -945,7 +952,7 @@ const BDOInspectionContent = () => {
       prevAnalyticsParams.current = currentParams;
       fetchAnalyticsData();
     }
-  }, [activeScope, selectedDistrictId, selectedBlockId, selectedGPId, startDate, endDate]);
+  }, [activeScope, selectedDistrictId, selectedBlockId, selectedGPId, startDate, endDate, isCustomRange]);
 
   // Effect to fetch critical issues when scope or location changes
   useEffect(() => {

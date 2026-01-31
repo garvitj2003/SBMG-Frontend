@@ -1348,6 +1348,13 @@ const CEODashboardContent = () => {
 
   // CEO: Fetch analytics data for overview section when scope, location, or date range changes
   useEffect(() => {
+    // When Custom is selected, do NOT call API until user picks dates and clicks Apply
+    if (isCustomRange && (!startDate || !endDate)) {
+      setAnalyticsError('Select start and end dates, then click Apply');
+      setAnalyticsData(null);
+      return;
+    }
+
     console.log('🔄 CEO Analytics useEffect triggered:', {
       activeScope,
       ceoDistrictId,
@@ -1372,7 +1379,7 @@ const CEODashboardContent = () => {
     
     console.log('📡 CEO: Calling analytics API');
     fetchAnalyticsData();
-  }, [activeScope, selectedBlockId, selectedGPId, startDate, endDate, ceoDistrictId, fetchAnalyticsData]);
+  }, [activeScope, selectedBlockId, selectedGPId, startDate, endDate, isCustomRange, ceoDistrictId, fetchAnalyticsData]);
 
   // CEO: Fetch complaints chart data when filters change (independent of overview date range)
   useEffect(() => {

@@ -743,8 +743,17 @@ const BDOComplaintsContent = () => {
       selectedBlockId,
       selectedGPId,
       startDate,
-      endDate
+      endDate,
+      isCustomRange
     });
+
+    // When Custom is selected, do NOT call API until user picks dates and clicks Apply
+    if (isCustomRange && (!startDate || !endDate)) {
+      console.log('⏸️ BDO Complaints: Custom selected without dates – skipping API until Apply');
+      setAnalyticsError('Select start and end dates, then click Apply');
+      setAnalyticsData(null);
+      return;
+    }
     
     // For State scope, we can call API immediately (no need to wait for districts)
     if (activeScope === 'State') {
@@ -771,7 +780,7 @@ const BDOComplaintsContent = () => {
     console.log('📡 Calling API for other scopes');
     fetchAnalyticsData();
     fetchComplaintsData();
-  }, [activeScope, selectedLocation, selectedDistrictId, selectedBlockId, selectedGPId, startDate, endDate, fetchComplaintsData]);
+  }, [activeScope, selectedLocation, selectedDistrictId, selectedBlockId, selectedGPId, startDate, endDate, isCustomRange, fetchComplaintsData]);
 
   // Date range functions
   const generateYears = () => {

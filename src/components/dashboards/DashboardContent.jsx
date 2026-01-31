@@ -1474,6 +1474,13 @@ const DashboardContent = () => {
 
   // Fetch analytics data for overview section when scope, location, or date range changes
   useEffect(() => {
+    // When Custom is selected, do NOT call API until user picks dates and clicks Apply
+    if (isCustomRange && (!startDate || !endDate)) {
+      setAnalyticsError('Select start and end dates, then click Apply');
+      setAnalyticsData(null);
+      return;
+    }
+
     // Only fetch if we have the necessary location data loaded
     if (activeScope === 'State' && districts.length === 0) {
       return; // Wait for districts to load
@@ -1489,7 +1496,7 @@ const DashboardContent = () => {
     }
     
     fetchAnalyticsData();
-  }, [activeScope, selectedLocation, selectedDistrictId, selectedBlockId, selectedGPId, startDate, endDate, districts, blocks, gramPanchayats]);
+  }, [activeScope, selectedLocation, selectedDistrictId, selectedBlockId, selectedGPId, startDate, endDate, isCustomRange, districts, blocks, gramPanchayats]);
 
   // Fetch complaints chart data when filters change (independent of overview date range)
   useEffect(() => {

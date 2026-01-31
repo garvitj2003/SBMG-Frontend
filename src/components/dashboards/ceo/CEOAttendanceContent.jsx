@@ -1073,6 +1073,14 @@ const AttendanceContent = () => {
   // CEO: Fetch analytics data when scope, location, or date range changes
   useEffect(() => {
     if (!ceoDistrictId) return;
+
+    // When Custom is selected, do NOT call API until user picks dates and clicks Apply
+    if (isCustomRange && (!startDate || !endDate)) {
+      console.log('⏸️ CEO: Custom selected without dates – skipping API until Apply');
+      setAnalyticsError('Select start and end dates, then click Apply');
+      setAnalyticsData(null);
+      return;
+    }
     
     console.log('🔄 CEO Analytics useEffect triggered:', {
       activeScope,
@@ -1097,7 +1105,7 @@ const AttendanceContent = () => {
     
     console.log('📡 CEO: Calling analytics API');
     fetchAnalyticsData();
-  }, [activeScope, selectedBlockId, selectedGPId, startDate, endDate, ceoDistrictId]);
+  }, [activeScope, selectedBlockId, selectedGPId, startDate, endDate, isCustomRange, ceoDistrictId]);
 
   // Fetch Top 3 data when scope, period, or date selection changes
   useEffect(() => {
