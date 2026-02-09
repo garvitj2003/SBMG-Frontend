@@ -1,0 +1,36 @@
+# SBMG Frontend on http://139.59.34.99:5173 (port 80 occupied; backend on 8000)
+# Optional: set DOMAIN and run certbot for HTTPS (then use https://...:5174).
+
+services:
+  frontend:
+    build:
+      context: .
+      args:
+        VITE_API_URL: ${VITE_API_URL:-/api/v1}
+        VITE_GOOGLE_MAPS_API_KEY: ${VITE_GOOGLE_MAPS_API_KEY:-}
+    container_name: sbmg-frontend
+    restart: unless-stopped
+    # Bind to 0.0.0.0 so the app is reachable via public IP (e.g. http://139.59.34.99:5173)
+    ports:
+      - "0.0.0.0:5173:80"
+      - "0.0.0.0:5174:443"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - certbot_certs:/etc/letsencrypt:ro
+      - certbot_webroot:/var/www/certbot:ro
+    environment:
+      - DOMAIN=${DOMAIN:-}
+
+  certbot:
+    image: certbot/certbot
+    container_name: sbmg-certbot
+    volumes:
+      - certbot_certs:/etc/letsencrypt
+      - certbot_webroot:/var/www/certbot
+    # Renewal loop; for first-time cert run: docker-compose run --rm certbot certonly --webroot -w /var/www/certbot -d yourdomain.com -m your@email.com --agree-tos
+    entrypoint: /bin/sh -c "trap exit 0 TERM; while :; do certbot renew; sleep 12h; done"
+
+volumes:
+  certbot_certs:
+  certbot_webroot:
