@@ -1186,7 +1186,14 @@ const VDODashboardContent = () => {
 
   // CEO: Fetch analytics data for overview section when scope, location, or date range changes
   useEffect(() => {
-    console.log('🔄 CEO Analytics useEffect triggered:', {
+    // When Custom is selected, do NOT call API until user picks dates and clicks Apply
+    if (isCustomRange && (!startDate || !endDate)) {
+      setAnalyticsError('Select start and end dates, then click Apply');
+      setAnalyticsData(null);
+      return;
+    }
+
+    console.log('🔄 VDO Analytics useEffect triggered:', {
       activeScope,
       vdoDistrictId,
       vdoBlockId,
@@ -1195,22 +1202,22 @@ const VDODashboardContent = () => {
       endDate
     });
     
-    // CEO only has Blocks and GPs scopes
+    // VDO only has Blocks and GPs scopes
     if (false) {
       // For Blocks scope, call API immediately (shows district-level data)
-      console.log('📡 CEO: Calling analytics for Blocks scope');
+      console.log('📡 VDO: Calling analytics for Blocks scope');
       fetchAnalyticsData();
       return;
     }
     
     if (false) {
-      console.log('⏳ CEO: Waiting for GP selection');
+      console.log('⏳ VDO: Waiting for GP selection');
       return; // Wait for GP selection
     }
     
-    console.log('📡 CEO: Calling analytics API');
+    console.log('📡 VDO: Calling analytics API');
     fetchAnalyticsData();
-  }, [activeScope, vdoBlockId, vdoGPId, startDate, endDate, vdoDistrictId, fetchAnalyticsData]);
+  }, [activeScope, vdoBlockId, vdoGPId, startDate, endDate, isCustomRange, vdoDistrictId, fetchAnalyticsData]);
 
   // CEO: Fetch complaints chart data when filters change (independent of overview date range)
   useEffect(() => {

@@ -1281,9 +1281,16 @@ const BDODashboardContent = () => {
     }
   }, [top3Scope, selectedDistrictId, selectedBlockId, selectedGPId, top3Month]);
 
-  // CEO: Fetch analytics data for overview section when scope, location, or date range changes
+  // BDO: Fetch analytics data for overview section when scope, location, or date range changes
   useEffect(() => {
-    console.log('🔄 CEO Analytics useEffect triggered:', {
+    // When Custom is selected, do NOT call API until user picks dates and clicks Apply
+    if (isCustomRange && (!startDate || !endDate)) {
+      setAnalyticsError('Select start and end dates, then click Apply');
+      setAnalyticsData(null);
+      return;
+    }
+
+    console.log('🔄 BDO Analytics useEffect triggered:', {
       activeScope,
       bdoDistrictId,
       selectedBlockId,
@@ -1292,22 +1299,22 @@ const BDODashboardContent = () => {
       endDate
     });
     
-    // CEO only has Blocks and GPs scopes
+    // BDO only has Blocks and GPs scopes
     if (activeScope === 'Blocks') {
       // For Blocks scope, call API immediately (shows district-level data)
-      console.log('📡 CEO: Calling analytics for Blocks scope');
+      console.log('📡 BDO: Calling analytics for Blocks scope');
       fetchAnalyticsData();
       return;
     }
     
     if (activeScope === 'GPs' && !selectedGPId) {
-      console.log('⏳ CEO: Waiting for GP selection');
+      console.log('⏳ BDO: Waiting for GP selection');
       return; // Wait for GP selection
     }
     
-    console.log('📡 CEO: Calling analytics API');
+    console.log('📡 BDO: Calling analytics API');
     fetchAnalyticsData();
-  }, [activeScope, selectedBlockId, selectedGPId, startDate, endDate, bdoDistrictId, fetchAnalyticsData]);
+  }, [activeScope, selectedBlockId, selectedGPId, startDate, endDate, isCustomRange, bdoDistrictId, fetchAnalyticsData]);
 
   // CEO: Fetch complaints chart data when filters change (independent of overview date range)
   useEffect(() => {

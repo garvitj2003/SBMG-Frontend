@@ -584,11 +584,34 @@ const AttendanceContent = () => {
     }
   };
 
+  // Helper: normalize to YYYY-MM-DD for API (handles date strings from input[type=date])
+  const toYYYYMMDD = (dateStr) => {
+    if (!dateStr || typeof dateStr !== 'string') return null;
+    const d = new Date(dateStr.trim());
+    if (Number.isNaN(d.getTime())) return null;
+    return d.toISOString().split('T')[0];
+  };
+
   // Fetch attendance overview data from API
   const fetchAnalyticsData = useCallback(async () => {
     // Require both start and end dates to avoid 422 (e.g. when Custom is selected but dates not yet chosen)
     if (!startDate || !endDate) {
       setAnalyticsError('Please select both start and end dates');
+      setAnalyticsData(null);
+      setLoadingAnalytics(false);
+      return;
+    }
+
+    const startNorm = toYYYYMMDD(startDate);
+    const endNorm = toYYYYMMDD(endDate);
+    if (!startNorm || !endNorm) {
+      setAnalyticsError('Invalid date format. Use YYYY-MM-DD.');
+      setAnalyticsData(null);
+      setLoadingAnalytics(false);
+      return;
+    }
+    if (new Date(startNorm) > new Date(endNorm)) {
+      setAnalyticsError('Start date must be on or before end date');
       setAnalyticsData(null);
       setLoadingAnalytics(false);
       return;
@@ -619,11 +642,11 @@ const AttendanceContent = () => {
       // Build query parameters based on selected scope
       const params = new URLSearchParams();
 
-      // Add date range (required)
-      params.append('start_date', startDate);
-      params.append('end_date', endDate);
-      console.log('📅 Start Date:', startDate);
-      console.log('📅 End Date:', endDate);
+      // Add date range (required; use normalized YYYY-MM-DD to avoid 422)
+      params.append('start_date', startNorm);
+      params.append('end_date', endNorm);
+      console.log('📅 Start Date:', startNorm);
+      console.log('📅 End Date:', endNorm);
 
       // Add geography IDs based on selection (conditional)
       if (activeScope === 'Districts' && selectedDistrictId) {
@@ -1050,6 +1073,14 @@ const AttendanceContent = () => {
   // CEO: Fetch analytics data when scope, location, or date range changes
   useEffect(() => {
     if (!ceoDistrictId) return;
+
+    // When Custom is selected, do NOT call API until user picks dates and clicks Apply
+    if (isCustomRange && (!startDate || !endDate)) {
+      console.log('⏸️ CEO: Custom selected without dates – skipping API until Apply');
+      setAnalyticsError('Select start and end dates, then click Apply');
+      setAnalyticsData(null);
+      return;
+    }
     
     console.log('🔄 CEO Analytics useEffect triggered:', {
       activeScope,
@@ -1074,7 +1105,7 @@ const AttendanceContent = () => {
     
     console.log('📡 CEO: Calling analytics API');
     fetchAnalyticsData();
-  }, [activeScope, selectedBlockId, selectedGPId, startDate, endDate, ceoDistrictId]);
+  }, [activeScope, selectedBlockId, selectedGPId, startDate, endDate, isCustomRange, ceoDistrictId]);
 
   // Fetch Top 3 data when scope, period, or date selection changes
   useEffect(() => {
@@ -2641,8 +2672,22 @@ const AttendanceContent = () => {
                             const s = (customStartDraft || '').trim();
                             const e = (customEndDraft || '').trim();
                             if (s && e) {
-                              setStartDate(s);
-                              setEndDate(e);
+                              const startNorm = toYYYYMMDD(s);
+                              const endNorm = toYYYYMMDD(e);
+                              if (!startNorm || !endNorm) {
+                                setAnalyticsError('Invalid date format. Use calendar or YYYY-MM-DD.');
+                                return;
+                              }
+                              const startTime = new Date(startNorm).getTime();
+                              const endTime = new Date(endNorm).getTime();
+                              if (startTime <= endTime) {
+                                setStartDate(startNorm);
+                                setEndDate(endNorm);
+                              } else {
+                                setStartDate(endNorm);
+                                setEndDate(startNorm);
+                              }
+                              setAnalyticsError(null);
                               setShowDateDropdown(false);
                             }
                           }}
