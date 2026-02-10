@@ -3015,7 +3015,7 @@ const BDODashboardContent = () => {
                 color: '#111827',
                 margin: 0
               }}>
-                Vendor details
+                Contractor details
               </h2>
               <InfoTooltip
                 text="Shows the active vendor’s profile and contract details for this location."
@@ -3035,7 +3035,7 @@ const BDODashboardContent = () => {
                 color: '#6b7280',
                 fontSize: '14px'
               }}>
-                Loading vendor details...
+                Loading Contractor details...
               </div>
             )}
 
@@ -3094,7 +3094,7 @@ const BDODashboardContent = () => {
                       fontWeight: '600',
                       color: '#111827'
                     }}>
-                      {vendorData.annual_amount || 'N/A'}
+                      {vendorData.contract_amount || 'N/A'}
                     </div>
                   </div>
 
@@ -3112,7 +3112,7 @@ const BDODashboardContent = () => {
                       fontWeight: '600',
                       color: '#111827'
                     }}>
-                      {vendorData.frequency || 'N/A'}
+                      {vendorData.contract_frequency || 'N/A'}
                     </div>
                   </div>
                 </div>

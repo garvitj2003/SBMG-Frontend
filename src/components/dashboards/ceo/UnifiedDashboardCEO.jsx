@@ -1,6 +1,6 @@
 import React from 'react';
-import { 
-  LayoutDashboard, 
+import {
+  LayoutDashboard,
   FileText,
   CheckCircle,
   ListChecks,
@@ -27,6 +27,7 @@ import CEOGpsTrackingContent from './CEOGpsTrackingContent';
 import PaymentsContent from '../PaymentsContent';
 import CEOFeedbackContent from './CEOFeedback';
 import { useCEOLocation } from '../../../context/CEOLocationContext';
+import CEOContractorDetails from './CEOContractorDetails';
 
 const Sidebar = ({ activeItem, setActiveItem }) => {
   const menuItems = [
@@ -35,6 +36,7 @@ const Sidebar = ({ activeItem, setActiveItem }) => {
     { name: 'Attendance', icon: CheckCircle },
     { name: 'Inspection', icon: ListChecks },
     { name: 'GP Master Data', icon: Database },
+    { name: 'Contractor Details', icon: Database },
     { name: 'Schemes', icon: Briefcase },
     { name: 'Events', icon: Calendar },
     { name: 'GPS Tracking', icon: Truck },
@@ -43,7 +45,7 @@ const Sidebar = ({ activeItem, setActiveItem }) => {
     { name: 'Feedbacks', icon: MessageSquare }
   ];
 
- return (
+  return (
     <aside className="w-full md:w-64 lg:w-[272px] h-screen bg-green-50 border-r border-gray-200 flex flex-col m-0 p-0" style={{
       width: '272px',
       height: '100vh',
@@ -60,17 +62,17 @@ const Sidebar = ({ activeItem, setActiveItem }) => {
         paddingRight: '6px',
         margin: 0
       }}>
-       <div style={{
-         display: 'flex',
-         alignItems: 'center',
-         justifyContent: 'center',
-         gap: '12px',
-         backgroundColor: 'white',
-         border: '1px solid #d1d5db',
-         borderRadius: '8px',
-         margin: 10,
-         padding: '5px'
-       }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '12px',
+          backgroundColor: 'white',
+          border: '1px solid #d1d5db',
+          borderRadius: '8px',
+          margin: 10,
+          padding: '5px'
+        }}>
           {/* Swach Logo */}
           <div style={{
             width: '36px',
@@ -79,9 +81,9 @@ const Sidebar = ({ activeItem, setActiveItem }) => {
             alignItems: 'center',
             justifyContent: 'center'
           }}>
-            <img 
-              src={swachLogo} 
-              alt="Swach Logo" 
+            <img
+              src={swachLogo}
+              alt="Swach Logo"
               style={{
                 width: '100%',
                 height: '100%',
@@ -116,9 +118,9 @@ const Sidebar = ({ activeItem, setActiveItem }) => {
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isActive = item.name === activeItem;
-            
+
             return (
-              <li key={item.name} style={{marginTop: '10px'}}>
+              <li key={item.name} style={{ marginTop: '10px' }}>
                 <button
                   onClick={() => setActiveItem(item.name)}
                   style={{
@@ -147,7 +149,7 @@ const Sidebar = ({ activeItem, setActiveItem }) => {
                     fontSize: '14px',
                     fontWeight: '500'
                   }}>{item.name}</span>
-                 
+
                 </button>
               </li>
             );
@@ -162,7 +164,7 @@ const UnifiedDashboardCEO = () => {
   const [activeItem, setActiveItem] = useState('Dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const ceoLocation = useCEOLocation();
-  
+
   // Show loading screen while CEO data is being fetched
   if (!ceoLocation || ceoLocation.loadingCEOData || !ceoLocation.ceoDistrictId) {
     return (
@@ -201,6 +203,8 @@ const UnifiedDashboardCEO = () => {
         return <CEOInspectionContent />;
       case 'GP Master Data':
         return <CEOVillageMasterContent />;
+      case 'Contractor Details':
+        return <CEOContractorDetails />;
       case 'Schemes':
         return <CEOSchemesContent />;
       case 'Events':

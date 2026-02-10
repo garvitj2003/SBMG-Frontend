@@ -27,6 +27,7 @@ import VDOGpsTrackingContent from './VDOGpsTrackingContent';
 import PaymentsContent from '../PaymentsContent';
 import VDOFeedbackContent from './VDOFeedback';
 import { useVDOLocation } from '../../../context/VDOLocationContext';
+import VDOContractorDetails from './VDOContractorDetails';
 
 const Sidebar = ({ activeItem, setActiveItem }) => {
   const menuItems = [
@@ -35,6 +36,7 @@ const Sidebar = ({ activeItem, setActiveItem }) => {
     { name: 'Attendance', icon: CheckCircle },
     { name: 'Inspection', icon: ListChecks },
     { name: 'GP Master Data', icon: Database },
+    { name: 'Contractor Details', icon: Database },
     { name: 'Schemes', icon: Briefcase },
     { name: 'Events', icon: Calendar },
     { name: 'GPS Tracking', icon: Truck },
@@ -201,6 +203,8 @@ const UnifiedDashboardVDO = () => {
         return <VDOInspectionContent />;
       case 'GP Master Data':
         return <VDOVillageMasterContent />;
+      case 'Contractor Details':
+        return <VDOContractorDetails />;
       case 'Schemes':
         return <VDOSchemesContent />;
       case 'Events':

@@ -27,6 +27,7 @@ import BDOGpsTrackingContent from './BDOGpsTrackingContent';
 import PaymentsContent from '../PaymentsContent';
 import BDOFeedbackContent from './BDOFeedback';
 import { useBDOLocation } from '../../../context/BDOLocationContext';
+import BDOContractorDetails from './BDOContractorDetails';
 
 const Sidebar = ({ activeItem, setActiveItem }) => {
   const menuItems = [
@@ -35,6 +36,7 @@ const Sidebar = ({ activeItem, setActiveItem }) => {
     { name: 'Attendance', icon: CheckCircle },
     { name: 'Inspection', icon: ListChecks },
     { name: 'GP Master Data', icon: Database },
+    { name: 'Contractor Details', icon: Database },
     { name: 'Schemes', icon: Briefcase },
     { name: 'Events', icon: Calendar },
     { name: 'GPS Tracking', icon: Truck },
@@ -201,6 +203,8 @@ const UnifiedDashboardBDO = () => {
         return <BDOInspectionContent />;
       case 'GP Master Data':
         return <BDOVillageMasterContent />;
+      case 'Contractor Details':
+        return <BDOContractorDetails />;
       case 'Schemes':
         return <BDOSchemesContent />;
       case 'Events':

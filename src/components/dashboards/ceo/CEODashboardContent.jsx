@@ -1,15 +1,14 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { MapPin, ChevronDown, ChevronRight, Calendar, List, TrendingUp } from 'lucide-react';
+import { Calendar, ChevronDown, ChevronRight, List, MapPin } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Chart from 'react-apexcharts';
-import number1 from '../../../assets/images/number1.png';
 import number2 from '../../../assets/images/nnumber2.png';
+import number1 from '../../../assets/images/number1.png';
 import number3 from '../../../assets/images/number3.png';
-import apiClient from '../../../services/api';
 import { useCEOLocation } from '../../../context/CEOLocationContext';
-import LocationDisplay from '../../common/LocationDisplay';
-import SendNoticeModal from '../common/SendNoticeModal';
-import NoDataFound from '../common/NoDataFound';
+import apiClient from '../../../services/api';
 import { InfoTooltip } from '../../common/Tooltip';
+import NoDataFound from '../common/NoDataFound';
+import SendNoticeModal from '../common/SendNoticeModal';
 
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -3127,7 +3126,7 @@ const CEODashboardContent = () => {
                 color: '#111827',
                 margin: 0
               }}>
-                Vendor details
+                Contractor details
               </h2>
               <InfoTooltip
                 text="Shows the active vendor’s profile and contract details for this location."
@@ -3147,7 +3146,7 @@ const CEODashboardContent = () => {
                 color: '#6b7280',
                 fontSize: '14px'
               }}>
-                Loading vendor details...
+                Loading Contractor details...
               </div>
             )}
 
@@ -3206,7 +3205,7 @@ const CEODashboardContent = () => {
                       fontWeight: '600',
                       color: '#111827'
                     }}>
-                      {vendorData.annual_amount || 'N/A'}
+                      {vendorData.contract_amount || 'N/A'}
                     </div>
                   </div>
 
@@ -3224,7 +3223,7 @@ const CEODashboardContent = () => {
                       fontWeight: '600',
                       color: '#111827'
                     }}>
-                      {vendorData.frequency || 'N/A'}
+                      {vendorData.contract_frequency || 'N/A'}
                     </div>
                   </div>
                 </div>
