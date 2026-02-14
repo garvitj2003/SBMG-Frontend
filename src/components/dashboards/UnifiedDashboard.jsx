@@ -10,7 +10,8 @@ import {
   Truck,
   Bell,
   CreditCard,
-  MessageSquare
+  MessageSquare,
+  Building
 } from 'lucide-react';
 import { useState } from 'react';
 import swachLogo from '../../assets/logos/swach.png';
@@ -35,7 +36,7 @@ const Sidebar = ({ activeItem, setActiveItem }) => {
     { name: 'Attendance', icon: CheckCircle },
     { name: 'Inspection', icon: ListChecks },
     { name: 'GP Master Data', icon: Database },
-    { name: 'Contractor Details', icon: Database },
+    { name: 'Contractor Details', icon: Building },
     { name: 'Schemes', icon: Briefcase },
     { name: 'Events', icon: Calendar },
     { name: 'GPS Tracking', icon: Truck },
