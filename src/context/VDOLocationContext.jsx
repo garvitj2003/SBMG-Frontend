@@ -78,6 +78,18 @@ export const VDOLocationProvider = ({ children }) => {
     };
   }, [vdoDistrictId, vdoBlockId, vdoGPId, vdoDistrictName, vdoBlockName, vdoGPName]);
 
+  // Location path for display - skip generic "District", "Block", "Village" to avoid "District DISTRICT" etc.
+  const getLocationPath = useCallback(() => {
+    const rawDistrict = (vdoDistrictName || '').trim();
+    const districtLabel = (rawDistrict && rawDistrict.toLowerCase() !== 'district') ? `${vdoDistrictName} DISTRICT` : '';
+    const rawBlock = (vdoBlockName || '').trim();
+    const blockLabel = (rawBlock && rawBlock.toLowerCase() !== 'block') ? rawBlock : '';
+    const rawGP = (vdoGPName || '').trim();
+    const gpLabel = (rawGP && rawGP.toLowerCase() !== 'village') ? rawGP : '';
+    const parts = ['Rajasthan', districtLabel, blockLabel, gpLabel].filter(Boolean);
+    return parts.join(' / ');
+  }, [vdoDistrictName, vdoBlockName, vdoGPName]);
+
   const value = useMemo(() => ({
     // State - VDO's fixed location data
     vdoDistrictId,
@@ -89,7 +101,8 @@ export const VDOLocationProvider = ({ children }) => {
     loadingVDOData,
     
     // Actions
-    getCurrentLocationInfo
+    getCurrentLocationInfo,
+    getLocationPath
   }), [
     vdoDistrictId,
     vdoDistrictName,
@@ -98,7 +111,8 @@ export const VDOLocationProvider = ({ children }) => {
     vdoGPId,
     vdoGPName,
     loadingVDOData,
-    getCurrentLocationInfo
+    getCurrentLocationInfo,
+    getLocationPath
   ]);
 
   return (

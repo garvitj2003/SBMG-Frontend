@@ -1205,11 +1205,12 @@ const VillageMasterContent = () => {
               return `Rajasthan / ${selectedLocation}`;
             } else if (activeScope === 'Blocks') {
               const districtName = selectedDistrictForHierarchy?.name || selectedLocation;
-              return `Rajasthan / ${districtName} / ${selectedLocation}`;
+              const blockName = selectedBlockForHierarchy?.name || selectedLocation;
+              return `Rajasthan / ${districtName} / ${blockName}`;
             } else if (activeScope === 'GPs') {
               const districtName = selectedDistrictForHierarchy?.name || '';
               const blockName = selectedBlockForHierarchy?.name || '';
-              return `Rajasthan / ${districtName} / ${blockName} / ${selectedLocation}`;
+              return `Rajasthan / ${districtName} / ${blockName} / ${selectedLocation || ''}`;
             }
             return `Rajasthan / ${selectedLocation}`;
           })()}

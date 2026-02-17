@@ -321,20 +321,20 @@ const BDOInspectionContent = () => {
 
   const handleDistrictClick = (district) => {
     if (activeScope === 'Districts') {
-      setSelectedDistrictId(district.id);
+      setSelectedDistrictId?.(district.id);
       setSelectedLocation(district.name);
-      setSelectedLocationId(district.id);
+      setSelectedLocationId?.(district.id);
       fetchBlocks(district.id);
       setShowLocationDropdown(false);
     } else if (activeScope === 'Blocks') {
-      setSelectedDistrictForHierarchy(district);
-      setSelectedBlockForHierarchy(null);
+      setSelectedDistrictForHierarchy?.(district);
+      setSelectedBlockForHierarchy?.(null);
       setSelectedLocation('Select Block');
       setDropdownLevel('blocks');
       fetchBlocks(district.id);
     } else if (activeScope === 'GPs') {
-      setSelectedDistrictForHierarchy(district);
-      setSelectedBlockForHierarchy(null);
+      setSelectedDistrictForHierarchy?.(district);
+      setSelectedBlockForHierarchy?.(null);
       setSelectedLocation('Select Block');
       setDropdownLevel('blocks');
       fetchBlocks(district.id);
@@ -355,16 +355,17 @@ const BDOInspectionContent = () => {
     if (activeScope === 'Blocks') {
       const district = districts.find(d => d.id === (block.district_id || selectedDistrictForHierarchy?.id)) || selectedDistrictForHierarchy;
       if (district) {
-        setSelectedDistrictId(district.id);
-        setSelectedDistrictForHierarchy(district);
+        setSelectedDistrictId?.(district.id);
+        setSelectedDistrictForHierarchy?.(district);
       }
-      setSelectedBlockId(block.id);
-      setSelectedBlockForHierarchy(block);
+      setSelectedBlockId?.(block.id);
+      setSelectedBlockForHierarchy?.(block);
       setSelectedLocation(block.name);
+      setSelectedLocationId?.(block.id);
       fetchGramPanchayats(district?.id, block.id);
       setShowLocationDropdown(false);
     } else if (activeScope === 'GPs') {
-      setSelectedBlockForHierarchy(block);
+      setSelectedBlockForHierarchy?.(block);
       setSelectedLocation('Select GP');
       setDropdownLevel('gps');
       fetchGramPanchayats(selectedDistrictForHierarchy?.id || selectedDistrictId, block.id);
@@ -376,16 +377,17 @@ const BDOInspectionContent = () => {
     const district = districts.find(d => d.id === (block?.district_id || selectedDistrictForHierarchy?.id || selectedDistrictId)) || selectedDistrictForHierarchy;
 
     if (district) {
-      setSelectedDistrictId(district.id);
-      setSelectedDistrictForHierarchy(district);
+      setSelectedDistrictId?.(district.id);
+      setSelectedDistrictForHierarchy?.(district);
     }
     if (block) {
-      setSelectedBlockId(block.id);
-      setSelectedBlockForHierarchy(block);
+      setSelectedBlockId?.(block.id);
+      setSelectedBlockForHierarchy?.(block);
     }
 
     setSelectedGPId(gp.id);
     setSelectedLocation(gp.name);
+    setSelectedLocationId?.(gp.id);
     fetchGramPanchayats(district?.id, block?.id || gp.block_id);
     setShowLocationDropdown(false);
   };
@@ -788,8 +790,8 @@ const BDOInspectionContent = () => {
       params.append('level', apiLevel);
       console.log('📊 Level:', apiLevel);
 
-      // BDO: Only pass gp_id (backend knows district/block from GP)
-      if (selectedGPId) {
+      // BDO: Only pass gp_id when not DISTRICT level (API: do not send IDs when level is DISTRICT)
+      if (apiLevel !== 'DISTRICT' && selectedGPId) {
         params.append('gp_id', selectedGPId);
         console.log('🏡 GP ID:', selectedGPId);
       }
@@ -1873,19 +1875,23 @@ const BDOInspectionContent = () => {
           fontWeight: '600'
         }}>
           {(() => {
+            const rawDistrict = (bdoDistrictName || '').trim();
+            const districtLabel = (rawDistrict && rawDistrict.toLowerCase() !== 'district') ? `${bdoDistrictName} DISTRICT` : '';
+            const rawBlock = (selectedBlockForHierarchy?.name || bdoBlockName || selectedLocation || '').trim();
+            const blockName = (rawBlock && rawBlock.toLowerCase() !== 'block') ? rawBlock : '';
             if (activeScope === 'State') {
               return selectedLocation;
             } else if (activeScope === 'Districts') {
-              return `Rajasthan / ${selectedLocation}`;
+              return districtLabel ? `Rajasthan / ${districtLabel}` : `Rajasthan / ${rawDistrict || selectedLocation}`;
             } else if (activeScope === 'Blocks') {
-              const districtName = selectedDistrictForHierarchy?.name || selectedLocation;
-              return `Rajasthan / ${districtName} / ${selectedLocation}`;
+              const parts = ['Rajasthan', districtLabel, blockName].filter(Boolean);
+              return parts.join(' / ');
             } else if (activeScope === 'GPs') {
-              const districtName = selectedDistrictForHierarchy?.name || '';
-              const blockName = selectedBlockForHierarchy?.name || '';
-              return `Rajasthan / ${districtName} / ${blockName} / ${selectedLocation}`;
+              const gpName = (selectedLocation || '').trim();
+              const parts = ['Rajasthan', districtLabel, blockName, gpName].filter(Boolean);
+              return parts.join(' / ');
             }
-            return `Rajasthan / ${selectedLocation}`;
+            return districtLabel ? `Rajasthan / ${districtLabel}` : `Rajasthan / ${rawDistrict || selectedLocation}`;
           })()}
         </span>
         

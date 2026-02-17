@@ -561,6 +561,7 @@ const AttendanceContent = () => {
         fetchBlocks(location.id);
       } else if (dropdownLevel === 'blocks') {
         // Block selected
+        setSelectedBlockForHierarchy(location);
         trackDropdownChange(location.name, location.id, selectedDistrictForHierarchy.id);
         updateLocationSelection('Blocks', location.name, location.id, selectedDistrictForHierarchy.id, location.id, null, 'dropdown_change');
         console.log('Selected block ID:', location.id, 'Name:', location.name, 'District ID:', selectedDistrictForHierarchy.id);
@@ -2518,11 +2519,12 @@ const AttendanceContent = () => {
               return `Rajasthan / ${selectedLocation}`;
             } else if (activeScope === 'Blocks') {
               const districtName = selectedDistrictForHierarchy?.name || selectedLocation;
-              return `Rajasthan / ${districtName} / ${selectedLocation}`;
+              const blockName = selectedBlockForHierarchy?.name || selectedLocation;
+              return `Rajasthan / ${districtName} / ${blockName}`;
             } else if (activeScope === 'GPs') {
               const districtName = selectedDistrictForHierarchy?.name || '';
               const blockName = selectedBlockForHierarchy?.name || '';
-              return `Rajasthan / ${districtName} / ${blockName} / ${selectedLocation}`;
+              return `Rajasthan / ${districtName} / ${blockName} / ${selectedLocation || ''}`;
             }
             return `Rajasthan / ${selectedLocation}`;
           })()}
@@ -2893,7 +2895,7 @@ const AttendanceContent = () => {
                 marginTop: '0px',
                 marginLeft: '20px'
               }}>
-                {analyticsError ? 'Error' : attendanceMetrics[0].value}
+                {analyticsError ? '—' : attendanceMetrics[0].value}
               </div>
               
               {/* Loading indicator */}
@@ -2981,7 +2983,7 @@ const AttendanceContent = () => {
                     color: analyticsError ? '#ef4444' : '#111827',
                     marginLeft: '20px'
                   }}>
-                    {analyticsError ? 'Error' : item.value}
+                    {analyticsError ? '—' : item.value}
                   </div>
                   
                   {/* Loading indicator */}

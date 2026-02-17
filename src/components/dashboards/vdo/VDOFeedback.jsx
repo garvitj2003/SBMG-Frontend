@@ -3,10 +3,12 @@ import { MessageSquare, Search, X, ChevronDown, Star } from 'lucide-react';
 import Chart from 'react-apexcharts';
 import { feedbackAPI } from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
+import { useVDOLocation } from '../../../context/VDOLocationContext';
 import { InfoTooltip } from '../../common/Tooltip';
 
 const VDOFeedbackContent = () => {
   const { user } = useAuth();
+  const { getLocationPath } = useVDOLocation() || {};
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [selectedRating, setSelectedRating] = useState(5);
   const [feedback, setFeedback] = useState('');
@@ -481,7 +483,7 @@ const VDOFeedbackContent = () => {
       {/* Title Section */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px', marginLeft: '16px', marginRight: '16px' }}>
         <div>
-          <p style={{ fontSize: '14px', color: '#6B7280', margin: 0 }}>Rajasthan / All</p>
+          <p style={{ fontSize: '14px', color: '#6B7280', margin: 0 }}>{getLocationPath ? getLocationPath() : 'Rajasthan / All'}</p>
         </div>
         <button
           onClick={handleOpenModal}

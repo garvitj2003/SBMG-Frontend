@@ -149,7 +149,8 @@ const VDOAttendanceContent = () => {
     vdoBlockName,
     vdoGPId,
     vdoGPName,
-    loadingVDOData
+    loadingVDOData,
+    getLocationPath,
   } = useVDOLocation();
 
   // VDO: Always works at villages level (no geo tabs)
@@ -2143,6 +2144,13 @@ const VDOAttendanceContent = () => {
         </div>
       </div>
 
+      {/* Location Indicator - VDO fixed location, no generic "District DISTRICT" / "Block" / "Village" */}
+      <div style={{ padding: '10px 0px 0px 16px' }}>
+        <span style={{ fontSize: '14px', color: '#6B7280', fontWeight: '600' }}>
+          {getLocationPath ? getLocationPath() : 'Rajasthan'}
+        </span>
+      </div>
+
       {/* Overview Section */}
       <div style={{
         backgroundColor: 'white',
@@ -2507,7 +2515,7 @@ const VDOAttendanceContent = () => {
                 marginTop: '0px',
                 marginLeft: '20px'
               }}>
-                {analyticsError ? 'Error' : attendanceMetrics[0].value}
+                {analyticsError ? '—' : attendanceMetrics[0].value}
               </div>
               
               {/* Loading indicator */}
@@ -2595,7 +2603,7 @@ const VDOAttendanceContent = () => {
                     color: analyticsError ? '#ef4444' : '#111827',
                     marginLeft: '20px'
                   }}>
-                    {analyticsError ? 'Error' : item.value}
+                    {analyticsError ? '—' : item.value}
                   </div>
                   
                   {/* Loading indicator */}

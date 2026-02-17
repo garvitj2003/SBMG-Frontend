@@ -22,26 +22,33 @@ const VDOInspectionContent = () => {
     vdoBlockName,
     vdoGPId,
     vdoGPName,
-    loadingVDOData
+    loadingVDOData,
+    getLocationPath,
   } = useVDOLocation();
   
   // VDO: Always works at villages level (no geo tabs)
   const activeScope = 'GPs';
-  const selectedLocation = vdoGPName || 'Village';
-  const selectedLocationId = vdoGPId;
-  const selectedGPId = vdoGPId;
+  // Local GP selection when VDO picks a village from dropdown (overrides context until page refresh)
+  const [localGPSelection, setLocalGPSelection] = useState(null);
+  const selectedLocation = (localGPSelection?.name ?? vdoGPName) || 'Village';
+  const selectedLocationId = localGPSelection?.id ?? vdoGPId;
+  const selectedGPId = localGPSelection?.id ?? vdoGPId;
   const selectedDistrictId = vdoDistrictId;
   const selectedBlockId = vdoBlockId;
   const selectedDistrictForHierarchy = vdoDistrictId ? { id: vdoDistrictId, name: vdoDistrictName } : null;
   const selectedBlockForHierarchy = vdoBlockId ? { id: vdoBlockId, name: vdoBlockName } : null;
-  const selectedGPForHierarchy = vdoGPId ? { id: vdoGPId, name: vdoGPName } : null;
+  const selectedGPForHierarchy = (localGPSelection ? { id: localGPSelection.id, name: localGPSelection.name } : null) ?? (vdoGPId ? { id: vdoGPId, name: vdoGPName } : null);
   const dropdownLevel = 'villages';
   
-  // No-op functions for VDO
+  // VDO: Setters that update local GP selection when user picks from dropdown
   const setActiveScope = () => {};
-  const setSelectedLocation = () => {};
+  const setSelectedLocation = (name) => {
+    if (name != null && typeof name === 'string') setLocalGPSelection(prev => (prev ? { ...prev, name } : { id: null, name }));
+  };
   const setSelectedLocationId = () => {};
-  const setSelectedGPId = () => {};
+  const setSelectedGPId = (id) => {
+    if (id != null) setLocalGPSelection(prev => (prev ? { ...prev, id } : { id, name: '' }));
+  };
   const setDropdownLevel = () => {};
   const setSelectedGPForHierarchy = () => {};
   const setSelectedDistrictForHierarchy = () => {};
@@ -380,9 +387,8 @@ const VDOInspectionContent = () => {
       setSelectedBlockForHierarchy(block);
     }
 
-    setSelectedGPId(gp.id);
-    setSelectedLocation(gp.name);
-    fetchGramPanchayats(district?.id, block?.id || gp.block_id);
+    // VDO: Update local GP selection so dropdown selection and data refresh work
+    setLocalGPSelection({ id: gp.id, name: gp.name });
     setShowLocationDropdown(false);
   };
 
@@ -784,8 +790,8 @@ const VDOInspectionContent = () => {
       params.append('level', apiLevel);
       console.log('📊 Level:', apiLevel);
 
-      // BDO: Only pass gp_id (backend knows district/block from GP)
-      if (selectedGPId) {
+      // VDO: Only pass gp_id when not DISTRICT level (API: do not send IDs when level is DISTRICT)
+      if (apiLevel !== 'DISTRICT' && selectedGPId) {
         params.append('gp_id', selectedGPId);
         console.log('🏡 GP ID:', selectedGPId);
       }
@@ -1766,6 +1772,13 @@ const VDOInspectionContent = () => {
             )}
           </div>
         </div>
+      </div>
+
+      {/* Location Indicator - VDO fixed location, no generic "District DISTRICT" / "Block" / "Village" */}
+      <div style={{ padding: '10px 0px 0px 16px' }}>
+        <span style={{ fontSize: '14px', color: '#6B7280', fontWeight: '600' }}>
+          {getLocationPath ? getLocationPath() : 'Rajasthan'}
+        </span>
       </div>
 
       {/* Overview Section - Hide when My Inspections is active (except in GP view) */}

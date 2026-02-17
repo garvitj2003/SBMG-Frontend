@@ -358,16 +358,17 @@ const InspectionContent = () => {
     if (activeScope === 'Blocks') {
       const district = districts.find(d => d.id === (block.district_id || selectedDistrictForHierarchy?.id)) || selectedDistrictForHierarchy;
       if (district) {
-        setSelectedDistrictId(district.id);
-        setSelectedDistrictForHierarchy(district);
+        setSelectedDistrictId?.(district.id);
+        setSelectedDistrictForHierarchy?.(district);
       }
-      setSelectedBlockId(block.id);
-      setSelectedBlockForHierarchy(block);
+      setSelectedBlockId?.(block.id);
+      setSelectedBlockForHierarchy?.(block);
       setSelectedLocation(block.name);
+      setSelectedLocationId?.(block.id);
       fetchGramPanchayats(district?.id, block.id);
       setShowLocationDropdown(false);
     } else if (activeScope === 'GPs') {
-      setSelectedBlockForHierarchy(block);
+      setSelectedBlockForHierarchy?.(block);
       setSelectedLocation('Select GP');
       setDropdownLevel('gps');
       fetchGramPanchayats(selectedDistrictForHierarchy?.id || selectedDistrictId, block.id);
@@ -379,16 +380,17 @@ const InspectionContent = () => {
     const district = districts.find(d => d.id === (block?.district_id || selectedDistrictForHierarchy?.id || selectedDistrictId)) || selectedDistrictForHierarchy;
 
     if (district) {
-      setSelectedDistrictId(district.id);
-      setSelectedDistrictForHierarchy(district);
+      setSelectedDistrictId?.(district.id);
+      setSelectedDistrictForHierarchy?.(district);
     }
     if (block) {
-      setSelectedBlockId(block.id);
-      setSelectedBlockForHierarchy(block);
+      setSelectedBlockId?.(block.id);
+      setSelectedBlockForHierarchy?.(block);
     }
 
     setSelectedGPId(gp.id);
     setSelectedLocation(gp.name);
+    setSelectedLocationId?.(gp.id);
     fetchGramPanchayats(district?.id, block?.id || gp.block_id);
     setShowLocationDropdown(false);
   };
@@ -814,15 +816,18 @@ const InspectionContent = () => {
       console.log('📊 Level:', apiLevel);
 
       // Add geography IDs based on selection
-      if (activeScope === 'Districts' && selectedDistrictId) {
-        params.append('district_id', selectedDistrictId);
-        console.log('🏙️  District ID:', selectedDistrictId);
-      } else if (activeScope === 'Blocks' && selectedBlockId) {
-        params.append('block_id', selectedBlockId);
-        console.log('🏘️  Block ID:', selectedBlockId);
-      } else if (activeScope === 'GPs' && selectedGPId) {
-        params.append('gp_id', selectedGPId);
-        console.log('🏡 GP ID:', selectedGPId);
+      // IMPORTANT: Do not send any IDs when level is DISTRICT (API requirement)
+      if (apiLevel !== 'DISTRICT') {
+        if (apiLevel === 'BLOCK' && selectedDistrictId) {
+          params.append('district_id', selectedDistrictId);
+          console.log('🏙️  District ID:', selectedDistrictId);
+        } else if (apiLevel === 'VILLAGE' && activeScope === 'Blocks' && selectedBlockId) {
+          params.append('block_id', selectedBlockId);
+          console.log('🏘️  Block ID:', selectedBlockId);
+        } else if (apiLevel === 'VILLAGE' && activeScope === 'GPs' && selectedGPId) {
+          params.append('gp_id', selectedGPId);
+          console.log('🏡 GP ID:', selectedGPId);
+        }
       }
 
       // Add date range if available
@@ -2005,11 +2010,12 @@ const InspectionContent = () => {
               return `Rajasthan / ${selectedLocation}`;
             } else if (activeScope === 'Blocks') {
               const districtName = selectedDistrictForHierarchy?.name || selectedLocation;
-              return `Rajasthan / ${districtName} / ${selectedLocation}`;
+              const blockName = selectedBlockForHierarchy?.name || selectedLocation;
+              return `Rajasthan / ${districtName} / ${blockName}`;
             } else if (activeScope === 'GPs') {
               const districtName = selectedDistrictForHierarchy?.name || '';
               const blockName = selectedBlockForHierarchy?.name || '';
-              return `Rajasthan / ${districtName} / ${blockName} / ${selectedLocation}`;
+              return `Rajasthan / ${districtName} / ${blockName} / ${selectedLocation || ''}`;
             }
             return `Rajasthan / ${selectedLocation}`;
           })()}

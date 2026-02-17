@@ -318,19 +318,19 @@ const CEOInspectionContent = () => {
 
   const handleDistrictClick = (district) => {
     if (activeScope === 'Districts') {
-      setSelectedDistrictId(district.id);
+      setSelectedDistrictId?.(district.id);
       setSelectedLocation(district.name);
-      setSelectedLocationId(district.id);
+      setSelectedLocationId?.(district.id);
       fetchBlocks(district.id);
       setShowLocationDropdown(false);
     } else if (activeScope === 'Blocks') {
-      setSelectedDistrictForHierarchy(district);
+      setSelectedDistrictForHierarchy?.(district);
       setSelectedBlockForHierarchy(null);
       setSelectedLocation('Select Block');
       setDropdownLevel('blocks');
       fetchBlocks(district.id);
     } else if (activeScope === 'GPs') {
-      setSelectedDistrictForHierarchy(district);
+      setSelectedDistrictForHierarchy?.(district);
       setSelectedBlockForHierarchy(null);
       setSelectedLocation('Select Block');
       setDropdownLevel('blocks');
@@ -352,12 +352,13 @@ const CEOInspectionContent = () => {
     if (activeScope === 'Blocks') {
       const district = districts.find(d => d.id === (block.district_id || selectedDistrictForHierarchy?.id)) || selectedDistrictForHierarchy;
       if (district) {
-        setSelectedDistrictId(district.id);
-        setSelectedDistrictForHierarchy(district);
+        setSelectedDistrictId?.(district.id);
+        setSelectedDistrictForHierarchy?.(district);
       }
       setSelectedBlockId(block.id);
       setSelectedBlockForHierarchy(block);
       setSelectedLocation(block.name);
+      setSelectedLocationId?.(block.id);
       fetchGramPanchayats(district?.id, block.id);
       setShowLocationDropdown(false);
     } else if (activeScope === 'GPs') {
@@ -373,8 +374,8 @@ const CEOInspectionContent = () => {
     const district = districts.find(d => d.id === (block?.district_id || selectedDistrictForHierarchy?.id || selectedDistrictId)) || selectedDistrictForHierarchy;
 
     if (district) {
-      setSelectedDistrictId(district.id);
-      setSelectedDistrictForHierarchy(district);
+      setSelectedDistrictId?.(district.id);
+      setSelectedDistrictForHierarchy?.(district);
     }
     if (block) {
       setSelectedBlockId(block.id);
@@ -383,6 +384,7 @@ const CEOInspectionContent = () => {
 
     setSelectedGPId(gp.id);
     setSelectedLocation(gp.name);
+    setSelectedLocationId?.(gp.id);
     fetchGramPanchayats(district?.id, block?.id || gp.block_id);
     setShowLocationDropdown(false);
   };
@@ -797,15 +799,18 @@ const CEOInspectionContent = () => {
       console.log('📊 Level:', apiLevel);
 
       // Add geography IDs based on selection
-      if (activeScope === 'Districts' && selectedDistrictId) {
-        params.append('district_id', selectedDistrictId);
-        console.log('🏙️  District ID:', selectedDistrictId);
-      } else if (activeScope === 'Blocks' && selectedBlockId) {
-        params.append('block_id', selectedBlockId);
-        console.log('🏘️  Block ID:', selectedBlockId);
-      } else if (activeScope === 'GPs' && selectedGPId) {
-        params.append('gp_id', selectedGPId);
-        console.log('🏡 GP ID:', selectedGPId);
+      // IMPORTANT: Do not send any IDs when level is DISTRICT (API requirement)
+      if (apiLevel !== 'DISTRICT') {
+        if (apiLevel === 'BLOCK' && selectedDistrictId) {
+          params.append('district_id', selectedDistrictId);
+          console.log('🏙️  District ID:', selectedDistrictId);
+        } else if (apiLevel === 'VILLAGE' && activeScope === 'Blocks' && selectedBlockId) {
+          params.append('block_id', selectedBlockId);
+          console.log('🏘️  Block ID:', selectedBlockId);
+        } else if (apiLevel === 'VILLAGE' && activeScope === 'GPs' && selectedGPId) {
+          params.append('gp_id', selectedGPId);
+          console.log('🏡 GP ID:', selectedGPId);
+        }
       }
 
       // Add date range if available
@@ -1939,19 +1944,23 @@ const CEOInspectionContent = () => {
               fontWeight: '600'
             }}>
               {(() => {
+                const rawDistrictName = selectedDistrictForHierarchy?.name || ceoDistrictName || '';
+                const districtLabel = (rawDistrictName && rawDistrictName.trim().toLowerCase() !== 'district') ? `${rawDistrictName} DISTRICT` : '';
                 if (activeScope === 'State') {
                   return selectedLocation;
                 } else if (activeScope === 'Districts') {
-                  return `Rajasthan / ${selectedLocation}`;
+                  return districtLabel ? `Rajasthan / ${districtLabel}` : `Rajasthan / ${rawDistrictName || selectedLocation}`;
                 } else if (activeScope === 'Blocks') {
-                  const districtName = selectedDistrictForHierarchy?.name || selectedLocation;
-                  return `Rajasthan / ${districtName} / ${selectedLocation}`;
+                  const blockName = selectedBlockForHierarchy?.name || selectedLocation;
+                  return districtLabel ? `Rajasthan / ${districtLabel} / ${blockName}` : `Rajasthan / ${blockName}`;
                 } else if (activeScope === 'GPs') {
-                  const districtName = selectedDistrictForHierarchy?.name || '';
                   const blockName = selectedBlockForHierarchy?.name || '';
-                  return `Rajasthan / ${districtName} / ${blockName} / ${selectedLocation}`;
+                  const gpName = selectedLocation || '';
+                  if (districtLabel) return `Rajasthan / ${districtLabel} / ${blockName} / ${gpName}`;
+                  const parts = ['Rajasthan', blockName, gpName].filter(Boolean);
+                  return parts.join(' / ');
                 }
-                return `Rajasthan / ${selectedLocation}`;
+                return districtLabel ? `Rajasthan / ${districtLabel}` : `Rajasthan / ${rawDistrictName || selectedLocation}`;
               })()}
             </span>
 

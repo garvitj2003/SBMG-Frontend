@@ -1748,19 +1748,23 @@ const normalizeStatusForFilter = (rawStatus) => {
           fontWeight: '600'
         }}>
           {(() => {
+            const rawDistrict = (bdoDistrictName || '').trim();
+            const districtLabel = (rawDistrict && rawDistrict.toLowerCase() !== 'district') ? `${bdoDistrictName} DISTRICT` : '';
+            const rawBlock = (selectedBlockForHierarchy?.name || bdoBlockName || selectedLocation || '').trim();
+            const blockName = (rawBlock && rawBlock.toLowerCase() !== 'block') ? rawBlock : '';
             if (activeScope === 'State') {
               return selectedLocation;
             } else if (activeScope === 'Districts') {
-              return `Rajasthan / ${selectedLocation}`;
+              return districtLabel ? `Rajasthan / ${districtLabel}` : `Rajasthan / ${rawDistrict || selectedLocation}`;
             } else if (activeScope === 'Blocks') {
-              const districtName = selectedDistrictForHierarchy?.name || selectedLocation;
-              return `Rajasthan / ${districtName} / ${selectedLocation}`;
+              const parts = ['Rajasthan', districtLabel, blockName].filter(Boolean);
+              return parts.join(' / ');
             } else if (activeScope === 'GPs') {
-              const districtName = selectedDistrictForHierarchy?.name || '';
-              const blockName = selectedBlockForHierarchy?.name || '';
-              return `Rajasthan / ${districtName} / ${blockName} / ${selectedLocation}`;
+              const gpName = (selectedLocation || '').trim();
+              const parts = ['Rajasthan', districtLabel, blockName, gpName].filter(Boolean);
+              return parts.join(' / ');
             }
-            return `Rajasthan / ${selectedLocation}`;
+            return districtLabel ? `Rajasthan / ${districtLabel}` : `Rajasthan / ${rawDistrict || selectedLocation}`;
           })()}
         </span>
       </div>
