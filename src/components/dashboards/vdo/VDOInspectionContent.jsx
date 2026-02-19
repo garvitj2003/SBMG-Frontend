@@ -1407,7 +1407,7 @@ const VDOInspectionContent = () => {
                                  (typeof photo === 'object' && photo.description ? photo.description : `Photo ${index + 1}`);
               return `
                 <div class="photo-item">
-                  <img src="${photoUrl}" alt="${photoCaption}" onerror="this.style.display='none'; this.nextElementSibling.innerHTML='Image not available';" />
+                  <img src="${photoUrl}" alt="${photoCaption}" />
                   <div class="photo-caption">${photoCaption}</div>
                 </div>
               `;
