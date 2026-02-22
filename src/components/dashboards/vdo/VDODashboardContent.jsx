@@ -1425,11 +1425,11 @@ const VDODashboardContent = () => {
               height: 40,
               sparkline: { enabled: true }
             },
-            stroke: { curve: 'smooth', width: 2, colors: ['#f97316'] },
+            stroke: { curve: 'smooth', width: 2, colors: ['#8b5cf6'] },
             fill: {
               type: 'solid',
               opacity: 0.10,
-              colors: ['#f97316']
+              colors: ['#8b5cf6']
             },
             tooltip: { enabled: false },
             grid: { show: false },

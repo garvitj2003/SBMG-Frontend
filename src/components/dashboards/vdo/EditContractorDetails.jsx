@@ -21,11 +21,9 @@ const EditContractorDetails = ({ isOpen, onClose, editData, onsuccess, gpId }) =
 
     const handlePhoneChange = (e) => {
         const value = e.target.value.replace(/\D/g, ""); // only numbers
-
         if (value.length <= 10) {
             setFormData({ ...formData, phone: value });
         }
-
     };
 
 

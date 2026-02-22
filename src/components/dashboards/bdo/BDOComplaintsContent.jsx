@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { MapPin, ChevronDown, ChevronRight, Calendar, List, Search, Filter, Download, Eye, Edit, Trash2, CheckCircle, XCircle, Clock , Plus, X, Star, User} from 'lucide-react';
+import { MapPin, ChevronDown, ChevronRight, Calendar, List, Search, Filter, Download, Eye, Edit, Trash2, CheckCircle, XCircle, Clock, Plus, X, Star, User } from 'lucide-react';
 import Chart from 'react-apexcharts';
 import apiClient, { noticesAPI } from '../../../services/api';
 import LocationDisplay from '../../common/LocationDisplay';
@@ -32,15 +32,15 @@ const BDOComplaintsContent = () => {
     bdoBlockName,
     loadingBDOData
   } = useBDOLocation();
-  
+
   // BDO always uses their district ID and block ID from /me API
   const selectedDistrictId = bdoDistrictId || null;
   const selectedBlockId = bdoBlockId || null;
   const selectedDistrictForHierarchy = bdoDistrictId ? { id: bdoDistrictId, name: bdoDistrictName } : null;
   const selectedBlockForHierarchy = bdoBlockId ? { id: bdoBlockId, name: bdoBlockName } : null;
-  const setSelectedDistrictForHierarchy = () => {}; // No-op for BDO
-  const setSelectedBlockId = () => {}; // No-op for BDO
-  const setSelectedBlockForHierarchy = () => {}; // No-op for BDO
+  const setSelectedDistrictForHierarchy = () => { }; // No-op for BDO
+  const setSelectedBlockId = () => { }; // No-op for BDO
+  const setSelectedBlockForHierarchy = () => { }; // No-op for BDO
 
   const trackTabChange = useCallback((scope) => {
     console.log('Tab changed to:', scope);
@@ -48,14 +48,14 @@ const BDOComplaintsContent = () => {
       contextTrackTabChange(scope);
     }
   }, [contextTrackTabChange]);
-  
+
   const trackDropdownChange = useCallback((location, locationId, districtId, blockId, gpId) => {
     console.log('Dropdown changed to:', location);
     if (typeof contextTrackDropdownChange === 'function') {
       contextTrackDropdownChange(location, locationId, districtId, blockId, gpId);
     }
   }, [contextTrackDropdownChange]);
-  
+
   const getCurrentLocationInfo = useCallback(() => {
     if (typeof contextGetCurrentLocationInfo === 'function') {
       return contextGetCurrentLocationInfo();
@@ -68,7 +68,7 @@ const BDOComplaintsContent = () => {
       gpId: selectedGPId
     };
   }, [contextGetCurrentLocationInfo, activeScope, selectedLocation, selectedDistrictId, selectedBlockId, selectedGPId]);
-  
+
   const updateLocationSelection = useCallback((scope, location, locationId, districtId, blockId, gpId, changeType) => {
     console.log('🔄 updateLocationSelection called:', { scope, location, locationId, districtId, blockId, gpId, changeType });
     if (typeof contextUpdateLocationSelection === 'function') {
@@ -105,7 +105,7 @@ const BDOComplaintsContent = () => {
   const [noticeCategories, setNoticeCategories] = useState([]);
   const [loadingNoticeCategories, setLoadingNoticeCategories] = useState(false);
   const [sendingNotice, setSendingNotice] = useState(false);
-  
+
   // Notice form state
   const [noticeForm, setNoticeForm] = useState({
     to: '',
@@ -114,7 +114,7 @@ const BDOComplaintsContent = () => {
     categoryName: '',
     details: ''
   });
-  
+
   // Form state
   const [complaintForm, setComplaintForm] = useState({
     complaintTypeId: '',
@@ -143,7 +143,7 @@ const BDOComplaintsContent = () => {
   const [selectedDay, setSelectedDay] = useState(null); // null means not selected
   const [showDateDropdown, setShowDateDropdown] = useState(false);
   const [selectionStep, setSelectionStep] = useState('year'); // 'year', 'month', 'day'
-  
+
   // Date range state
   const [selectedDateRange, setSelectedDateRange] = useState('Today');
   const [startDate, setStartDate] = useState(() => {
@@ -163,7 +163,7 @@ const BDOComplaintsContent = () => {
 
   const scopeButtons = ['GPs']; // BDO can only view GPs
 
-  const filterButtons = ['Open', 'Verified', 'Resolved', 'Closed'];
+  const filterButtons = ['Open', 'Resolved', 'Verified', 'Closed'];
 
   // Predefined date ranges
   const dateRanges = [
@@ -323,19 +323,19 @@ const BDOComplaintsContent = () => {
     const moduleName = 'Complaints';
     const kpiName = complaint.title || complaint.complaint_type || 'Complaint Type';
     const kpiFigure = complaint.statusDisplay || complaint.status || complaint.id || 'N/A';
-    
+
     return `You have been notified for poor performance in "${moduleName}" domain. Your "${kpiName}" is "${kpiFigure}", which needs to be improved. Revert with reason of poor performance and increase your performance within a month to avoid any consequent action.`;
   };
 
   // Open notice modal with complaint data
   const handleOpenNoticeModal = (complaint) => {
     setSelectedComplaintForNotice(complaint);
-    
+
     // For complaints module, recipient is always VDO
     const recipient = 'VDO';
     const subject = `Notice regarding Complaint ${complaint.id}`;
     const details = generateNoticeBody(complaint);
-    
+
     setNoticeForm({
       to: recipient,
       subject,
@@ -343,7 +343,7 @@ const BDOComplaintsContent = () => {
       categoryName: '',
       details
     });
-    
+
     fetchNoticeCategories();
     setShowNoticeModal(true);
   };
@@ -354,7 +354,7 @@ const BDOComplaintsContent = () => {
     trackTabChange(scope);
     setActiveScope(scope);
     setShowLocationDropdown(false);
-    
+
     // Use updateLocationSelection like dashboard for proper state management
     if (scope === 'State') {
       // For State scope, set Rajasthan as default and disable dropdown
@@ -464,10 +464,10 @@ const BDOComplaintsContent = () => {
   // Click outside handler
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (!event.target.closest('[data-location-dropdown]') && 
-          !event.target.closest('[data-date-dropdown]') && 
-          !event.target.closest('[data-top3-dropdown]') &&
-          !event.target.closest('[data-filter-dropdown]')) {
+      if (!event.target.closest('[data-location-dropdown]') &&
+        !event.target.closest('[data-date-dropdown]') &&
+        !event.target.closest('[data-top3-dropdown]') &&
+        !event.target.closest('[data-filter-dropdown]')) {
         setShowLocationDropdown(false);
         setShowDateDropdown(false);
         setShowFilterDropdown(false);
@@ -525,7 +525,7 @@ const BDOComplaintsContent = () => {
       const status = item.status?.toUpperCase();
       const count = item.count || 0;
       counts.total += count;
-      
+
       switch (status) {
         case 'OPEN':
           counts.open += count;
@@ -591,24 +591,24 @@ const BDOComplaintsContent = () => {
 
       const url = `/complaints?${params.toString()}`;
       console.log('🌐 Full API URL:', url);
-      
+
       const response = await apiClient.get(url);
-      
+
       console.log('✅ Complaints List API Response:', {
         status: response.status,
         count: response.data?.length || 0,
         sample: response.data?.slice(0, 2)
       });
-      
+
       setComplaintsListData(response.data || []);
       console.log('📊 Complaints data set:', response.data?.length || 0, 'complaints');
       console.log('🔄 ===== END COMPLAINTS LIST API CALL =====\n');
-      
+
     } catch (error) {
       console.error('❌ ===== COMPLAINTS LIST API ERROR =====');
       console.error('Error:', error);
       console.error('🔄 ===== END COMPLAINTS LIST API ERROR =====\n');
-      
+
       setComplaintsError(error.message || 'Failed to fetch complaints data');
       setComplaintsListData([]);
     } finally {
@@ -661,30 +661,30 @@ const BDOComplaintsContent = () => {
       const url = `/complaints/analytics/geo?${params.toString()}`;
       console.log('🌐 Full API URL:', url);
       console.log('🔗 Complete URL:', `${apiClient.defaults.baseURL}${url}`);
-      
+
       // Check if token exists
       const token = localStorage.getItem('access_token');
       console.log('🔑 Token Status:', token ? 'Present' : 'Missing');
       if (token) {
         console.log('🔑 Token Preview:', token.substring(0, 20) + '...');
       }
-      
+
       const response = await apiClient.get(url);
-      
+
       console.log('✅ Complaints Analytics API Response:', {
         status: response.status,
         statusText: response.statusText,
         data: response.data
       });
-      
+
       console.log('📦 Response Data Structure:', {
         geo_type: response.data?.geo_type,
         response_count: response.data?.response?.length,
         sample_data: response.data?.response?.slice(0, 2)
       });
-      
+
       setAnalyticsData(response.data);
-      
+
       // Calculate and log aggregated counts
       const aggregated = {
         total: 0,
@@ -693,12 +693,12 @@ const BDOComplaintsContent = () => {
         resolved: 0,
         disposed: 0
       };
-      
+
       response.data?.response?.forEach(item => {
         const status = item.status?.toUpperCase();
         const count = item.count || 0;
         aggregated.total += count;
-        
+
         switch (status) {
           case 'OPEN':
             aggregated.open += count;
@@ -715,10 +715,10 @@ const BDOComplaintsContent = () => {
             break;
         }
       });
-      
+
       console.log('📈 Aggregated Counts:', aggregated);
       console.log('🔄 ===== END COMPLAINTS ANALYTICS API CALL =====\n');
-      
+
     } catch (error) {
       console.error('❌ ===== COMPLAINTS ANALYTICS API ERROR =====');
       console.error('Error Type:', error.name);
@@ -726,7 +726,7 @@ const BDOComplaintsContent = () => {
       console.error('Error Details:', error.response?.data || error);
       console.error('Status Code:', error.response?.status);
       console.error('🔄 ===== END COMPLAINTS ANALYTICS API ERROR =====\n');
-      
+
       setAnalyticsError(error.message || 'Failed to fetch analytics data');
       setAnalyticsData(null);
     } finally {
@@ -754,7 +754,7 @@ const BDOComplaintsContent = () => {
       setAnalyticsData(null);
       return;
     }
-    
+
     // For State scope, we can call API immediately (no need to wait for districts)
     if (activeScope === 'State') {
       console.log('📡 Calling API for State scope');
@@ -762,7 +762,7 @@ const BDOComplaintsContent = () => {
       fetchComplaintsData();
       return;
     }
-    
+
     // For other scopes, check if we have the necessary location data loaded
     if (activeScope === 'Districts' && !selectedDistrictId) {
       console.log('⏳ Waiting for district selection');
@@ -776,7 +776,7 @@ const BDOComplaintsContent = () => {
       console.log('⏳ Waiting for GP selection');
       return; // Wait for GP selection
     }
-    
+
     console.log('📡 Calling API for other scopes');
     fetchAnalyticsData();
     fetchComplaintsData();
@@ -879,9 +879,9 @@ const BDOComplaintsContent = () => {
     } else {
       setIsCustomRange(false);
       setSelectedDateRange(range.label);
-      
+
       const today = new Date();
-      
+
       // For "Today" and "Yesterday", both start and end dates should be the same
       if (range.value === 'today') {
         // Today: start = today, end = today
@@ -901,7 +901,7 @@ const BDOComplaintsContent = () => {
         setStartDate(start.toISOString().split('T')[0]);
         setEndDate(today.toISOString().split('T')[0]);
       }
-      
+
       setShowDateDropdown(false);
     }
   };
@@ -941,151 +941,73 @@ const BDOComplaintsContent = () => {
   // Get dynamic complaint metrics from API data
   const getComplaintMetrics = () => {
     const counts = calculateComplaintCounts();
-    
+
     return [
-    {
-      title: 'Total Complaints',
+      {
+        title: 'Total Complaints',
         value: loadingAnalytics ? '...' : formatNumber(counts.total),
-      icon: List,
-      color: '#9ca3af',
+        icon: List,
+        color: '#9ca3af',
         trend: 'up',
-      tooltipText: 'Total complaints logged for the selected scope and period.',
-      chartData: {
-        series: [{
+        tooltipText: 'Total complaints logged for the selected scope and period.',
+        chartData: {
+          series: [{
             data: [counts.total * 0.8, counts.total * 0.9, counts.total * 0.95, counts.total]
-        }],
-        options: {
-          chart: {
-            type: 'area',
-            height: 60,
-            sparkline: { enabled: false },
-            toolbar: { show: false },
-            zoom: { enabled: false }
-          },
-          stroke: { curve: 'smooth', width: 2, colors: ['#6b7280'] },
-          fill: {
-            type: 'solid',
-            opacity: 0.10,
-            colors: ['#9ca3af']
-          },
-          tooltip: { enabled: false },
-          grid: { 
-            show: false,
-            padding: {
-              top: -10,
-              right: 0,
-              bottom: -10,
-              left: 0
-            }
-          },
-          xaxis: { 
-            labels: { show: false },
-            axisBorder: { show: false },
-            axisTicks: { show: false },
-            crosshairs: { show: false }
-          },
-          yaxis: { 
-            show: false,
-            labels: { show: false },
+          }],
+          options: {
+            chart: {
+              type: 'area',
+              height: 60,
+              sparkline: { enabled: false },
+              toolbar: { show: false },
+              zoom: { enabled: false }
+            },
+            stroke: { curve: 'smooth', width: 2, colors: ['#6b7280'] },
+            fill: {
+              type: 'solid',
+              opacity: 0.10,
+              colors: ['#9ca3af']
+            },
+            tooltip: { enabled: false },
+            grid: {
+              show: false,
+              padding: {
+                top: -10,
+                right: 0,
+                bottom: -10,
+                left: 0
+              }
+            },
+            xaxis: {
+              labels: { show: false },
+              axisBorder: { show: false },
+              axisTicks: { show: false },
+              crosshairs: { show: false }
+            },
+            yaxis: {
+              show: false,
+              labels: { show: false },
               min: counts.total * 0.7,
               max: counts.total * 1.1,
-            forceNiceScale: false,
-            floating: false
-          },
-          dataLabels: { enabled: false },
-          markers: { size: 0 },
-          legend: { show: false }
-        }
-      }
-    },
-    {
-      title: 'Open Complaints',
-        value: loadingAnalytics ? '...' : formatNumber(counts.open),
-      icon: List,
-      color: '#ef4444',
-        trend: 'up',
-      tooltipText: 'Complaints that are currently open and awaiting action.',
-      chartData: {
-        series: [{
-            data: [counts.open * 0.85, counts.open * 0.92, counts.open * 0.97, counts.open]
-        }],
-        options: {
-          chart: {
-            type: 'area',
-            height: 40,
-            sparkline: { enabled: true }
-          },
-          stroke: { curve: 'smooth', width: 2, colors: ['#ef4444'] },
-          fill: {
-            type: 'gradient',
-            gradient: {
-              shadeIntensity: 1,
-              opacityFrom: 0.3,
-              opacityTo: 0.05,
-              stops: [0, 100]
-            }
-          },
-          tooltip: { enabled: false },
-          grid: { show: false },
-          xaxis: { labels: { show: false } },
-          yaxis: { 
-            labels: { show: false },
-            min: 0,
-              max: counts.open * 1.1
-          },
-          dataLabels: { enabled: false }
-        }
-      }
-    },
-    {
-      title: 'Verified',
-        value: loadingAnalytics ? '...' : formatNumber(counts.verified),
-      icon: List,
-      color: '#f59e0b',
-        trend: 'up',
-      tooltipText: 'Complaints verified by the VDO.',
-      chartData: {
-        series: [{
-            data: [counts.verified * 0.82, counts.verified * 0.89, counts.verified * 0.93, counts.verified]
-        }],
-        options: {
-          chart: {
-            type: 'area',
-            height: 40,
-            sparkline: { enabled: true }
-          },
-          stroke: { curve: 'smooth', width: 2, colors: ['#f59e0b'] },
-          fill: {
-            type: 'gradient',
-            gradient: {
-              shadeIntensity: 1,
-              opacityFrom: 0.3,
-              opacityTo: 0.05,
-              stops: [0, 100]
-            }
-          },
-          tooltip: { enabled: false },
-          grid: { show: false },
-          xaxis: { labels: { show: false } },
-          yaxis: { 
-            labels: { show: false },
-            min: 0,
-              max: counts.verified * 1.1
+              forceNiceScale: false,
+              floating: false
             },
-            dataLabels: { enabled: false }
+            dataLabels: { enabled: false },
+            markers: { size: 0 },
+            legend: { show: false }
           }
         }
       },
       {
-        title: 'Resolved',
-        value: loadingAnalytics ? '...' : formatNumber(counts.resolved),
+        title: 'Open Complaints',
+        value: loadingAnalytics ? '...' : formatNumber(counts.open),
         icon: List,
-        color: '#f97316',
+        color: '#ef4444',
         trend: 'up',
-      tooltipText: 'Complaints resolved after action was taken.',
+        tooltipText: 'Complaints that are currently open and awaiting action.',
         chartData: {
           series: [{
-            data: [counts.resolved * 0.8, counts.resolved * 0.88, counts.resolved * 0.92, counts.resolved]
+            data: [counts.open * 0.85, counts.open * 0.92, counts.open * 0.97, counts.open]
           }],
           options: {
             chart: {
@@ -1093,7 +1015,7 @@ const BDOComplaintsContent = () => {
               height: 40,
               sparkline: { enabled: true }
             },
-            stroke: { curve: 'smooth', width: 2, colors: ['#f97316'] },
+            stroke: { curve: 'smooth', width: 2, colors: ['#ef4444'] },
             fill: {
               type: 'gradient',
               gradient: {
@@ -1106,112 +1028,191 @@ const BDOComplaintsContent = () => {
             tooltip: { enabled: false },
             grid: { show: false },
             xaxis: { labels: { show: false } },
-            yaxis: { 
+            yaxis: {
+              labels: { show: false },
+              min: 0,
+              max: counts.open * 1.1
+            },
+            dataLabels: { enabled: false }
+          }
+        }
+      },
+      {
+        title: 'Resolved',
+        value: loadingAnalytics ? '...' : formatNumber(counts.resolved),
+        icon: List,
+        color: '#8b5cf6',
+        trend: 'up',
+        tooltipText: 'Complaints resolved after action was taken.',
+        chartData: {
+          series: [{
+            data: [counts.resolved * 0.8, counts.resolved * 0.88, counts.resolved * 0.92, counts.resolved]
+          }],
+          options: {
+            chart: {
+              type: 'area',
+              height: 40,
+              sparkline: { enabled: true }
+            },
+            stroke: { curve: 'smooth', width: 2, colors: ['#8b5cf6'] },
+            fill: {
+              type: 'gradient',
+              gradient: {
+                shadeIntensity: 1,
+                opacityFrom: 0.3,
+                opacityTo: 0.05,
+                stops: [0, 100]
+              }
+            },
+            tooltip: { enabled: false },
+            grid: { show: false },
+            xaxis: { labels: { show: false } },
+            yaxis: {
               labels: { show: false },
               min: 0,
               max: counts.resolved * 1.1
-          },
-          dataLabels: { enabled: false }
+            },
+            dataLabels: { enabled: false }
+          }
         }
-      }
-    },
-    {
-      title: 'Disposed',
-        value: loadingAnalytics ? '...' : formatNumber(counts.disposed),
-      icon: List,
-      color: '#14b8a6',
+      },
+      {
+        title: 'Verified',
+        value: loadingAnalytics ? '...' : formatNumber(counts.verified),
+        icon: List,
+        color: '#f59e0b',
         trend: 'up',
-      tooltipText: 'Complaints closed after final disposal or resolution confirmation.',
-      chartData: {
-        series: [{
+        tooltipText: 'Complaints verified by the VDO.',
+        chartData: {
+          series: [{
+            data: [counts.verified * 0.82, counts.verified * 0.89, counts.verified * 0.93, counts.verified]
+          }],
+          options: {
+            chart: {
+              type: 'area',
+              height: 40,
+              sparkline: { enabled: true }
+            },
+            stroke: { curve: 'smooth', width: 2, colors: ['#f59e0b'] },
+            fill: {
+              type: 'gradient',
+              gradient: {
+                shadeIntensity: 1,
+                opacityFrom: 0.3,
+                opacityTo: 0.05,
+                stops: [0, 100]
+              }
+            },
+            tooltip: { enabled: false },
+            grid: { show: false },
+            xaxis: { labels: { show: false } },
+            yaxis: {
+              labels: { show: false },
+              min: 0,
+              max: counts.verified * 1.1
+            },
+            dataLabels: { enabled: false }
+          }
+        }
+      },
+
+      {
+        title: 'Disposed',
+        value: loadingAnalytics ? '...' : formatNumber(counts.disposed),
+        icon: List,
+        color: '#14b8a6',
+        trend: 'up',
+        tooltipText: 'Complaints closed after final disposal or resolution confirmation.',
+        chartData: {
+          series: [{
             data: [counts.disposed * 0.75, counts.disposed * 0.85, counts.disposed * 0.9, counts.disposed]
-        }],
-        options: {
-          chart: {
-            type: 'area',
-            height: 40,
-            sparkline: { enabled: true }
-          },
-          stroke: { curve: 'smooth', width: 2, colors: ['#14b8a6'] },
-          fill: {
-            type: 'gradient',
-            gradient: {
-              shadeIntensity: 1,
-              opacityFrom: 0.3,
-              opacityTo: 0.05,
-              stops: [0, 100]
-            }
-          },
-          tooltip: { enabled: false },
-          grid: { show: false },
-          xaxis: { labels: { show: false } },
-          yaxis: { 
-            labels: { show: false },
-            min: 0,
+          }],
+          options: {
+            chart: {
+              type: 'area',
+              height: 40,
+              sparkline: { enabled: true }
+            },
+            stroke: { curve: 'smooth', width: 2, colors: ['#14b8a6'] },
+            fill: {
+              type: 'gradient',
+              gradient: {
+                shadeIntensity: 1,
+                opacityFrom: 0.3,
+                opacityTo: 0.05,
+                stops: [0, 100]
+              }
+            },
+            tooltip: { enabled: false },
+            grid: { show: false },
+            xaxis: { labels: { show: false } },
+            yaxis: {
+              labels: { show: false },
+              min: 0,
               max: counts.disposed * 1.1
-          },
-          dataLabels: { enabled: false }
+            },
+            dataLabels: { enabled: false }
+          }
         }
       }
-    }
-  ];
+    ];
   };
 
-const complaintMetrics = getComplaintMetrics();
+  const complaintMetrics = getComplaintMetrics();
 
-const normalizeStatusForFilter = (rawStatus) => {
-  if (!rawStatus) return '';
+  const normalizeStatusForFilter = (rawStatus) => {
+    if (!rawStatus) return '';
 
-  let s = String(rawStatus)
-    .toUpperCase()
-    .replace(/[_-]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
+    let s = String(rawStatus)
+      .toUpperCase()
+      .replace(/[_-]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
 
-  // Handle common variations
-  switch (s) {
-    case 'OPEN':
-    case 'PENDING':
-    case 'PENDING REVIEW':
-    case 'NEW':
-    case 'AWAITING ACTION':
-    case 'AWAITING RESPONSE':
-    case 'OPEN COMPLAINT':
-      return 'OPEN';
+    // Handle common variations
+    switch (s) {
+      case 'OPEN':
+      case 'PENDING':
+      case 'PENDING REVIEW':
+      case 'NEW':
+      case 'AWAITING ACTION':
+      case 'AWAITING RESPONSE':
+      case 'OPEN COMPLAINT':
+        return 'OPEN';
 
-    case 'VERIFIED':
-    case 'IN PROGRESS':
-    case 'INPROGRESS':
-    case 'IN PROGRESS WITH DEO':
-    case 'IN PROCESS':
-    case 'VERIFICATION PENDING':
-    case 'PENDING VERIFICATION':
-    case 'UNDER VERIFICATION':
-    case 'VERIFICATION COMPLETED':
-      return 'VERIFIED';
+      case 'VERIFIED':
+      case 'IN PROGRESS':
+      case 'INPROGRESS':
+      case 'IN PROGRESS WITH DEO':
+      case 'IN PROCESS':
+      case 'VERIFICATION PENDING':
+      case 'PENDING VERIFICATION':
+      case 'UNDER VERIFICATION':
+      case 'VERIFICATION COMPLETED':
+        return 'VERIFIED';
 
-    case 'RESOLVED':
-    case 'RESOLUTION SUBMITTED':
-    case 'RESOLUTION IN PROGRESS':
-    case 'ACTION TAKEN':
-    case 'ADDRESSED':
-      return 'RESOLVED';
+      case 'RESOLVED':
+      case 'RESOLUTION SUBMITTED':
+      case 'RESOLUTION IN PROGRESS':
+      case 'ACTION TAKEN':
+      case 'ADDRESSED':
+        return 'RESOLVED';
 
-    case 'CLOSED':
-    case 'CLOSE':
-    case 'CLOS':
-    case 'DISPOSED':
-    case 'DISPOSED OFF':
-    case 'REJECTED':
-    case 'NOT ACTIONABLE':
-    case 'INVALID COMPLAINT':
-      return 'CLOSED';
+      case 'CLOSED':
+      case 'CLOSE':
+      case 'CLOS':
+      case 'DISPOSED':
+      case 'DISPOSED OFF':
+      case 'REJECTED':
+      case 'NOT ACTIONABLE':
+      case 'INVALID COMPLAINT':
+        return 'CLOSED';
 
-    default:
-      // Return uppercase version of original if no match
-      return s.toUpperCase();
-  }
-};
+      default:
+        // Return uppercase version of original if no match
+        return s.toUpperCase();
+    }
+  };
 
   // Use dynamic complaints data from API, or empty array if loading/error
   // CSV Export Function
@@ -1219,7 +1220,7 @@ const normalizeStatusForFilter = (rawStatus) => {
     try {
       // Use filtered complaints so the export respects current filters and search
       const dataToExport = filteredComplaints;
-      
+
       if (dataToExport.length === 0) {
         alert('No complaints to export');
         return;
@@ -1271,19 +1272,19 @@ const normalizeStatusForFilter = (rawStatus) => {
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement('a');
       const url = URL.createObjectURL(blob);
-      
+
       // Generate filename with current date and filter
       const date = new Date().toISOString().split('T')[0];
       const filterText = activeFilter ? `_${activeFilter}` : '';
       const filename = `complaints_export${filterText}_${date}.csv`;
-      
+
       link.setAttribute('href', url);
       link.setAttribute('download', filename);
       link.style.visibility = 'hidden';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
+
       console.log(`✅ Exported ${dataToExport.length} complaints to ${filename}`);
     } catch (error) {
       console.error('Error exporting to CSV:', error);
@@ -1307,13 +1308,13 @@ const normalizeStatusForFilter = (rawStatus) => {
     const statusNormalized = normalizeStatusForFilter(rawStatus) || 'OPEN';
     const statusDisplay = statusNormalized === 'OPEN' ? 'Open'
       : statusNormalized === 'VERIFIED' ? 'Verified'
-      : statusNormalized === 'RESOLVED' ? 'Resolved'
-      : statusNormalized === 'CLOSED' ? 'Closed' : rawStatus;
+        : statusNormalized === 'RESOLVED' ? 'Resolved'
+          : statusNormalized === 'CLOSED' ? 'Closed' : rawStatus;
 
     const statusColor = statusNormalized === 'OPEN' ? '#ef4444'
       : statusNormalized === 'VERIFIED' ? '#f97316'
-      : statusNormalized === 'RESOLVED' ? '#8b5cf6'
-      : '#10b981';
+        : statusNormalized === 'RESOLVED' ? '#8b5cf6'
+          : '#10b981';
 
     return {
       id: `COMP-${complaint.id}`,
@@ -1342,7 +1343,7 @@ const normalizeStatusForFilter = (rawStatus) => {
   const getStatusIcon = (status) => {
     // Handle both old format ("Open") and new API format ("OPEN", "VERIFIED")
     const normalizedStatus = status?.toUpperCase();
-    
+
     switch (normalizedStatus) {
       case 'OPEN':
         return <XCircle style={{ width: '16px', height: '16px', color: '#ef4444' }} />;
@@ -1382,14 +1383,14 @@ const normalizeStatusForFilter = (rawStatus) => {
     const complaintStatusNormalized = (complaint.statusNormalized || normalizeStatusForFilter(complaint.status || 'OPEN'))
       .trim()
       .toUpperCase();
-    
+
     // Only filter if we have a valid filter selection
     const matchesFilter = normalizedFilterStatus && normalizedFilterStatus.length > 0
       ? complaintStatusNormalized === normalizedFilterStatus
       : true; // if no filter selected, show all
 
     const q = searchTerm?.toLowerCase() || '';
-    const matchesSearch = 
+    const matchesSearch =
       complaint.title.toLowerCase().includes(q) ||
       complaint.description.toLowerCase().includes(q) ||
       complaint.id.toLowerCase().includes(q) ||
@@ -1648,26 +1649,26 @@ const normalizeStatusForFilter = (rawStatus) => {
           </div>
 
           {/* Location dropdown */}
-          <div 
+          <div
             data-location-dropdown
             style={{
-            position: 'relative',
-            minWidth: '200px'
-          }}>
-            <button 
+              position: 'relative',
+              minWidth: '200px'
+            }}>
+            <button
               onClick={() => activeScope !== 'State' && setShowLocationDropdown(!showLocationDropdown)}
               disabled={activeScope === 'State'}
               style={{
-              width: '100%',
-              padding: '5px 12px',
-              border: '1px solid #d1d5db',
-              borderRadius: '10px',
+                width: '100%',
+                padding: '5px 12px',
+                border: '1px solid #d1d5db',
+                borderRadius: '10px',
                 backgroundColor: activeScope === 'State' ? '#f9fafb' : 'white',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
                 cursor: activeScope === 'State' ? 'not-allowed' : 'pointer',
-              fontSize: '14px',
+                fontSize: '14px',
                 color: activeScope === 'State' ? '#9ca3af' : '#6b7280',
                 opacity: activeScope === 'State' ? 0.6 : 1
               }}
@@ -1676,13 +1677,13 @@ const normalizeStatusForFilter = (rawStatus) => {
                 <MapPin style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
                 <span>{selectedLocation}</span>
               </div>
-              <ChevronDown style={{ 
-                width: '16px', 
-                height: '16px', 
-                color: activeScope === 'State' ? '#d1d5db' : '#9ca3af' 
+              <ChevronDown style={{
+                width: '16px',
+                height: '16px',
+                color: activeScope === 'State' ? '#d1d5db' : '#9ca3af'
               }} />
             </button>
-            
+
             {/* Location Dropdown Menu - BDO: GPs ONLY (no districts or blocks) */}
             {showLocationDropdown && (
               <div
@@ -1807,14 +1808,14 @@ const normalizeStatusForFilter = (rawStatus) => {
               • {getDateDisplayText()}
             </span>
           </div>
-          <div 
+          <div
             onClick={handleCalendarClick}
             data-date-dropdown
             style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            color: '#6b7280',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              color: '#6b7280',
               fontSize: '14px',
               padding: '8px 12px',
               border: '1px solid #d1d5db',
@@ -1828,10 +1829,10 @@ const normalizeStatusForFilter = (rawStatus) => {
             <Calendar style={{ width: '16px', height: '16px' }} />
             <span>{getDateDisplayText()}</span>
             <ChevronDown style={{ width: '16px', height: '16px' }} />
-            
+
             {/* Modern Date Range Picker */}
             {showDateDropdown && (
-              <div 
+              <div
                 onClick={(e) => e.stopPropagation()}
                 style={{
                   position: 'absolute',
@@ -1857,15 +1858,15 @@ const normalizeStatusForFilter = (rawStatus) => {
                   padding: '16px 0'
                 }}>
                   <div style={{ padding: '0 16px 12px', borderBottom: '1px solid #e2e8f0' }}>
-                    <h3 style={{ 
-                      margin: 0, 
-                      fontSize: '14px', 
-                      fontWeight: '600', 
-                      color: '#1e293b' 
+                    <h3 style={{
+                      margin: 0,
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      color: '#1e293b'
                     }}>
                       Quick Select
                     </h3>
-          </div>
+                  </div>
 
                   {dateRanges.map((range, index) => (
                     <div
@@ -1884,7 +1885,7 @@ const normalizeStatusForFilter = (rawStatus) => {
                       {range.label}
                     </div>
                   ))}
-        </div>
+                </div>
 
                 {/* Right Side - Calendar View */}
                 <div style={{
@@ -1894,30 +1895,30 @@ const normalizeStatusForFilter = (rawStatus) => {
                 }}>
                   {isCustomRange ? (
                     <div>
-                      <h3 style={{ 
-                        margin: '0 0 16px 0', 
-                        fontSize: '14px', 
-                        fontWeight: '600', 
-                        color: '#1e293b' 
+                      <h3 style={{
+                        margin: '0 0 16px 0',
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        color: '#1e293b'
                       }}>
                         Select Date Range
                       </h3>
-                      
+
                       {/* Custom Date Inputs */}
                       <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
                         <div>
-                          <label style={{ 
-                            display: 'block', 
-                            fontSize: '12px', 
-                            color: '#64748b', 
-                            marginBottom: '4px' 
+                          <label style={{
+                            display: 'block',
+                            fontSize: '12px',
+                            color: '#64748b',
+                            marginBottom: '4px'
                           }}>
                             Start Date
                           </label>
                           <input
                             type="date"
                             value={startDate || ''}
-                          onKeyDown={handleDateKeyDown}
+                            onKeyDown={handleDateKeyDown}
                             onChange={(e) => setStartDate(e.target.value)}
                             style={{
                               padding: '8px 12px',
@@ -1929,18 +1930,18 @@ const normalizeStatusForFilter = (rawStatus) => {
                           />
                         </div>
                         <div>
-                          <label style={{ 
-                            display: 'block', 
+                          <label style={{
+                            display: 'block',
                             fontSize: '12px',
-                            color: '#64748b', 
-                            marginBottom: '4px' 
+                            color: '#64748b',
+                            marginBottom: '4px'
                           }}>
                             End Date
                           </label>
                           <input
                             type="date"
                             value={endDate || ''}
-                          onKeyDown={handleDateKeyDown}
+                            onKeyDown={handleDateKeyDown}
                             onChange={(e) => setEndDate(e.target.value)}
                             style={{
                               padding: '8px 12px',
@@ -1954,9 +1955,9 @@ const normalizeStatusForFilter = (rawStatus) => {
                       </div>
 
                       {/* Action Buttons */}
-                      <div style={{ 
-                        display: 'flex', 
-                        gap: '8px', 
+                      <div style={{
+                        display: 'flex',
+                        gap: '8px',
                         justifyContent: 'flex-end'
                       }}>
                         <button
@@ -1980,7 +1981,7 @@ const normalizeStatusForFilter = (rawStatus) => {
                         >
                           Cancel
                         </button>
-                        
+
                         <button
                           onClick={() => setShowDateDropdown(false)}
                           disabled={!startDate || !endDate}
@@ -2000,15 +2001,15 @@ const normalizeStatusForFilter = (rawStatus) => {
                     </div>
                   ) : (
                     <div>
-                      <h3 style={{ 
-                        margin: '0 0 16px 0', 
-                        fontSize: '14px', 
-                        fontWeight: '600', 
-                        color: '#1e293b' 
+                      <h3 style={{
+                        margin: '0 0 16px 0',
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        color: '#1e293b'
                       }}>
                         Selected Range
                       </h3>
-                      
+
                       <div style={{
                         padding: '12px',
                         backgroundColor: '#f0fdf4',
@@ -2025,7 +2026,7 @@ const normalizeStatusForFilter = (rawStatus) => {
                           </div>
                         )}
                       </div>
-                      
+
                       <button
                         onClick={() => setShowDateDropdown(false)}
                         style={{
@@ -2202,14 +2203,14 @@ const normalizeStatusForFilter = (rawStatus) => {
             </span>
 
             {/* Status Filter */}
-            <div 
+            <div
               data-filter-dropdown
               style={{
                 position: 'relative',
                 minWidth: '140px'
               }}
             >
-              <button 
+              <button
                 onClick={() => setShowFilterDropdown(!showFilterDropdown)}
                 style={{
                   width: '100%',
@@ -2306,7 +2307,7 @@ const normalizeStatusForFilter = (rawStatus) => {
               />
             </div>
 
-            <button 
+            <button
               onClick={exportToCSV}
               style={{
                 padding: '8px 16px',
@@ -2323,7 +2324,7 @@ const normalizeStatusForFilter = (rawStatus) => {
               }}
             >
               <Download style={{ width: '16px', height: '16px' }} />
-              
+
             </button>
 
           </div>
@@ -2529,9 +2530,9 @@ const normalizeStatusForFilter = (rawStatus) => {
                       }}>
                         <div style={{
                           display: 'inline-block',
-                          backgroundColor: complaint.statusColor === '#ef4444' ? '#fef2f2' : 
-                                         complaint.statusColor === '#f97316' ? '#fff7ed' :
-                                         complaint.statusColor === '#8b5cf6' ? '#faf5ff' : '#f0fdf4',
+                          backgroundColor: complaint.statusColor === '#ef4444' ? '#fef2f2' :
+                            complaint.statusColor === '#f97316' ? '#fff7ed' :
+                              complaint.statusColor === '#8b5cf6' ? '#faf5ff' : '#f0fdf4',
                           color: complaint.statusColor,
                           padding: '4px 8px',
                           borderRadius: '12px',
@@ -2540,7 +2541,7 @@ const normalizeStatusForFilter = (rawStatus) => {
                         }} title={complaint.status || 'N/A'}>
                           {complaint.statusDisplay || complaint.status || 'N/A'}
                         </div>
-                        <button 
+                        <button
                           onClick={() => handleOpenNoticeModal(complaint)}
                           style={{
                             padding: '6px 12px',
@@ -2616,11 +2617,11 @@ const normalizeStatusForFilter = (rawStatus) => {
           zIndex: 10000,
           padding: '20px'
         }}
-        onClick={(e) => {
-          if (e.target === e.currentTarget) {
-            setShowComplaintModal(false);
-          }
-        }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowComplaintModal(false);
+            }
+          }}
         >
           <div style={{
             backgroundColor: 'white',
@@ -2632,7 +2633,7 @@ const normalizeStatusForFilter = (rawStatus) => {
             padding: '24px',
             position: 'relative'
           }}
-          onClick={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
             <div style={{
@@ -3065,7 +3066,7 @@ const normalizeStatusForFilter = (rawStatus) => {
                 onClick={async () => {
                   try {
                     setSubmittingComplaint(true);
-                    
+
                     const location = [complaintForm.village, complaintForm.wardArea].filter(Boolean).join(', ');
                     const params = {
                       phone_number: complaintForm.phone_number,
@@ -3075,11 +3076,11 @@ const normalizeStatusForFilter = (rawStatus) => {
                       location
                     };
                     const body = new URLSearchParams(params).toString();
-                    
+
                     await apiClient.post('/complaints/smd/complaints', body, {
                       headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
                     });
-                    
+
                     setComplaintForm({
                       complaintTypeId: '',
                       details: '',
@@ -3135,11 +3136,11 @@ const normalizeStatusForFilter = (rawStatus) => {
           zIndex: 10001,
           padding: '20px'
         }}
-        onClick={(e) => {
-          if (e.target === e.currentTarget) {
-            setShowSuccessDialog(false);
-          }
-        }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowSuccessDialog(false);
+            }
+          }}
         >
           <div style={{
             backgroundColor: 'white',
@@ -3150,7 +3151,7 @@ const normalizeStatusForFilter = (rawStatus) => {
             textAlign: 'center',
             boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)'
           }}
-          onClick={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
           >
             {/* Star Icon */}
             <div style={{
@@ -3216,11 +3217,11 @@ const normalizeStatusForFilter = (rawStatus) => {
           zIndex: 10000,
           padding: '20px'
         }}
-        onClick={(e) => {
-          if (e.target === e.currentTarget) {
-            setShowNoticeModal(false);
-          }
-        }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowNoticeModal(false);
+            }
+          }}
         >
           <div style={{
             backgroundColor: 'white',
@@ -3232,7 +3233,7 @@ const normalizeStatusForFilter = (rawStatus) => {
             padding: '24px',
             position: 'relative'
           }}
-          onClick={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
             <div style={{
@@ -3454,11 +3455,11 @@ const normalizeStatusForFilter = (rawStatus) => {
                 onClick={async () => {
                   try {
                     setSendingNotice(true);
-                    
+
                     // Get current user info (authority giving notice)
                     const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
                     const senderName = currentUser.name || currentUser.username || 'System Admin';
-                    
+
                     // Create notice payload
                     const noticeData = {
                       recipient: noticeForm.to,
@@ -3472,9 +3473,9 @@ const normalizeStatusForFilter = (rawStatus) => {
                       date: new Date().toISOString().split('T')[0],
                       time: new Date().toTimeString().split(' ')[0]
                     };
-                    
+
                     await noticesAPI.createNotice(noticeData);
-                    
+
                     // Close modal and reset form
                     setShowNoticeModal(false);
                     setNoticeForm({
@@ -3485,7 +3486,7 @@ const normalizeStatusForFilter = (rawStatus) => {
                       details: ''
                     });
                     setSelectedComplaintForNotice(null);
-                    
+
                     // Show success message
                     alert('Notice sent successfully!');
                   } catch (error) {

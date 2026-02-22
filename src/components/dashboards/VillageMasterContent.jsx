@@ -487,16 +487,13 @@ const VillageMasterContent = () => {
         url = `/annual-surveys/analytics/state?fy_id=${fyId}`;
         console.log('🏛️ Calling STATE analytics API');
       } else if (activeScope === 'Districts' && selectedDistrictId) {
-        // url = `/annual-surveys/analytics/district/${selectedDistrictId}?fy_id=${fyId}`;
-        url = `/annual-surveys/analytics/district/${selectedDistrictId}`;
+        url = `/annual-surveys/analytics/district/${selectedDistrictId}?fy_id=${fyId}`;
         console.log('🏙️ Calling DISTRICT analytics API');
       } else if (activeScope === 'Blocks' && selectedBlockId) {
-        url = `/annual-surveys/analytics/block/${selectedBlockId}`;
-        // url = `/annual-surveys/analytics/block/${selectedBlockId}?fy_id=${fyId}`;
+        url = `/annual-surveys/analytics/block/${selectedBlockId}?fy_id=${fyId}`;
         console.log('🏘️ Calling BLOCK analytics API');
       } else if (activeScope === 'GPs' && selectedGPId) {
-        url = `/annual-surveys/analytics/gp/${selectedGPId}`;
-        // url = `/annual-surveys/analytics/gp/${selectedGPId}?fy_id=${fyId}`;
+        url = `/annual-surveys/analytics/gp/${selectedGPId}?fy_id=${fyId}`;
         console.log('🏡 Calling GP analytics API');
       } else {
         console.log('⏸️ Waiting for location selection or FY data');
@@ -1793,7 +1790,7 @@ const VillageMasterContent = () => {
                     >
                       Send notice
                     </button>
-                    <button
+                    {/* <button
                       onClick={() => { if (survey) { setEditSurveyId(survey.id); setShowEditModal(true); } }}
                       disabled={!hasData}
                       title={hasData ? 'Edit GP Master Data' : 'No data to edit'}
@@ -1810,7 +1807,8 @@ const VillageMasterContent = () => {
                       }}
                     >
                       <Edit style={{ width: '16px', height: '16px', color: '#374151' }} />
-                    </button>
+                    </button> */}
+
                     <button
                       onClick={() => hasData && handleDownloadPDF(survey.id)}
                       disabled={!hasData}
@@ -1838,14 +1836,14 @@ const VillageMasterContent = () => {
       )}
 
       {/* Edit GP Master Data modal */}
-      <EditGPMasterModal
+      {/* <EditGPMasterModal
         isOpen={showEditModal}
         onClose={() => { setShowEditModal(false); setEditSurveyId(null); }}
         surveyId={editSurveyId}
         gpName={selectedLocation}
         onSuccess={() => { fetchGpSurveys(); fetchAnalytics(); }}
         vdoGPId={selectedGPId}
-      />
+      /> */}
 
       {/* Coverage Table Section - Only for State, Districts, and Blocks */}
       {activeScope !== 'GPs' && (
@@ -1868,6 +1866,7 @@ const VillageMasterContent = () => {
             {activeScope === 'State' ? 'District' : activeScope === 'Districts' ? 'Block' : 'GP'} Wise Coverage
           </h3>
 
+
           {/* Table */}
           {(() => {
             const coverageData = activeScope === 'State'
@@ -1877,6 +1876,7 @@ const VillageMasterContent = () => {
                 : analyticsData?.gp_wise_coverage || [];
 
             if (coverageData.length === 0) {
+
               return (
                 <div style={{
                   padding: '40px',
@@ -1888,7 +1888,10 @@ const VillageMasterContent = () => {
                 </div>
               );
             }
-
+            const gridColumns =
+              activeScope === 'Blocks'
+                ? '3fr  1fr 60px'
+                : '2fr 1fr 1fr 1fr 1.5fr 60px';
             return (
               <div style={{
                 borderRadius: '8px',
@@ -1904,7 +1907,7 @@ const VillageMasterContent = () => {
                   {/* Table Header - Sticky */}
                   <div style={{
                     display: 'grid',
-                    gridTemplateColumns: '2fr 1fr 1fr 1fr 1.5fr 60px',
+                    gridTemplateColumns: gridColumns,
                     backgroundColor: '#f9fafb',
                     padding: '12px 16px',
                     borderBottom: '1px solid #e5e7eb',
@@ -1923,42 +1926,48 @@ const VillageMasterContent = () => {
                       {activeScope === 'State' ? 'District' : activeScope === 'Districts' ? 'Block' : 'GP'} Name
                       <ArrowUpDown style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
                     </div>
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      fontSize: '14px',
-                      fontWeight: '600',
-                      color: '#374151'
-                    }}>
-                      Total {activeScope === 'State' || activeScope === 'Districts' ? 'GPs' : 'Villages'}
-                      <InfoTooltip tooltipKey="TOTAL_GPS" size={14} color="#9ca3af" />
-                      <ArrowUpDown style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
-                    </div>
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      fontSize: '14px',
-                      fontWeight: '600',
-                      color: '#374151'
-                    }}>
-                      {activeScope === 'State' || activeScope === 'Districts' ? 'GPs' : 'Villages'} with Data
-                      <InfoTooltip tooltipKey="GPS_WITH_DATA" size={14} color="#9ca3af" />
-                      <ArrowUpDown style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
-                    </div>
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      fontSize: '14px',
-                      fontWeight: '600',
-                      color: '#374151'
-                    }}>
-                      Coverage %
-                      <InfoTooltip tooltipKey="COVERAGE_PERCENTAGE" size={14} color="#9ca3af" />
-                      <ArrowUpDown style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
-                    </div>
+                    {activeScope !== 'Blocks' && (
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        color: '#374151'
+                      }}>
+                        Total {activeScope === 'State' || activeScope === 'Districts' ? 'GPs' : 'Villages'}
+                        <InfoTooltip tooltipKey="TOTAL_GPS" size={14} color="#9ca3af" />
+                        <ArrowUpDown style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
+                      </div>)}
+                    {activeScope !== 'Blocks' && (
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        color: '#374151'
+                      }}>
+                        {activeScope === 'State' || activeScope === 'Districts' ? 'GPs' : 'Villages'} with Data
+                        <InfoTooltip tooltipKey="GPS_WITH_DATA" size={14} color="#9ca3af" />
+                        <ArrowUpDown style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
+                      </div>)}
+
+                    {activeScope !== 'Blocks' && (
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        color: '#374151'
+                      }}>
+                        Coverage %
+                        <InfoTooltip tooltipKey="COVERAGE_PERCENTAGE" size={14} color="#9ca3af" />
+                        <ArrowUpDown style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
+                      </div>
+                    )}
+
                     <div style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -1985,7 +1994,7 @@ const VillageMasterContent = () => {
                   {coverageData.map((item, index) => (
                     <div key={item.geography_id || index} style={{
                       display: 'grid',
-                      gridTemplateColumns: '2fr 1fr 1fr 1fr 1.5fr 60px',
+                      gridTemplateColumns: gridColumns,
                       padding: '12px 16px',
                       borderBottom: index < coverageData.length - 1 ? '1px solid #e5e7eb' : 'none',
                       backgroundColor: 'white',
@@ -1997,15 +2006,20 @@ const VillageMasterContent = () => {
                       <div style={{ fontSize: '14px', color: '#111827', fontWeight: '500' }}>
                         {item.geography_name}
                       </div>
-                      <div style={{ fontSize: '14px', color: '#111827' }}>
-                        {formatNumber(item.total_gps || 0)}
-                      </div>
-                      <div style={{ fontSize: '14px', color: '#111827' }}>
-                        {formatNumber(item.gps_with_data || 0)}
-                      </div>
-                      <div style={{ fontSize: '14px', color: '#111827' }}>
-                        {item.coverage_percentage ? `${item.coverage_percentage}%` : '0%'}
-                      </div>
+                      {activeScope !== 'Blocks' && (
+                        <div style={{ fontSize: '14px', color: '#111827' }}>
+                          {formatNumber(item.total_gps || 0)}
+                        </div>
+                      )}
+                      {activeScope !== 'Blocks' && (
+                        <div style={{ fontSize: '14px', color: '#111827' }}>
+                          {formatNumber(item.gps_with_data || 0)}
+                        </div>
+                      )}
+                      {activeScope !== 'Blocks' && (
+                        <div style={{ fontSize: '14px', color: '#111827' }}>
+                          {item.coverage_percentage ? `${item.coverage_percentage}%` : '0%'}
+                        </div>)}
                       <div style={{ fontSize: '14px', color: '#111827' }}>
                         <span style={{
                           padding: '4px 8px',

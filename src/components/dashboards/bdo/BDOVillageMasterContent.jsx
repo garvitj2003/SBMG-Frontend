@@ -1746,7 +1746,7 @@ const BDOVillageMasterContent = () => {
                 >
                   Send notice
                 </button>
-                <button
+                {/* <button
                   onClick={() => { if (survey) { setEditSurveyId(survey.id); setShowEditModal(true); } }}
                   disabled={!hasData}
                   title={hasData ? 'Edit GP Master Data' : 'No data to edit'}
@@ -1763,7 +1763,7 @@ const BDOVillageMasterContent = () => {
                   }}
                 >
                   <Edit style={{ width: '16px', height: '16px', color: '#374151' }} />
-                </button>
+                </button> */}
                 <button
                   onClick={() => hasData && handleDownloadPDF(survey.id)}
                   disabled={!hasData}
@@ -1791,13 +1791,13 @@ const BDOVillageMasterContent = () => {
       )}
 
       {/* Edit GP Master Data modal */}
-      <EditGPMasterModal
+      {/* <EditGPMasterModal
         isOpen={showEditModal}
         onClose={() => { setShowEditModal(false); setEditSurveyId(null); }}
         surveyId={editSurveyId}
         gpName={selectedLocation}
         onSuccess={() => { fetchGpSurveys(); fetchAnalytics(); }}
-      />
+      /> */}
 
         {/* Coverage Table Section - Only for State, Districts, and Blocks */}
         {activeScope !== 'GPs' && (
