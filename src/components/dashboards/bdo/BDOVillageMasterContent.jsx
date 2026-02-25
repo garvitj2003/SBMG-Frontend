@@ -86,6 +86,32 @@ const BDOVillageMasterContent = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editSurveyId, setEditSurveyId] = useState(null);
 
+
+  // Sorting 
+  const [historySortOrder, setHistorySortOrder] = useState('asc'); // 'asc' or 'desc'
+  const [sortConfig, setSortConfig] = useState({
+    key: 'geography_name',
+    direction: 'asc' // 'asc' | 'desc'
+  });
+
+  const handleSort = (key) => {
+    setSortConfig((prev) => {
+      if (prev.key === key) {
+        return {
+          key,
+          direction: prev.direction === 'asc' ? 'desc' : 'asc'
+        };
+      } else {
+        return {
+          key,
+          direction: 'asc'
+        };
+      }
+    });
+  };
+
+
+
   const buildNoticeTarget = useCallback((item) => {
     if (!item) {
       return null;
@@ -1339,7 +1365,6 @@ const BDOVillageMasterContent = () => {
               </h3>
               <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <InfoTooltip tooltipKey="TOTAL_FUNDS_SANCTIONED" size={16} color="#6b7280" />
-                <DollarSign style={{ width: '20px', height: '20px', color: '#6b7280' }} />
               </div>
             </div>
             <div style={{
@@ -1349,6 +1374,7 @@ const BDOVillageMasterContent = () => {
               margin: 0
             }}>
               {loadingAnalytics ? '...' : formatCurrency(getAnalyticsValue('total_funds_sanctioned', 0))}
+              <span className='ms-1! font-semibold text-[14px]'>CR</span>
             </div>
           </div>
 
@@ -1376,7 +1402,6 @@ const BDOVillageMasterContent = () => {
               </h3>
               <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <InfoTooltip tooltipKey="TOTAL_WORK_ORDER_AMOUNT" size={16} color="#6b7280" />
-                <DollarSign style={{ width: '20px', height: '20px', color: '#6b7280' }} />
               </div>
             </div>
             <div style={{
@@ -1386,6 +1411,7 @@ const BDOVillageMasterContent = () => {
               margin: 0
             }}>
               {loadingAnalytics ? '...' : formatCurrency(getAnalyticsValue('total_work_order_amount', 0))}
+              <span className='ms-1! font-semibold text-[14px]'>CR</span>
             </div>
           </div>
 
@@ -1806,6 +1832,27 @@ const BDOVillageMasterContent = () => {
                 ? analyticsData?.block_wise_coverage || []
                 : analyticsData?.gp_wise_coverage || [];
 
+            // 🔥 Dynamic Column Sorting
+            const sortedCoverageData = [...coverageData].sort((a, b) => {
+              const { key, direction } = sortConfig;
+
+              let valueA = a[key];
+              let valueB = b[key];
+
+              if (valueA == null) valueA = '';
+              if (valueB == null) valueB = '';
+
+              // String sorting
+              if (typeof valueA === 'string') {
+                const result = valueA.localeCompare(valueB);
+                return direction === 'asc' ? result : -result;
+              }
+
+              // Number sorting
+              const result = Number(valueA) - Number(valueB);
+              return direction === 'asc' ? result : -result;
+            });
+
             if (coverageData.length === 0) {
               return (
                 <div style={{
@@ -1842,27 +1889,33 @@ const BDOVillageMasterContent = () => {
                     top: 0,
                     zIndex: 10
                   }}>
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      fontSize: '14px',
-                      fontWeight: '600',
-                      color: '#374151'
-                    }}>
+                    <div
+                      onClick={() => handleSort('geography_name')}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        color: '#374151',
+                        cursor:'pointer'
+                      }}>
                       {activeScope === 'State' ? 'District' : activeScope === 'Districts' ? 'Block' : 'GP'} Name
                       <ArrowUpDown style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
                     </div>
 
 
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      fontSize: '14px',
-                      fontWeight: '600',
-                      color: '#374151'
-                    }}>
+                    <div
+                      onClick={() => handleSort('master_data_status')}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        color: '#374151',
+                        cursor:'pointer'
+                      }}>
                       Status
                       <ArrowUpDown style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
                     </div>
@@ -1878,7 +1931,7 @@ const BDOVillageMasterContent = () => {
                   </div>
 
                   {/* Table Rows */}
-                  {coverageData.map((item, index) => (
+                  {sortedCoverageData.map((item, index) => (
                     <div key={item.geography_id || index} style={{
                       display: 'grid',
                       gridTemplateColumns: '2fr  1.5fr 60px',

@@ -262,7 +262,7 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
   useEffect(() => {
     const fetchAgencies = async () => {
       try {
-        const res = await apiClient.get('contractors/agencies?limit=1000');
+        const res = await apiClient.get('contractors/agencies?limit=100');
         setAgencyesData(res.data.results || res.data);
       } catch (error) {
         console.log("Agencies Error:", error);
