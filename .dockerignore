@@ -7,3 +7,9 @@ dist
 .env.*
 *.log
 .gitignore
+.cursor
+.vscode
+*.map
+tests
+__tests__
+docs

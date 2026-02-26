@@ -10,17 +10,17 @@ A modern, role-based admin dashboard built with React, Vite, and Tailwind CSS. T
 - **VDO Dashboard**: Village-level data with local schemes, beneficiary management, and daily activities
 
 ### Key Components
-- 📊 **Interactive Charts**: Built with Recharts for real-time data visualization
+- 📊 **Interactive Charts**: Built with ApexCharts for real-time data visualization
 - 🎨 **Modern UI**: Styled with Tailwind CSS for a beautiful, responsive interface
 - 🔐 **Authentication**: Secure login system with role-based routing
 - 📱 **Responsive Design**: Works seamlessly on desktop, tablet, and mobile devices
 
 ## 📋 Tech Stack
 
-- **Frontend Framework**: React 19.1.1
-- **Build Tool**: Vite 7.1.7
-- **Styling**: Tailwind CSS 4.1.15
-- **Charts**: Recharts 3.3.0
+- **Frontend Framework**: React
+- **Build Tool**: Vite
+- **Styling**: Tailwind CSS
+- **Charts**: ApexCharts (react-apexcharts)
 - **Routing**: React Router DOM
 - **Icons**: Lucide React
 - **HTTP Client**: Axios

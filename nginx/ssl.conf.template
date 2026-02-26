@@ -9,19 +9,49 @@ server {
     ssl_protocols TLSv1.2 TLSv1.3;
     ssl_prefer_server_ciphers off;
 
+    # Disable server version disclosure (Security Misconfiguration fix)
+    server_tokens off;
     root /usr/share/nginx/html;
     index index.html;
 
+    # Clickjacking protection
+    add_header X-Frame-Options "DENY" always;
+    # Strict Content-Security-Policy (no unsafe-inline/unsafe-eval for scripts)
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self' https://maps.googleapis.com https://*.gstatic.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; font-src 'self' data:; connect-src 'self' https://maps.googleapis.com https://*.googleapis.com; frame-src https://maps.googleapis.com; base-uri 'self'; form-action 'self'; object-src 'none'; frame-ancestors 'none'" always;
+
+    if ($request_method = TRACE) { return 405; }
+
     location /api/ {
+        limit_except GET HEAD POST PUT PATCH OPTIONS DELETE { deny all; }
+        if ($request_method = OPTIONS) {
+            add_header Access-Control-Allow-Origin $cors_allow_origin always;
+            add_header Access-Control-Allow-Credentials "true" always;
+            add_header Access-Control-Allow-Methods "GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS" always;
+            add_header Access-Control-Allow-Headers "Authorization, Content-Type, Accept" always;
+            add_header Content-Type text/plain;
+            add_header Content-Length 0;
+            return 204;
+        }
+        proxy_hide_header Access-Control-Allow-Origin;
+        proxy_hide_header Access-Control-Allow-Credentials;
+        proxy_hide_header Access-Control-Allow-Methods;
+        proxy_hide_header Access-Control-Allow-Headers;
         proxy_pass http://backend/api/;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+        if ($cors_allow_origin) {
+            add_header Access-Control-Allow-Origin $cors_allow_origin always;
+            add_header Access-Control-Allow-Credentials "true" always;
+            add_header Access-Control-Allow-Methods "GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS" always;
+            add_header Access-Control-Allow-Headers "Authorization, Content-Type, Accept" always;
+        }
     }
 
     location / {
+        if ($request_method !~ ^(GET|HEAD)$) { return 405; }
         try_files $uri $uri/ /index.html;
     }
 
