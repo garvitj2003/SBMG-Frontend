@@ -8,6 +8,12 @@ import EditGPMasterModal from './EditGPMasterModal';
 import { generateAnnualSurveysPDF } from '../../utils/annualSurveysPdf';
 import { InfoTooltip } from '../common/Tooltip';
 import { Link } from 'react-router-dom';
+import * as XLSX from "xlsx";
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
+import { HINDI_FONT } from '../../utils/font';
+
+
 
 const VillageMasterContent = () => {
   // Refs to prevent duplicate API calls
@@ -166,233 +172,419 @@ const VillageMasterContent = () => {
   }, []);
 
   // Function to generate PDF from survey data
+  // Function to generate PDF from survey data
   const generatePDF = (data) => {
-    // Create a formatted HTML content for the PDF
-    const htmlContent = `
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>Annual Survey Report - ${data.gp_name || 'GP'}</title>
-                <style>
-                    body { font-family: Arial, sans-serif; padding: 20px; line-height: 1.6; }
-                    h1 { color: #10b981; border-bottom: 2px solid #10b981; padding-bottom: 10px; }
-                    h2 { color: #374151; margin-top: 20px; border-bottom: 1px solid #e5e7eb; padding-bottom: 5px; }
-                    .section { margin-bottom: 20px; }
-                    .info-grid { display: grid; grid-template-columns: 200px 1fr; gap: 10px; }
-                    .label { font-weight: bold; color: #6b7280; }
-                    .value { color: #111827; }
-                    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-                    th, td { border: 1px solid #e5e7eb; padding: 8px; text-align: left; }
-                    th { background-color: #f9fafb; font-weight: 600; color: #374151; }
-                    .header { text-align: center; margin-bottom: 30px; }
-                    .date { color: #6b7280; font-size: 14px; }
-                </style>
-            </head>
-            <body>
-                <div class="header">
-                    <h1>Annual Survey Report</h1>
-                    <p class="date">Survey Date: ${data.survey_date || 'N/A'}</p>
-                </div>
+    const doc = new jsPDF("p", "mm", "a4");
+    const pageWidth = doc.internal.pageSize.getWidth();
+    let y = 20;
 
-                <div class="section">
-                    <h2>Basic Information</h2>
-                    <div class="info-grid">
-                        <div class="label">GP Name:</div>
-                        <div class="value">${data.gp_name || 'N/A'}</div>
-                        <div class="label">Block Name:</div>
-                        <div class="value">${data.block_name || 'N/A'}</div>
-                        <div class="label">District Name:</div>
-                        <div class="value">${data.district_name || 'N/A'}</div>
-                        <div class="label">Sarpanch Name:</div>
-                        <div class="value">${data.sarpanch_name || 'N/A'}</div>
-                        <div class="label">Sarpanch Contact:</div>
-                        <div class="value">${data.sarpanch_contact || 'N/A'}</div>
-                        <div class="label">Number of Ward Panchs:</div>
-                        <div class="value">${data.num_ward_panchs || 0}</div>
-                    </div>
-                </div>
-
-                ${data.vdo ? `
-                <div class="section">
-                    <h2>VDO Details</h2>
-                    <div class="info-grid">
-                        <div class="label">Name:</div>
-                        <div class="value">${data.vdo.first_name} ${data.vdo.middle_name || ''} ${data.vdo.last_name}</div>
-                        <div class="label">Username:</div>
-                        <div class="value">${data.vdo.username || 'N/A'}</div>
-                        <div class="label">Email:</div>
-                        <div class="value">${data.vdo.email || 'N/A'}</div>
-                        <div class="label">Date of Joining:</div>
-                        <div class="value">${data.vdo.date_of_joining || 'N/A'}</div>
-                        <div class="label">Role:</div>
-                        <div class="value">${data.vdo.role_name || 'N/A'}</div>
-                    </div>
-                </div>
-                ` : ''}
-
-                ${data.work_order ? `
-                <div class="section">
-                    <h2>Work Order</h2>
-                    <div class="info-grid">
-                        <div class="label">Work Order No:</div>
-                        <div class="value">${data.work_order.work_order_no || 'N/A'}</div>
-                        <div class="label">Date:</div>
-                        <div class="value">${data.work_order.work_order_date || 'N/A'}</div>
-                        <div class="label">Amount:</div>
-                        <div class="value">₹${data.work_order.work_order_amount?.toLocaleString() || 0}</div>
-                    </div>
-                </div>
-                ` : ''}
-
-                ${data.fund_sanctioned ? `
-                <div class="section">
-                    <h2>Fund Sanctioned</h2>
-                    <div class="info-grid">
-                        <div class="label">Head:</div>
-                        <div class="value">${data.fund_sanctioned.head || 'N/A'}</div>
-                        <div class="label">Amount:</div>
-                        <div class="value">₹${data.fund_sanctioned.amount?.toLocaleString() || 0}</div>
-                    </div>
-                </div>
-                ` : ''}
-
-                ${data.door_to_door_collection ? `
-                <div class="section">
-                    <h2>Door to Door Collection</h2>
-                    <div class="info-grid">
-                        <div class="label">Number of Households:</div>
-                        <div class="value">${data.door_to_door_collection.num_households || 0}</div>
-                        <div class="label">Number of Shops:</div>
-                        <div class="value">${data.door_to_door_collection.num_shops || 0}</div>
-                        <div class="label">Collection Frequency:</div>
-                        <div class="value">${data.door_to_door_collection.collection_frequency || 'N/A'}</div>
-                    </div>
-                </div>
-                ` : ''}
-
-                ${data.road_sweeping ? `
-                <div class="section">
-                    <h2>Road Sweeping</h2>
-                    <div class="info-grid">
-                        <div class="label">Width:</div>
-                        <div class="value">${data.road_sweeping.width || 0} m</div>
-                        <div class="label">Length:</div>
-                        <div class="value">${data.road_sweeping.length || 0} m</div>
-                        <div class="label">Cleaning Frequency:</div>
-                        <div class="value">${data.road_sweeping.cleaning_frequency || 'N/A'}</div>
-                    </div>
-                </div>
-                ` : ''}
-
-                ${data.drain_cleaning ? `
-                <div class="section">
-                    <h2>Drain Cleaning</h2>
-                    <div class="info-grid">
-                        <div class="label">Length:</div>
-                        <div class="value">${data.drain_cleaning.length || 0} m</div>
-                        <div class="label">Cleaning Frequency:</div>
-                        <div class="value">${data.drain_cleaning.cleaning_frequency || 'N/A'}</div>
-                    </div>
-                </div>
-                ` : ''}
-
-                ${data.csc_details ? `
-                <div class="section">
-                    <h2>CSC Details</h2>
-                    <div class="info-grid">
-                        <div class="label">Numbers:</div>
-                        <div class="value">${data.csc_details.numbers || 0}</div>
-                        <div class="label">Cleaning Frequency:</div>
-                        <div class="value">${data.csc_details.cleaning_frequency || 'N/A'}</div>
-                    </div>
-                </div>
-                ` : ''}
-
-                ${data.swm_assets ? `
-                <div class="section">
-                    <h2>SWM Assets</h2>
-                    <div class="info-grid">
-                        <div class="label">RRC:</div>
-                        <div class="value">${data.swm_assets.rrc || 0}</div>
-                        <div class="label">PWMU:</div>
-                        <div class="value">${data.swm_assets.pwmu || 0}</div>
-                        <div class="label">Compost Pit:</div>
-                        <div class="value">${data.swm_assets.compost_pit || 0}</div>
-                        <div class="label">Collection Vehicle:</div>
-                        <div class="value">${data.swm_assets.collection_vehicle || 0}</div>
-                    </div>
-                </div>
-                ` : ''}
-
-                ${data.sbmg_targets ? `
-                <div class="section">
-                    <h2>SBMG Targets</h2>
-                    <div class="info-grid">
-                        <div class="label">IHHL:</div>
-                        <div class="value">${data.sbmg_targets.ihhl || 0}</div>
-                        <div class="label">CSC:</div>
-                        <div class="value">${data.sbmg_targets.csc || 0}</div>
-                        <div class="label">RRC:</div>
-                        <div class="value">${data.sbmg_targets.rrc || 0}</div>
-                        <div class="label">PWMU:</div>
-                        <div class="value">${data.sbmg_targets.pwmu || 0}</div>
-                        <div class="label">Soak Pit:</div>
-                        <div class="value">${data.sbmg_targets.soak_pit || 0}</div>
-                        <div class="label">Magic Pit:</div>
-                        <div class="value">${data.sbmg_targets.magic_pit || 0}</div>
-                        <div class="label">Leach Pit:</div>
-                        <div class="value">${data.sbmg_targets.leach_pit || 0}</div>
-                        <div class="label">WSP:</div>
-                        <div class="value">${data.sbmg_targets.wsp || 0}</div>
-                        <div class="label">DEWATS:</div>
-                        <div class="value">${data.sbmg_targets.dewats || 0}</div>
-                    </div>
-                </div>
-                ` : ''}
-
-                <div class="section">
-                    <p class="date">Generated on: ${new Date().toLocaleString()}</p>
-                </div>
-            </body>
-            </html>
-        `;
-
-    // Create a new window for printing
-    const printWindow = window.open('', '_blank');
-    printWindow.document.write(htmlContent);
-    printWindow.document.close();
-
-    // Wait for content to load, then trigger print dialog
-    printWindow.onload = () => {
-      printWindow.print();
-
-      // Close the window after printing (optional)
-      // printWindow.onafterprint = () => printWindow.close();
+    // --- Date Formatting Helper ---
+    const formatDate = (dateStr) => {
+      if (!dateStr || dateStr === "N/A") return "N/A";
+      const date = new Date(dateStr);
+      if (isNaN(date.getTime())) return dateStr;
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const year = date.getFullYear();
+      return `${day}-${month}-${year}`;
     };
+
+    // 1. FONT REGISTRATION (Hindi Support ke liye)
+    try {
+      // Base64 ko clean kar rahe hain taaki 'atob' error na aaye
+      const fontContent = HINDI_FONT.includes(",") ? HINDI_FONT.split(",")[1] : HINDI_FONT;
+      const cleanFont = fontContent.replace(/\s/g, "");
+
+      doc.addFileToVFS("HindiFont.ttf", cleanFont);
+      doc.addFont("HindiFont.ttf", "HindiFont", "normal");
+    } catch (error) {
+      console.error("Font Load Error:", error);
+    }
+
+    const formatCurrency = (amount) =>
+      "Rs. " + (amount || 0).toLocaleString("en-IN");
+
+    const checkPageBreak = (neededHeight = 10) => {
+      if (y + neededHeight > 275) {
+        doc.addPage();
+        y = 20;
+      }
+    };
+
+    const secureString = (val) => (val === null || val === undefined || val === "" ? "N/A" : String(val));
+
+    // ===== HEADER =====
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(20);
+    doc.setTextColor(16, 185, 129);
+    doc.text("GP Master Data", pageWidth / 2, y, { align: "center" });
+    y += 4;
+    doc.setDrawColor(16, 185, 129);
+    doc.setLineWidth(0.8);
+    doc.line(20, y, pageWidth - 20, y);
+
+    y += 8;
+
+    doc.setFontSize(10);
+    doc.setTextColor(107, 114, 128);
+    doc.text(`Survey Date: ${formatDate(data.survey_date)}`, pageWidth / 2, y, { align: "center" });
+    y += 15;
+
+    // ===== Section Helper (Updated for Hindi Support) =====
+    const addSection = (title, fields) => {
+      checkPageBreak(25);
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(14);
+      doc.setTextColor(55, 65, 81);
+      doc.text(title, 20, y);
+
+      y += 3;
+      doc.setDrawColor(229, 231, 235);
+      doc.setLineWidth(0.3);
+      doc.line(20, y, pageWidth - 20, y);
+
+      y += 8;
+
+      fields.forEach(([label, value]) => {
+        checkPageBreak(8);
+
+        // Label English (Helvetica) mein hi rahega
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(11);
+        doc.setTextColor(107, 114, 128);
+        doc.text(label, 20, y);
+
+        // Value (HindiFont) use karega jo Hindi aur English dono dikhayega
+        doc.setFont("HindiFont", "normal");
+        doc.setTextColor(17, 24, 39);
+        doc.text(secureString(value), 70, y);
+
+        y += 7;
+      });
+
+      y += 5;
+    };
+
+    // ===== SABHI SECTIONS (Aapka Sara Data) =====
+
+    addSection(data.gp_name || "GP Details", [
+      ["GP Name:", data.gp_name],
+      ["Block Name:", data.block_name],
+      ["District Name:", data.district_name],
+      ["Sarpanch Name:", data.sarpanch_name],
+      ["Sarpanch Contact:", data.sarpanch_contact],
+      ["Number of Ward Panchs:", data.num_ward_panchs],
+    ]);
+
+    if (data.vdo) {
+      addSection("VDO Details", [
+        ["Name:", data.vdo_name],
+        ["Username:", data.vdo.username]
+      ]);
+    }
+
+    if (data.work_order) {
+      addSection("Work Order", [
+        ["Dispatch No:", data.work_order.work_order_no],
+        ["Date:", formatDate(data.work_order.work_order_date)],
+        ["Amount:", formatCurrency(data.work_order.work_order_amount)],
+      ]);
+    }
+
+    if (data.fund_sanctioned) {
+      addSection("Fund Sanctioned", [
+        ["Head:", data.fund_sanctioned.head],
+        ["Amount:", formatCurrency(data.fund_sanctioned.amount)],
+      ]);
+    }
+
+    if (data.door_to_door_collection) {
+      addSection("Door to Door Collection", [
+        ["Households:", data.door_to_door_collection.num_households],
+        ["Shops:", data.door_to_door_collection.num_shops],
+        ["Frequency:", data.door_to_door_collection.collection_frequency],
+      ]);
+    }
+
+    if (data.csc_details) {
+      addSection("CSC Details", [
+        ["Numbers:", data.csc_details.numbers],
+        ["Frequency:", data.csc_details.cleaning_frequency],
+      ]);
+    }
+
+
+    if (data.drain_cleaning) {
+      addSection("Drain Cleaning", [
+        ["Length:", data.drain_cleaning.length + " m"],
+        ["Frequency:", data.drain_cleaning.cleaning_frequency],
+      ]);
+    }
+
+    if (data.road_sweeping) {
+      addSection("Road Sweeping", [
+        ["Width:", data.road_sweeping.width + " m"],
+        ["Length:", data.road_sweeping.length + " m"],
+        ["Frequency:", data.road_sweeping.cleaning_frequency],
+      ]);
+    }
+
+
+
+
+    if (data.swm_assets) {
+      addSection("SLWM Assets", [
+        ["RRC:", data.swm_assets.rrc],
+        ["PWMU:", data.swm_assets.pwmu],
+        ["Compost Pit:", data.swm_assets.compost_pit],
+        ["Collection Vehicle:", data.swm_assets.collection_vehicle],
+      ]);
+    }
+
+    if (data.sbmg_targets) {
+      addSection("SBMG Targets", [
+        ["IHHL:", data.sbmg_targets.ihhl],
+        ["CSC:", data.sbmg_targets.csc],
+        ["Soak Pit:", data.sbmg_targets.soak_pit],
+        ["Magic Pit:", data.sbmg_targets.magic_pit],
+      ]);
+    }
+
+    // ===== Village Table (Full Hindi Support) =====
+    if (data.village_data?.length) {
+      checkPageBreak(30);
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(14);
+      doc.setTextColor(55, 65, 81);
+      doc.text("Village Details", 20, y);
+
+      y += 5;
+
+      autoTable(doc, {
+        startY: y,
+        head: [[
+          "Village", "Population", "Households", "IHHL", "CSC",
+          "Soak Pit", "Magic pit", "Leach pit", "WSP", "DEWATS"
+        ]],
+        body: data.village_data.map((v) => [
+          secureString(v.village_name),
+          v.population,
+          v.num_households,
+          v.sbmg_assets?.ihhl || 0,
+          v.sbmg_assets?.csc || 0,
+          v.gwm_assets?.soak_pit || 0,
+          v.gwm_assets?.magic_pit || 0,
+          v.gwm_assets?.leach_pit || 0,
+          v.gwm_assets?.leach_pit || 0, // Aapke code mein repeat tha, maine rehne diya
+          v.gwm_assets?.wsp || 0,
+          v.gwm_assets?.dewats || 0,
+        ]),
+        theme: "grid",
+        styles: {
+          font: "HindiFont", // Table ke andar Hindi support
+          fontSize: 8
+        },
+        headStyles: { font: "helvetica", fontStyle: "bold" }
+      });
+
+      y = doc.lastAutoTable.finalY + 10;
+    }
+
+    // ===== Footer =====
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(107, 114, 128);
+
+      const now = new Date();
+      const formattedNow = `${String(now.getDate()).padStart(2, '0')}-${String(now.getMonth() + 1).padStart(2, '0')}-${now.getFullYear()} ${now.toLocaleTimeString()}`;
+      doc.text(`Generated on: ${formattedNow}`, 20, 285);
+      doc.text(`Page ${i} of ${pageCount}`, 170, 285);
+    }
+
+    doc.save(`Survey-${data.gp_name}.pdf`);
   };
 
   // Handler for downloading annual surveys by district as PDF (District Wise Coverage table)
-  const handleDownloadAnnualSurveys = useCallback(async (item) => {
-    const districtId = item.district_id ?? (activeScope === 'State' ? item.geography_id : (selectedDistrictId || selectedDistrictForHierarchy?.id));
-    if (!districtId) {
-      alert('District information not available for download.');
-      return;
-    }
+  const handleDownloadAnnualSurveys = async (item) => {
     try {
-      setDownloadingId(item.geography_id);
-      const response = await apiClient.get(`/annual-surveys/?skip=0&limit=100&district_id=${districtId}`);
-      const raw = response.data;
-      const list = Array.isArray(raw) ? raw : (raw?.data ?? raw?.items ?? raw?.results ?? []);
-      const title = `Annual Surveys — ${item.geography_name || 'District ' + districtId}`;
-      const filename = `annual-surveys-${(item.geography_name || 'data').replace(/\s+/g, '-')}-district-${districtId}.pdf`;
-      generateAnnualSurveysPDF(list, title, filename);
+      if (!selectedFyId) {
+        alert("Please select a Financial Year.");
+        return;
+      }
+
+      const geoId = item.geography_id;
+      const geoName = item.geography_name;
+
+      // ==========================================
+      // CASE 1: STATE SCOPE -> District's Blocks
+      // ==========================================
+      if (activeScope === "State") {
+        const res = await apiClient.get(`/annual-surveys/analytics/district/${geoId}?fy_id=${selectedFyId}`);
+        const blocksData = res.data?.block_wise_coverage || [];
+
+        if (!blocksData.length) {
+          alert("No block data available for this district.");
+          return;
+        }
+
+        // ✅ Sr. No. yahan add ho raha hai
+        const formatted = blocksData.map((row, index) => ({
+          "Sr. No.": index + 1,
+          "Block Name": row.geography_name,
+          "Total GPs": row.total_gps,
+          "GPs with Data": row.gps_with_data,
+          "Coverage %": `${row.coverage_percentage}%`,
+          "Status": row.master_data_status,
+        }));
+
+        const worksheet = XLSX.utils.json_to_sheet(formatted);
+
+        // ✅ Width yahan set ho rahi hai (Characters mein)
+        worksheet['!cols'] = [
+          { wch: 8 },  // Sr. No.
+          { wch: 25 }, // Block Name
+          { wch: 15 }, // Total GPs
+          { wch: 15 }, // GPs with Data
+          { wch: 15 }, // Coverage %
+          { wch: 15 }  // Status
+        ];
+
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Blocks List");
+        XLSX.writeFile(workbook, `Blocks_of_${geoName}.xlsx`);
+      }
+
+      // ==========================================
+      // CASE 2: DISTRICTS SCOPE -> Block's GPs
+      // ==========================================
+      else if (activeScope === "Districts") {
+        const res = await apiClient.get(`/annual-surveys/analytics/block/${geoId}?fy_id=${selectedFyId}`);
+        const gpsData = res.data?.gp_wise_coverage || [];
+
+        if (!gpsData.length) {
+          alert("No GP data available for this block.");
+          return;
+        }
+
+        // ✅ Sr. No. yahan add ho raha hai
+        const formatted = gpsData.map((row, index) => ({
+          "Sr. No.": index + 1,
+          "GP Name": row.geography_name,
+          "Status": row.master_data_status,
+          "Coverage %": `${row.coverage_percentage}%`,
+        }));
+
+        const worksheet = XLSX.utils.json_to_sheet(formatted);
+
+        // ✅ Width yahan set ho rahi hai
+        worksheet['!cols'] = [
+          { wch: 8 },  // Sr. No.
+          { wch: 30 }, // GP Name
+          { wch: 15 }, // Status
+          { wch: 15 }  // Coverage %
+        ];
+
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "GPs List");
+        XLSX.writeFile(workbook, `GPs_of_${geoName}.xlsx`);
+      }
+
+      // ==========================================
+      // CASE 3: BLOCKS SCOPE -> Generate PDF
+      // ==========================================
+      else if (activeScope === "Blocks") {
+        const surveyListRes = await apiClient.get(
+          `/annual-surveys?gp_id=${geoId}&fy_id=${selectedFyId}`
+        );
+        const surveyList = surveyListRes.data;
+
+        if (!surveyList || !surveyList.length) {
+          alert("No survey found for this GP.");
+          return;
+        }
+
+        const surveyId = surveyList[0].id;
+        const surveyRes = await apiClient.get(`/annual-surveys/${surveyId}`);
+        generatePDF(surveyRes.data);
+      }
+
     } catch (error) {
-      console.error('Download failed:', error);
-      alert('Failed to download PDF. Please try again.');
-    } finally {
-      setDownloadingId(null);
+      console.error("Download Error:", error);
+      alert("Download failed. Check console.");
     }
-  }, [activeScope, selectedDistrictId, selectedDistrictForHierarchy]);
+  };
+
+  const tableDataDownload = () => {
+    try {
+      // 1. Pehle data identify karo activeScope ke hisaab se
+      const coverageData = activeScope === 'State'
+        ? analyticsData?.district_wise_coverage || []
+        : activeScope === 'Districts'
+          ? analyticsData?.block_wise_coverage || []
+          : analyticsData?.gp_wise_coverage || [];
+
+      if (!coverageData.length) {
+        alert("No data available to download");
+        return;
+      }
+
+      // 2. Data ko Excel format (JSON) mein taiyar karo
+      // Hum labels dynamic rakhenge scope ke basis par
+      const geoLabel = activeScope === 'State' ? 'District' : activeScope === 'Districts' ? 'Block' : 'GP';
+
+      const formattedData = coverageData.map((item, index) => {
+        // Base object jo sab mein common hai
+        const row = {
+          "Sr. No.": index + 1,
+          [`${geoLabel} Name`]: item.geography_name,
+        };
+
+        // Agar State ya Districts scope hai toh extra columns add karo
+        if (activeScope !== 'Blocks') {
+          row["Total GPs"] = item.total_gps || 0;
+          row["GPs with Data"] = item.gps_with_data || 0;
+          row["Coverage %"] = `${item.coverage_percentage || 0}%`;
+        }
+
+        // Status column sabke liye
+        row["Status"] = item.master_data_status || 'Not Available';
+
+        return row;
+      });
+
+      // 3. Excel Worksheet taiyar karo
+      const worksheet = XLSX.utils.json_to_sheet(formattedData);
+
+      // 4. Column ki width set karo taaki Excel saaf dikhe
+      const columnsConfig = [
+        { wch: 8 },  // Sr. No.
+        { wch: 30 }, // Geography Name
+      ];
+
+      if (activeScope !== 'Blocks') {
+        columnsConfig.push({ wch: 15 }, { wch: 15 }, { wch: 15 });
+      }
+      columnsConfig.push({ wch: 18 }); // Status
+
+      worksheet['!cols'] = columnsConfig;
+
+      // 5. Workbook banao aur save karo
+      const workbook = XLSX.utils.book_new();
+      const fileName = `${geoLabel}_Wise_Coverage_Report`;
+
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Coverage Report");
+      XLSX.writeFile(workbook, `${fileName}.xlsx`);
+
+    } catch (error) {
+      console.error("Excel Download Error:", error);
+      alert("Failed to download excel.");
+    }
+  };
 
   // Fetch districts from API
   const fetchDistricts = async () => {
@@ -1905,15 +2097,43 @@ const VillageMasterContent = () => {
           borderRadius: '8px',
           border: '1px solid lightgray'
         }}>
-          <h3 style={{
-            fontSize: '18px',
-            fontWeight: '600',
-            color: '#111827',
-            margin: 0,
-            marginBottom: '12px'
-          }}>
-            {activeScope === 'State' ? 'District' : activeScope === 'Districts' ? 'Block' : 'GP'} Wise Coverage
-          </h3>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              padding: '0 5px'
+            }}
+          >
+            <h3 style={{
+              fontSize: '18px',
+              fontWeight: '600',
+              color: '#111827',
+              margin: 0,
+              marginBottom: '12px'
+            }}>
+              {activeScope === 'State' ? 'District' : activeScope === 'Districts' ? 'Block' : 'GP'} Wise Coverage
+            </h3>
+            <h3>
+              <button
+                onClick={tableDataDownload}
+                type="button"
+                title="Download Data"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '6px',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '6px',
+                  backgroundColor: '#10B981',
+                  cursor: 'pointer',
+                  color: 'white'
+                }}
+              >
+                <Download style={{ width: '20px', height: '20px' }} />
+              </button>
+            </h3>
+          </div>
 
 
 
@@ -2123,7 +2343,7 @@ const VillageMasterContent = () => {
                           type="button"
                           onClick={() => handleDownloadAnnualSurveys(item)}
                           disabled={downloadingId === item.geography_id}
-                          title="Download PDF"
+                          title="Download Data"
                           style={{
                             display: 'flex',
                             alignItems: 'center',
