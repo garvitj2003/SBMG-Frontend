@@ -1533,7 +1533,7 @@ const InspectionContent = () => {
                                  (typeof photo === 'object' && photo.description ? photo.description : `Photo ${index + 1}`);
               return `
                 <div class="photo-item">
-                  <img src="${photoUrl}" alt="${photoCaption}" />
+                  <img src="${photoUrl}" alt="${photoCaption}" onerror="this.style.display='none'; this.nextElementSibling.innerHTML='Image not available';" />
                   <div class="photo-caption">${photoCaption}</div>
                 </div>
               `;

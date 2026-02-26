@@ -1,7 +1,29 @@
 import { X } from 'lucide-react'
-import React, { useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import apiClient from '../../../services/api';
 
+
+const Input = ({ label, value, onChange, type = 'text', placeholder = '', disabled, min }) => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+        <label style={{ fontSize: '13px', fontWeight: '500', color: '#374151' }}>{label}</label>
+        <input
+            type={type}
+            value={value ?? ''}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder={placeholder}
+            disabled={disabled}
+            min={min}
+            required
+            style={{
+                padding: '8px 10px',
+                border: '1px solid #d1d5db',
+                borderRadius: '6px',
+                fontSize: '14px',
+                outline: 'none'
+            }}
+        />
+    </div>
+);
 
 
 const EditContractorDetails = ({ isOpen, onClose, editData, onsuccess, gpId }) => {
@@ -9,6 +31,22 @@ const EditContractorDetails = ({ isOpen, onClose, editData, onsuccess, gpId }) =
     const [agencies, setAgencies] = useState([]);
     const [error, setError] = useState('')
     const [saving, setSaving] = useState(false)
+    const [moduleAgency, SetModuleAgency] = useState(false)
+    const [agencySearch, setAgencySearch] = useState("");
+    const [agencyDropdownOpen, setAgencyDropdownOpen] = useState(false);
+    const [agencyesData, setAgencyesData] = useState([])
+
+    const [errorInagency, setErrorInagency] = useState(null);
+    const [loading, setLoading] = useState(false);
+
+    const [agencyForm, setAgencyForm] = useState({
+        name: "",
+        email: "",
+        contact_number: "", address: ""
+    });
+
+
+
 
     const fetchAgencies = async () => {
         try {
@@ -31,6 +69,30 @@ const EditContractorDetails = ({ isOpen, onClose, editData, onsuccess, gpId }) =
         fetchAgencies();
     }, []);
 
+    // Agency search
+    useEffect(() => {
+        if (!agencyDropdownOpen) return;
+
+        const delay = setTimeout(async () => {
+            try {
+                const res = await apiClient.get(
+                    `contractors/agencies?name_like=${agencySearch}`
+                );
+
+                setAgencyesData(res.data.results || res.data);
+            } catch (err) {
+                console.log("Agency search error", err);
+            }
+        }, 200); // debounce 400ms
+
+        return () => clearTimeout(delay);
+    }, [agencySearch, agencyDropdownOpen]);
+
+    useEffect(() => {
+        if (!isOpen) {
+            SetModuleAgency(false);   // 🔥 Reset agency modal
+        }
+    }, [isOpen]);
 
     const [formData, setFormData] = useState({
         name: "",
@@ -80,6 +142,7 @@ const EditContractorDetails = ({ isOpen, onClose, editData, onsuccess, gpId }) =
                     editData.contract_end_date
                 )
             });
+            setAgencySearch(editData.agency?.name || "");
         }
     }, [editData]);
 
@@ -110,6 +173,80 @@ const EditContractorDetails = ({ isOpen, onClose, editData, onsuccess, gpId }) =
     //         document.removeEventListener('mousedown', handleClickOutside);
     //     };
     // }, []);
+
+    const handleCreateAgency = async () => {
+        try {
+            // Basic Validation
+            if (!agencyForm.name.trim()) {
+                setErrorInagency("Agency name is required");
+                return;
+            }
+
+            if (!agencyForm.email.trim()) {
+                setErrorInagency("Email is required");
+                return;
+            } else if (agencyForm.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(agencyForm.email)) {
+                setErrorInagency("Invalid email format");
+                return;
+            }
+
+            if (!agencyForm.contact_number.trim()) {
+                setErrorInagency("Contact Number is required");
+                return;
+            } else if (agencyForm.contact_number && !/^\d{10}$/.test(agencyForm.contact_number)) {
+                setErrorInagency("Contact number must be 10 digits");
+                return;
+            }
+
+            const res = await apiClient.post("contractors/agencies", {
+                name: agencyForm.name.trim(),
+                email: agencyForm.email.trim(),
+                phone: agencyForm.contact_number.trim(),
+                address: agencyForm.address?.trim() || ""
+            });
+
+            const fresh = await apiClient.get("contractors/agencies");
+            setAgencyesData(fresh.data.results || fresh.data);
+
+            update("agency", res.data.id);
+
+            setAgencySearch(res.data.name); // 🔥 immediately show selected
+
+            SetModuleAgency(false);
+
+            setAgencyForm({
+                name: "",
+                email: "",
+                contact_number: "",
+                address: ""
+            });
+            setErrorInagency(null)
+            alert("Agency created successfully ✅");
+
+        } catch (err) {
+            alert(err.response?.data?.message || "Failed to create agency");
+        }
+    };
+    const update = useCallback((path, value) => {
+        setFormData((prev) => {
+            if (!prev) return prev;
+            const next = JSON.parse(JSON.stringify(prev));
+            const parts = path.split('.');
+            let cur = next;
+            for (let i = 0; i < parts.length - 1; i++) {
+                const p = parts[i];
+                const idx = parseInt(p, 10);
+                if (!isNaN(idx)) {
+                    cur = cur[idx];
+                } else {
+                    if (!cur[p]) cur[p] = {};
+                    cur = cur[p];
+                }
+            }
+            cur[parts[parts.length - 1]] = value;
+            return next;
+        });
+    }, []);
 
 
 
@@ -233,7 +370,104 @@ const EditContractorDetails = ({ isOpen, onClose, editData, onsuccess, gpId }) =
                                 />
 
                             </div>
-                            <div className='flex flex-col gap-1 w-full'>
+
+                            {/* Agency Filed */}
+                            <div className=''>
+                                <div className='text-end'>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setErrorInagency(null);
+                                            SetModuleAgency(true);
+                                        }}
+                                        style={{
+                                            color: '#10b981',
+                                            border: 'none',
+                                            borderRadius: '8px',
+                                            fontSize: '12px',
+                                            fontWeight: '500',
+                                            cursor: 'pointer'
+                                        }}
+                                        className='uppercase'
+                                    >
+                                        + ADD Agency
+                                    </button>
+                                </div>
+                                <div style={{ position: "relative", width: "100%" }}>
+
+                                    {/* Search Input */}
+                                    <input
+                                        type="text"
+                                        placeholder="Search Agency..."
+                                        value={agencySearch}
+                                        onChange={(e) => {
+                                            setAgencySearch(e.target.value);
+                                            setAgencyDropdownOpen(true);
+                                        }}
+                                        onFocus={() => setAgencyDropdownOpen(true)}
+                                        style={{
+                                            padding: "8px 10px",
+                                            border: "1px solid #d1d5db",
+                                            borderRadius: "6px",
+                                            fontSize: "14px",
+                                            width: "100%"
+                                        }}
+                                    />
+
+                                    {/* Dropdown */}
+                                    {agencyDropdownOpen && (
+                                        <div
+                                            style={{
+                                                position: "absolute",
+                                                top: "100%",
+                                                left: 0,
+                                                right: 0,
+                                                background: "#fff",
+                                                border: "1px solid #d1d5db",
+                                                borderRadius: "6px",
+                                                maxHeight: "200px",
+                                                overflowY: "auto",
+                                                zIndex: 1000
+                                            }}
+                                        >
+                                            {agencyesData.length === 0 && (
+                                                <div style={{ padding: "8px", fontSize: "13px" }}>
+                                                    No agency found
+                                                </div>
+                                            )}
+
+                                            {agencyesData.map((agency) => (
+                                                <div
+                                                    key={agency.id}
+                                                    onClick={() => {
+                                                        setFormData(prev => ({ ...prev, agency: agency.id }));
+                                                        setAgencySearch(agency.name);
+                                                        setAgencyDropdownOpen(false);
+                                                    }}
+                                                    style={{
+                                                        padding: "8px",
+                                                        cursor: "pointer",
+                                                        fontSize: "14px"
+                                                    }}
+                                                    onMouseEnter={(e) =>
+                                                        (e.currentTarget.style.background = "#f3f4f6")
+                                                    }
+                                                    onMouseLeave={(e) =>
+                                                        (e.currentTarget.style.background = "#fff")
+                                                    }
+                                                >
+                                                    {agency.name}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+
+
+                            </div>
+
+
+                            {/* <div className='flex flex-col gap-1 w-full'>
                                 <label htmlFor="">Agency   </label>
                                 <select
                                     value={formData.agency}
@@ -258,7 +492,7 @@ const EditContractorDetails = ({ isOpen, onClose, editData, onsuccess, gpId }) =
                                     ))}
                                 </select>
 
-                            </div>
+                            </div> */}
 
                             <div className='flex flex-col gap-1 w-full'>
                                 <label htmlFor="">Frequency of work </label>
@@ -360,6 +594,107 @@ const EditContractorDetails = ({ isOpen, onClose, editData, onsuccess, gpId }) =
                     </div>
                 </form>
             </div>
+
+            {/* Agency create module */}
+            {moduleAgency && (
+                <div
+                    onClick={(e) => e.stopPropagation()}
+                    style={{
+                        position: "fixed",
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        background: "rgba(0,0,0,0.5)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        zIndex: 2000
+                    }}
+                >
+                    <div
+                        style={{
+                            background: "#fff",
+                            padding: "20px",
+                            borderRadius: "12px",
+                            width: "400px",
+                            boxShadow: "0 10px 30px rgba(0,0,0,0.2)"
+                        }}
+                    >
+                        <h3 style={{ marginBottom: "15px" }}>Create Agency</h3>
+
+                        {errorInagency && !loading && (
+                            <div style={{ padding: '12px', borderRadius: '8px', backgroundColor: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', fontSize: '13px', marginBottom: '16px' }}>
+                                {errorInagency}
+                            </div>
+                        )}
+
+                        <Input
+                            label="Agency Name"
+                            value={agencyForm.name}
+                            onChange={(v) =>
+                                setAgencyForm((prev) => ({ ...prev, name: v }))
+                            }
+                        />
+
+                        <Input
+                            label="Email"
+                            value={agencyForm.email}
+                            onChange={(v) =>
+                                setAgencyForm((prev) => ({ ...prev, email: v }))
+                            }
+                        />
+
+                        <Input
+                            label="Contact Number"
+                            value={agencyForm.contact_number}
+                            onChange={(v) =>
+                                setAgencyForm((prev) => ({
+                                    ...prev,
+                                    contact_number: v.replace(/[^0-9]/g, "").slice(0, 10)
+                                }))
+                            }
+                        />
+                        <Input
+                            label="Address"
+                            value={agencyForm.address}
+                            onChange={(v) =>
+                                setAgencyForm((prev) => ({ ...prev, address: v }))
+                            }
+                        />
+
+                        <div style={{ marginTop: "15px", display: "flex", justifyContent: "flex-end", gap: "10px" }}>
+                            <button
+                                onClick={() => SetModuleAgency(false)}
+                                style={{
+                                    padding: "8px 14px",
+                                    background: "#e5e7eb",
+                                    border: "none",
+                                    borderRadius: "8px",
+                                    cursor: "pointer"
+                                }}
+                            >
+                                Cancel
+                            </button>
+
+                            <button
+                                disabled={loading}
+                                onClick={handleCreateAgency}
+                                style={{
+                                    padding: "8px 14px",
+                                    background: "#10b981",
+                                    color: "#fff",
+                                    border: "none",
+                                    borderRadius: "8px",
+                                    cursor: "pointer"
+                                }}
+                            >
+                                {loading ? "Saving..." : "Save"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
         </div>
 

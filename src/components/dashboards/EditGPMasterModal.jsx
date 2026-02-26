@@ -122,7 +122,12 @@ function mapGetToForm(data) {
 }
 
 function formToPayload(form) {
-  const n = (x) => (typeof x === 'number' && !isNaN(x) ? x : (parseFloat(x) || 0));
+  // const n = (x) => (typeof x === 'number' && !isNaN(x) ? x : (parseFloat(x) || 0));
+  const n = (x) => {
+    if (x === "" || x === null || x === undefined) return 0;
+    const num = Number(x);
+    return Number.isInteger(num) ? num : Math.floor(num || 0);
+  };
   const s = (x) => (x != null ? String(x) : '');
 
   return {
@@ -257,7 +262,7 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
   useEffect(() => {
     const fetchAgencies = async () => {
       try {
-        const res = await apiClient.get('contractors/agencies?limit=1000');
+        const res = await apiClient.get('contractors/agencies?limit=100');
         setAgencyesData(res.data.results || res.data);
       } catch (error) {
         console.log("Agencies Error:", error);
@@ -471,6 +476,7 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
     }
   };
 
+  // Agency search
   useEffect(() => {
     if (!agencyDropdownOpen) return;
 
@@ -484,7 +490,7 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
       } catch (err) {
         console.log("Agency search error", err);
       }
-    }, 400); // debounce 400ms
+    }, 200); // debounce 400ms
 
     return () => clearTimeout(delay);
   }, [agencySearch, agencyDropdownOpen]);
@@ -777,7 +783,7 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
               ))}
               {section('Fund sanctioned', grid2(
                 <>
-                  <Input label="Amount" type="number" min={0} value={form.fund_sanctioned?.amount} onChange={(v) => update('fund_sanctioned.amount',v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label="Amount" type="number" min={0} value={form.fund_sanctioned?.amount} onChange={(v) => update('fund_sanctioned.amount', v === '' ? '' : Number(v))} disabled={saving} />
                   <Select label="Head" value={form.fund_sanctioned?.head} onChange={(v) => update('fund_sanctioned.head', v)} options={FUND_HEAD_OPTIONS} disabled={saving} />
                 </>
               ))}
@@ -785,7 +791,7 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   {grid3(
                     <>
-                      <Input label="Number of households" type="number" min={0} value={form.door_to_door_collection?.num_households} onChange={(v) => update('door_to_door_collection.num_households',v === '' ? '' : Number(v))} disabled={saving} />
+                      <Input label="Number of households" type="number" min={0} value={form.door_to_door_collection?.num_households} onChange={(v) => update('door_to_door_collection.num_households', v === '' ? '' : Number(v))} disabled={saving} />
                       <Input label="Number of shops" type="number" min={0} value={form.door_to_door_collection?.num_shops} onChange={(v) => update('door_to_door_collection.num_shops', v === '' ? '' : Number(v))} disabled={saving} />
                       <Select label="Collection frequency" value={form.door_to_door_collection?.collection_frequency} onChange={(v) => update('door_to_door_collection.collection_frequency', v)} options={FREQ_OPTIONS} disabled={saving} />
                     </>
@@ -807,7 +813,7 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
               ))}
               {section('CSC details', grid2(
                 <>
-                  <Input label="Numbers" type="number" min={0} value={form.csc_details?.numbers} onChange={(v) => update('csc_details.numbers',v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label="Numbers" type="number" min={0} value={form.csc_details?.numbers} onChange={(v) => update('csc_details.numbers', v === '' ? '' : Number(v))} disabled={saving} />
                   <Select label="Cleaning frequency" value={form.csc_details?.cleaning_frequency} onChange={(v) => update('csc_details.cleaning_frequency', v)} options={FREQ_OPTIONS} disabled={saving} />
                 </>
               ))}
@@ -822,7 +828,7 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
               {section('SBMG targets', (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
                   {['ihhl', 'csc', 'rrc', 'pwmu', 'soak_pit', 'magic_pit', 'leach_pit', 'wsp', 'dewats'].map((k) => (
-                    <Input key={k} label={k.replace(/_/g, ' ')} type="number" min={0} value={form.sbmg_targets?.[k]} onChange={(v) => update(`sbmg_targets.${k}`,v === '' ? '' : Number(v))} disabled={saving} />
+                    <Input key={k} label={k.replace(/_/g, ' ')} type="number" min={0} value={form.sbmg_targets?.[k]} onChange={(v) => update(`sbmg_targets.${k}`, v === '' ? '' : Number(v))} disabled={saving} />
                   ))}
                 </div>
               ))}
@@ -958,6 +964,7 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
               </button>
 
               <button
+                disabled={loading}
                 onClick={handleCreateAgency}
                 style={{
                   padding: "8px 14px",
@@ -968,7 +975,7 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
                   cursor: "pointer"
                 }}
               >
-                Save
+                {loading ? "Saving..." : "Save"}
               </button>
             </div>
           </div>

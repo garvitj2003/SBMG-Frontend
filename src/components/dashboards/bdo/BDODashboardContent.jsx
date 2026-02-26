@@ -1,15 +1,14 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { MapPin, ChevronDown, ChevronRight, Calendar, List, TrendingUp } from 'lucide-react';
+import { Calendar, ChevronDown, List, MapPin } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Chart from 'react-apexcharts';
-import number1 from '../../../assets/images/number1.png';
 import number2 from '../../../assets/images/nnumber2.png';
+import number1 from '../../../assets/images/number1.png';
 import number3 from '../../../assets/images/number3.png';
-import apiClient from '../../../services/api';
 import { useBDOLocation } from '../../../context/BDOLocationContext';
-import LocationDisplay from '../../common/LocationDisplay';
-import SendNoticeModal from '../common/SendNoticeModal';
-import NoDataFound from '../common/NoDataFound';
+import apiClient from '../../../services/api';
 import { InfoTooltip } from '../../common/Tooltip';
+import NoDataFound from '../common/NoDataFound';
+import SendNoticeModal from '../common/SendNoticeModal';
 
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -19,13 +18,13 @@ const MONTH_NAMES = [
 const SegmentedGauge = ({ complaintData, percentage, label = "Complaints closed" }) => {
   // Calculate total complaints for percentage calculation
   const total = complaintData.open + complaintData.verified + complaintData.resolved + complaintData.disposed;
-  
+
   // Calculate percentages for each status
   const openPercent = total > 0 ? (complaintData.open / total) * 100 : 0;
   const verifiedPercent = total > 0 ? (complaintData.verified / total) * 100 : 0;
   const resolvedPercent = total > 0 ? (complaintData.resolved / total) * 100 : 0;
   const disposedPercent = total > 0 ? (complaintData.disposed / total) * 100 : 0;
-  
+
   // Define colors for each status
   const statusColors = {
     open: '#ef4444',      // Red
@@ -39,15 +38,15 @@ const SegmentedGauge = ({ complaintData, percentage, label = "Complaints closed"
     const innerRadius = radius - strokeWidth;
     const centerX = 100;
     const centerY = 100;
-    
+
     // Calculate the main arc points
     const start = polarToCartesian(centerX, centerY, radius, endAngle);
     const end = polarToCartesian(centerX, centerY, radius, startAngle);
     const innerStart = polarToCartesian(centerX, centerY, innerRadius, endAngle);
     const innerEnd = polarToCartesian(centerX, centerY, innerRadius, startAngle);
-    
+
     const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
-    
+
     return `M ${start.x} ${start.y} 
             A ${radius} ${radius} 0 ${largeArcFlag} 0 ${end.x} ${end.y}
             L ${innerEnd.x} ${innerEnd.y}
@@ -69,7 +68,7 @@ const SegmentedGauge = ({ complaintData, percentage, label = "Complaints closed"
     const totalAngle = 180; // strict half-circle
     const gapSize = 20; // degrees between adjacent segments; large enough for rounded caps
     // availableAngle will be computed dynamically after we know how many segments we have
-    
+
     // Only create segments for statuses that have complaints
     const statuses = [
       { name: 'open', percent: openPercent, color: statusColors.open },
@@ -77,51 +76,51 @@ const SegmentedGauge = ({ complaintData, percentage, label = "Complaints closed"
       { name: 'verified', percent: verifiedPercent, color: statusColors.verified },
       { name: 'disposed', percent: disposedPercent, color: statusColors.disposed }
     ].filter(status => status.percent > 0);
-    
+
     // If no complaints, return empty array
     if (statuses.length === 0) {
       return [];
     }
-    
+
     // Calculate total percentage of active statuses
     const totalActivePercent = statuses.reduce((sum, status) => sum + status.percent, 0);
-    
+
     // Distribute segments proportionally within 180° minus dynamic gaps
     let currentAngle = -90; // center the 180° sweep from -90° to +90°
     const segmentCount = statuses.length; // show all active statuses
     const gapsCount = Math.max(segmentCount - 1, 0);
     const availableAngle = totalAngle - (gapsCount * gapSize);
-    
+
     for (let i = 0; i < segmentCount; i++) {
       const status = statuses[i];
       const segmentAngle = totalActivePercent > 0 ? (status.percent / totalActivePercent) * availableAngle : 0;
       const endAngle = currentAngle + segmentAngle;
-      
+
       segments.push({
         start: currentAngle,
         end: endAngle,
         color: status.color,
         name: status.name
       });
-      
+
       if (i < segmentCount - 1) {
         currentAngle = endAngle + gapSize; // add gap after this segment
       } else {
         currentAngle = endAngle; // no gap after the last segment
       }
     }
-    
+
     // Don't add gray filler - only show actual data segments
-    
+
     return segments;
   };
-  
+
   const segments = createSegments();
 
   return (
-    <div style={{ 
-      display: 'flex', 
-      flexDirection: 'column', 
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
       alignItems: 'center',
       width: '100%'
     }}>
@@ -133,11 +132,11 @@ const SegmentedGauge = ({ complaintData, percentage, label = "Complaints closed"
           const radius = 80;
           const strokeWidth = 20;
           const innerRadius = radius - strokeWidth;
-          
+
           // Calculate circular end cap positions
-          const startCapPos = polarToCartesian(100, 100, radius - strokeWidth/2, endAngle);
-          const endCapPos = polarToCartesian(100, 100, radius - strokeWidth/2, startAngle);
-          
+          const startCapPos = polarToCartesian(100, 100, radius - strokeWidth / 2, endAngle);
+          const endCapPos = polarToCartesian(100, 100, radius - strokeWidth / 2, startAngle);
+
           return (
             <g key={index}>
               <path
@@ -151,19 +150,19 @@ const SegmentedGauge = ({ complaintData, percentage, label = "Complaints closed"
               <circle
                 cx={startCapPos.x}
                 cy={startCapPos.y}
-                r={strokeWidth/2}
+                r={strokeWidth / 2}
                 fill={segment.color}
               />
               <circle
                 cx={endCapPos.x}
                 cy={endCapPos.y}
-                r={strokeWidth/2}
+                r={strokeWidth / 2}
                 fill={segment.color}
               />
             </g>
           );
         })}
-        
+
         {/* Center text - percentage */}
         <text
           x="100"
@@ -176,7 +175,7 @@ const SegmentedGauge = ({ complaintData, percentage, label = "Complaints closed"
           }}>
           {percentage == null || isNaN(percentage) ? 'NaN' : `${percentage}%`}
         </text>
-        
+
         {/* Center text - label */}
         <text
           x="100"
@@ -189,7 +188,7 @@ const SegmentedGauge = ({ complaintData, percentage, label = "Complaints closed"
           }}>
           {label}
         </text>
-        
+
       </svg>
     </div>
   );
@@ -224,15 +223,15 @@ const BDODashboardContent = () => {
     bdoBlockName,
     loadingBDOData
   } = useBDOLocation();
-  
+
   // BDO always uses their district ID and block ID from /me API
   const selectedDistrictId = bdoDistrictId || null;
   const selectedBlockId = bdoBlockId || null;
   const selectedDistrictForHierarchy = bdoDistrictId ? { id: bdoDistrictId, name: bdoDistrictName } : null;
   const selectedBlockForHierarchy = bdoBlockId ? { id: bdoBlockId, name: bdoBlockName } : null;
-  const setSelectedDistrictForHierarchy = () => {}; // No-op for BDO
-  const setSelectedBlockId = () => {}; // No-op for BDO
-  const setSelectedBlockForHierarchy = () => {}; // No-op for BDO
+  const setSelectedDistrictForHierarchy = () => { }; // No-op for BDO
+  const setSelectedBlockId = () => { }; // No-op for BDO
+  const setSelectedBlockForHierarchy = () => { }; // No-op for BDO
 
   // Local state for UI controls
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
@@ -322,7 +321,7 @@ const BDODashboardContent = () => {
   const [loadingTop3, setLoadingTop3] = useState(false);
   const [top3Error, setTop3Error] = useState(null);
   const top3MonthRef = useRef(null);
-  
+
   const performanceRangeRef = useRef(null);
 
   // Vendor data state (for GP level)
@@ -336,14 +335,14 @@ const BDODashboardContent = () => {
     const locationInfo = getCurrentLocationInfo();
     console.log('Current Location Info:', locationInfo);
   }, [activeScope, selectedLocation, selectedLocationId, selectedDistrictId, selectedBlockId, selectedGPId, getCurrentLocationInfo]);
-  
+
   // Date selection state
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(null); // null means not selected
   const [selectedDay, setSelectedDay] = useState(null); // null means not selected
   const [showDateDropdown, setShowDateDropdown] = useState(false);
   const [selectionStep, setSelectionStep] = useState('year'); // 'year', 'month', 'day'
-  
+
   // Date range state
   const [selectedDateRange, setSelectedDateRange] = useState('Today');
   const [startDate, setStartDate] = useState(() => {
@@ -402,13 +401,13 @@ const BDODashboardContent = () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [showTop3MonthPicker]);
-  
+
   // Complaints year selection state
   const [selectedComplaintsYear, setSelectedComplaintsYear] = useState(() => {
     return new Date().getFullYear();
   });
   const [showComplaintsYearDropdown, setShowComplaintsYearDropdown] = useState(false);
-  
+
   // Complaints filter tabs state
   const [activeComplaintsFilter, setActiveComplaintsFilter] = useState('Time');
 
@@ -481,7 +480,7 @@ const BDODashboardContent = () => {
     setSelectedNoticeTarget(null);
   }, []);
 
-  const scopeButtons = ['Districts', 'Blocks', 'GPs']; // BDO can only view GPs, Districts and Blocks are disabled
+  const scopeButtons = ['Blocks', 'GPs']; // BDO can only view GPs, Districts and Blocks are disabled
 
   // Predefined date ranges
   const dateRanges = [
@@ -577,30 +576,30 @@ const BDODashboardContent = () => {
       const url = `/complaints/analytics/geo?${params.toString()}`;
       console.log('🌐 Full API URL:', url);
       console.log('🔗 Complete URL:', `${apiClient.defaults.baseURL}${url}`);
-      
+
       // Check if token exists
       const token = localStorage.getItem('access_token');
       console.log('🔑 Token Status:', token ? 'Present' : 'Missing');
       if (token) {
         console.log('🔑 Token Preview:', token.substring(0, 20) + '...');
       }
-      
+
       const response = await apiClient.get(url);
-      
+
       console.log('✅ Analytics API Response:', {
         status: response.status,
         statusText: response.statusText,
         data: response.data
       });
-      
+
       console.log('📦 Response Data Structure:', {
         geo_type: response.data?.geo_type,
         response_count: response.data?.response?.length,
         sample_data: response.data?.response?.slice(0, 2)
       });
-      
+
       setAnalyticsData(response.data);
-      
+
       // Calculate and log aggregated counts
       const aggregated = {
         total: 0,
@@ -609,12 +608,12 @@ const BDODashboardContent = () => {
         resolved: 0,
         disposed: 0
       };
-      
+
       response.data?.response?.forEach(item => {
         const status = item.status?.toUpperCase();
         const count = item.count || 0;
         aggregated.total += count;
-        
+
         switch (status) {
           case 'OPEN':
             aggregated.open += count;
@@ -631,10 +630,10 @@ const BDODashboardContent = () => {
             break;
         }
       });
-      
+
       console.log('📈 Aggregated Counts:', aggregated);
       console.log('🔄 ===== END ANALYTICS API CALL =====\n');
-      
+
     } catch (error) {
       console.error('❌ ===== ANALYTICS API ERROR =====');
       console.error('Error Type:', error.name);
@@ -642,7 +641,7 @@ const BDODashboardContent = () => {
       console.error('Error Details:', error.response?.data || error);
       console.error('Status Code:', error.response?.status);
       console.error('🔄 ===== END ANALYTICS API ERROR =====\n');
-      
+
       setAnalyticsError(error.message || 'Failed to fetch analytics data');
       setAnalyticsData(null);
     } finally {
@@ -688,18 +687,18 @@ const BDODashboardContent = () => {
 
       const url = `/complaints/analytics/geo?${params.toString()}`;
       console.log('🌐 Full API URL:', url);
-      
+
       const response = await apiClient.get(url);
-      
+
       console.log('✅ Complaints Chart API Response:', {
         status: response.status,
         statusText: response.statusText,
         data: response.data
       });
-      
+
       setComplaintsChartData(response.data);
       console.log('🔄 ===== END COMPLAINTS CHART API CALL =====\n');
-      
+
     } catch (error) {
       console.error('❌ ===== COMPLAINTS CHART API ERROR =====');
       console.error('Error Type:', error.name);
@@ -707,7 +706,7 @@ const BDODashboardContent = () => {
       console.error('Error Details:', error.response?.data || error);
       console.error('Status Code:', error.response?.status);
       console.error('🔄 ===== END COMPLAINTS CHART API ERROR =====\n');
-      
+
       setComplaintsChartError(error.message || 'Failed to fetch complaints chart data');
       setComplaintsChartData(null);
     } finally {
@@ -781,10 +780,10 @@ const BDODashboardContent = () => {
   const handleScopeChange = (scope) => {
     // Track tab change first
     trackTabChange(scope);
-    
+
     // Close dropdown immediately to prevent showing stale options
     setShowLocationDropdown(false);
-    
+
     if (scope === 'State') {
       // For State scope, set Rajasthan as default and disable dropdown
       updateLocationSelection('State', 'Rajasthan', null, null, null, null, 'tab_change');
@@ -868,24 +867,7 @@ const BDODashboardContent = () => {
     }
   };
 
-  const handleDistrictClick = (district) => {
-    if (activeScope === 'Districts') {
-      trackDropdownChange(district.name, district.id, district.id);
-      updateLocationSelection('Districts', district.name, district.id, district.id, null, null, 'dropdown_change');
-      fetchBlocks(district.id);
-      setShowLocationDropdown(false);
-    } else if (activeScope === 'Blocks') {
-      setSelectedDistrictForHierarchy(district);
-      setSelectedBlockForHierarchy(null);
-      setSelectedLocation('Select Block');
-      setDropdownLevel('blocks');
-    } else if (activeScope === 'GPs') {
-      setSelectedDistrictForHierarchy(district);
-      setSelectedBlockForHierarchy(null);
-      setSelectedLocation('Select Block');
-      setDropdownLevel('blocks');
-    }
-  };
+
 
   const handleBlockHover = (block) => {
     if (activeScope === 'GPs') {
@@ -975,9 +957,9 @@ const BDODashboardContent = () => {
     } else {
       setIsCustomRange(false);
       setSelectedDateRange(range.label);
-      
+
       const today = new Date();
-      
+
       // For "Today" and "Yesterday", both start and end dates should be the same
       if (range.value === 'today') {
         // Today: start = today, end = today
@@ -997,7 +979,7 @@ const BDODashboardContent = () => {
         setStartDate(start.toISOString().split('T')[0]);
         setEndDate(today.toISOString().split('T')[0]);
       }
-      
+
       setShowDateDropdown(false);
     }
   };
@@ -1188,16 +1170,16 @@ const BDODashboardContent = () => {
       const currentParams = new URLSearchParams(params);
       currentParams.append('start_date', currentStartDate);
       currentParams.append('end_date', currentEndDate);
-      
+
       const currentUrl = `/complaints/analytics/geo?${currentParams.toString()}`;
       console.log('🌐 Current Month API URL:', currentUrl);
-      
+
       const currentResponse = await apiClient.get(currentUrl);
       console.log('✅ Current Month API Response:', currentResponse.data);
-      
+
       setPerformanceApiData(currentResponse.data);
       console.log('🔄 ===== END PERFORMANCE API CALL =====\n');
-      
+
     } catch (error) {
       console.error('❌ ===== PERFORMANCE API ERROR =====');
       console.error('Error Type:', error.name);
@@ -1205,7 +1187,7 @@ const BDODashboardContent = () => {
       console.error('Error Details:', error.response?.data || error);
       console.error('Status Code:', error.response?.status);
       console.error('🔄 ===== END PERFORMANCE API ERROR =====\n');
-      
+
       setPerformanceError(error.message || 'Failed to fetch performance data');
       setPerformanceApiData(null);
     } finally {
@@ -1232,10 +1214,10 @@ const BDODashboardContent = () => {
       const target = new Date(now.getFullYear(), top3Month, 1);
       const startDate = formatDate(new Date(target.getFullYear(), target.getMonth(), 1));
       const endDate = formatDate(new Date(target.getFullYear(), target.getMonth() + 1, 0));
-      
+
       // CEO: Always use VILLAGE level for analytics
       const level = 'VILLAGE';
-      
+
       console.log('📅 Date Range:', startDate, 'to', endDate);
       console.log('📊 Level:', level);
 
@@ -1254,18 +1236,18 @@ const BDODashboardContent = () => {
 
       const url = `/complaints/analytics/top-n?${params.toString()}`;
       console.log('🌐 Top 3 API URL:', url);
-      
+
       const response = await apiClient.get(url);
-      
+
       console.log('✅ Top 3 API Response:', {
         status: response.status,
         statusText: response.statusText,
         data: response.data
       });
-      
+
       setTop3ApiData(response.data);
       console.log('🔄 ===== END TOP 3 API CALL =====\n');
-      
+
     } catch (error) {
       console.error('❌ ===== TOP 3 API ERROR =====');
       console.error('Error Type:', error.name);
@@ -1273,7 +1255,7 @@ const BDODashboardContent = () => {
       console.error('Error Details:', error.response?.data || error);
       console.error('Status Code:', error.response?.status);
       console.error('🔄 ===== END TOP 3 API ERROR =====\n');
-      
+
       setTop3Error(error.message || 'Failed to fetch top 3 data');
       setTop3ApiData(null);
     } finally {
@@ -1298,7 +1280,7 @@ const BDODashboardContent = () => {
       startDate,
       endDate
     });
-    
+
     // BDO only has Blocks and GPs scopes
     if (activeScope === 'Blocks') {
       // For Blocks scope, call API immediately (shows district-level data)
@@ -1306,12 +1288,12 @@ const BDODashboardContent = () => {
       fetchAnalyticsData();
       return;
     }
-    
+
     if (activeScope === 'GPs' && !selectedGPId) {
       console.log('⏳ BDO: Waiting for GP selection');
       return; // Wait for GP selection
     }
-    
+
     console.log('📡 BDO: Calling analytics API');
     fetchAnalyticsData();
   }, [activeScope, selectedBlockId, selectedGPId, startDate, endDate, isCustomRange, bdoDistrictId, fetchAnalyticsData]);
@@ -1327,7 +1309,7 @@ const BDODashboardContent = () => {
     if (activeScope === 'GPs' && !selectedGPId) {
       return; // Wait for GP selection
     }
-    
+
     fetchComplaintsChartData();
   }, [activeComplaintsFilter, activeScope, selectedDistrictId, selectedBlockId, selectedGPId, selectedComplaintsYear]);
 
@@ -1343,7 +1325,7 @@ const BDODashboardContent = () => {
     if (activeScope === 'GPs' && !selectedGPId) {
       return; // Wait for GP selection
     }
-    
+
     fetchPerformanceData();
   }, [activeScope, selectedDistrictId, selectedBlockId, selectedGPId, performanceMonth]);
 
@@ -1353,7 +1335,7 @@ const BDODashboardContent = () => {
       top3Scope,
       top3Month
     });
-    
+
     fetchTop3Data();
   }, [top3Scope, top3Month, fetchTop3Data]);
 
@@ -1369,11 +1351,11 @@ const BDODashboardContent = () => {
       try {
         setLoadingVendor(true);
         setVendorError(null);
-        
+
         console.log('🔄 Fetching vendor data for GP ID:', selectedGPId);
         const response = await apiClient.get(`/geography/grampanchayats/${selectedGPId}/contractor`);
         console.log('✅ Vendor API Response:', response.data);
-        
+
         setVendorData(response.data);
       } catch (error) {
         console.error('❌ Error fetching vendor data:', error);
@@ -1437,7 +1419,7 @@ const BDODashboardContent = () => {
   // Get complaint data with real API values
   const getComplaintData = () => {
     const counts = calculateComplaintCounts();
-    
+
     // Format numbers with commas
     const formatNumber = (num) => {
       return num.toLocaleString();
@@ -1602,7 +1584,7 @@ const BDODashboardContent = () => {
   // Calculate percentage of complaints closed/resolved
   const calculateClosedPercentage = () => {
     const counts = calculateComplaintCounts();
-    
+
     // console.log('📊 Percentage Calculation Debug:', {
     //   total: counts.total,
     //   open: counts.open,
@@ -1610,22 +1592,22 @@ const BDODashboardContent = () => {
     //   resolved: counts.resolved,
     //   disposed: counts.disposed
     // });
-    
+
     if (counts.total === 0) {
       return null; // Return null instead of 0 when no data
     }
-    
+
     // Calculate percentage: (resolved + disposed / total) * 100
     const closedCount = counts.resolved + counts.disposed;
     const percentage = Math.round((closedCount / counts.total) * 100);
-    
+
     // console.log('📊 Percentage Calculation:', {
     //   closedCount,
     //   total: counts.total,
     //   percentage: `${percentage}%`,
     //   calculation: `(${closedCount} / ${counts.total}) * 100 = ${percentage}%`
     // });
-    
+
     return percentage;
   };
 
@@ -1650,7 +1632,7 @@ const BDODashboardContent = () => {
             blocks: blocks.slice(0, 3), // Show first 3 blocks for debugging
             filteredBlocks: blocks.filter(block => block.district_id === selectedDistrictId)
           });
-          
+
           if (selectedDistrictId) {
             const filteredBlocks = blocks.filter(block => block.district_id === selectedDistrictId);
             console.log('📊 Filtered blocks for district:', selectedDistrictId, filteredBlocks);
@@ -1661,7 +1643,7 @@ const BDODashboardContent = () => {
           // Block -> show all GPs under that block
           if (selectedBlockId) {
             return gramPanchayats.filter(gp => gp.block_id === selectedBlockId)
-                                .map(gp => gp.name);
+              .map(gp => gp.name);
           }
           return [];
         case 'GPs':
@@ -1679,7 +1661,7 @@ const BDODashboardContent = () => {
   };
 
   const xAxisCategories = getXAxisCategories();
-  
+
   console.log('📊 X-axis Categories Debug:', {
     activeComplaintsFilter,
     activeScope,
@@ -1691,12 +1673,12 @@ const BDODashboardContent = () => {
   // Generate dynamic chart data based on x-axis categories and API response
   const getChartData = () => {
     const categoryCount = xAxisCategories.length;
-    
+
     // Initialize data arrays
     const openData = Array(categoryCount).fill(0);
     const closedData = Array(categoryCount).fill(0);
     const totalData = Array(categoryCount).fill(0);
-    
+
     if (!complaintsChartData || !complaintsChartData.response) {
       return { open: openData, closed: closedData, total: totalData };
     }
@@ -1721,7 +1703,7 @@ const BDODashboardContent = () => {
     } else if (activeComplaintsFilter === 'Location') {
       // For Location tab: Group data by geography_name
       const locationMap = new Map();
-      
+
       complaintsChartData.response.forEach(item => {
         const geoName = item.geography_name || item.geo_name || 'Unknown';
         const status = item.status?.toUpperCase();
@@ -1744,7 +1726,7 @@ const BDODashboardContent = () => {
       // Debug logging
       console.log('Location Map:', locationMap);
       console.log('X-axis Categories:', xAxisCategories);
-      
+
       // Map location data to x-axis categories
       xAxisCategories.forEach((category, index) => {
         const data = locationMap.get(category);
@@ -1758,7 +1740,7 @@ const BDODashboardContent = () => {
         }
       });
     }
-    
+
     return {
       open: openData,
       closed: closedData,
@@ -1825,24 +1807,24 @@ const BDODashboardContent = () => {
     // Calculate metrics for each geography
     geographyMap.forEach((geo, name) => {
       // Calculate average resolution time in days
-      const avgResolutionTimeDays = geo.totalResolutionTime > 0 
+      const avgResolutionTimeDays = geo.totalResolutionTime > 0
         ? (geo.totalResolutionTime / 86400) // Convert seconds to days
         : 0;
-      
+
       geo.avgResolutionTimeDays = Math.round(avgResolutionTimeDays * 10) / 10; // Round to 1 decimal
-      
+
       // Calculate completion percentage
       // Formula: (RESOLVED complaints) / (OPEN + RESOLVED + VERIFIED + CLOSED) * 100
       const resolvedCount = geo.statusCounts.RESOLVED || 0;
-      const totalRelevantComplaints = (geo.statusCounts.OPEN || 0) + 
-                                    (geo.statusCounts.RESOLVED || 0) + 
-                                    (geo.statusCounts.VERIFIED || 0) + 
-                                    (geo.statusCounts.CLOSED || 0);
-      
-      geo.completionPercentage = totalRelevantComplaints > 0 
+      const totalRelevantComplaints = (geo.statusCounts.OPEN || 0) +
+        (geo.statusCounts.RESOLVED || 0) +
+        (geo.statusCounts.VERIFIED || 0) +
+        (geo.statusCounts.CLOSED || 0);
+
+      geo.completionPercentage = totalRelevantComplaints > 0
         ? Math.round((resolvedCount / totalRelevantComplaints) * 100)
         : 0;
-      
+
       // Debug logging for completion calculation
       console.log(`📊 Completion Calculation for ${geo.name}:`, {
         resolved: resolvedCount,
@@ -1860,7 +1842,7 @@ const BDODashboardContent = () => {
   // Filter performance data based on active tab
   const getFilteredPerformanceData = (data) => {
     let filteredData = [];
-    
+
     if (activePerformanceTab === 'starPerformers') {
       filteredData = data.filter(item => item.completion >= 50);
     } else if (activePerformanceTab === 'underperformers') {
@@ -1868,22 +1850,22 @@ const BDODashboardContent = () => {
     } else {
       filteredData = data;
     }
-    
+
     console.log(`📊 Performance Filter (${activePerformanceTab}):`, {
       totalItems: data.length,
       filteredItems: filteredData.length,
       threshold: activePerformanceTab === 'starPerformers' ? '>= 50%' : '< 50%'
     });
-    
+
     return filteredData;
   };
 
   // Get performance data based on current scope
   const getPerformanceData = () => {
     const processedData = processPerformanceData();
-    
+
     let performanceData = [];
-    
+
     switch (activeScope) {
       case 'State':
         // State -> show all districts
@@ -1902,32 +1884,32 @@ const BDODashboardContent = () => {
         // District -> show all blocks under that district
         if (selectedDistrictId) {
           performanceData = blocks.filter(block => block.district_id === selectedDistrictId)
-                      .map(block => {
-                        const apiData = processedData.get(block.name);
-                        return {
-                          name: block.name,
-                          id: block.id,
-                          type: 'Block',
-                          avgResolutionTime: apiData?.avgResolutionTimeDays || 0,
-                          completion: apiData?.completionPercentage || 0
-                        };
-                      });
+            .map(block => {
+              const apiData = processedData.get(block.name);
+              return {
+                name: block.name,
+                id: block.id,
+                type: 'Block',
+                avgResolutionTime: apiData?.avgResolutionTimeDays || 0,
+                completion: apiData?.completionPercentage || 0
+              };
+            });
         }
         break;
       case 'Blocks':
         // Block -> show all GPs under that block
         if (selectedBlockId) {
           performanceData = gramPanchayats.filter(gp => gp.block_id === selectedBlockId)
-                              .map(gp => {
-                                const apiData = processedData.get(gp.name);
-                                return {
-                                  name: gp.name,
-                                  id: gp.id,
-                                  type: 'GP',
-                                  avgResolutionTime: apiData?.avgResolutionTimeDays || 0,
-                                  completion: apiData?.completionPercentage || 0
-                                };
-                              });
+            .map(gp => {
+              const apiData = processedData.get(gp.name);
+              return {
+                name: gp.name,
+                id: gp.id,
+                type: 'GP',
+                avgResolutionTime: apiData?.avgResolutionTimeDays || 0,
+                completion: apiData?.completionPercentage || 0
+              };
+            });
         }
         break;
       case 'GPs':
@@ -1949,7 +1931,7 @@ const BDODashboardContent = () => {
       default:
         performanceData = [];
     }
-    
+
     return getFilteredPerformanceData(performanceData);
   };
 
@@ -1960,7 +1942,7 @@ const BDODashboardContent = () => {
     if (!top3ApiData || !Array.isArray(top3ApiData)) {
       return [];
     }
-    
+
     // API already returns data sorted by score (descending)
     // Take only top 3 and map to our format
     return top3ApiData.slice(0, 3).map((item, index) => ({
@@ -2055,23 +2037,21 @@ const BDODashboardContent = () => {
             gap: '2px'
           }}>
             {scopeButtons.map((scope) => {
-              const isDisabled = scope === 'Districts' || scope === 'Blocks';
               return (
                 <button
                   key={scope}
-                  onClick={() => !isDisabled && handleScopeChange(scope)}
-                  disabled={isDisabled}
+                  onClick={() => handleScopeChange(scope)}
                   style={{
                     padding: '3px 10px',
                     borderRadius: '8px',
                     border: 'none',
-                    cursor: isDisabled ? 'not-allowed' : 'pointer',
+                    cursor: 'pointer',
                     fontSize: '14px',
                     fontWeight: '500',
                     backgroundColor: activeScope === scope ? '#10b981' : 'transparent',
-                    color: isDisabled ? '#9ca3af' : (activeScope === scope ? 'white' : '#6b7280'),
-                    opacity: isDisabled ? 0.6 : 1,
+                    color: activeScope === scope ? 'white' : '#6b7280',
                     transition: 'all 0.2s'
+
                   }}
                 >
                   {scope}
@@ -2081,41 +2061,41 @@ const BDODashboardContent = () => {
           </div>
 
           {/* Location dropdown */}
-          <div 
+          <div
             data-location-dropdown
             style={{
               position: 'relative',
               minWidth: '200px'
             }}>
-            <button 
-              onClick={() => activeScope !== 'State' && setShowLocationDropdown(!showLocationDropdown)}
-              disabled={activeScope === 'State'}
+            <button
+              onClick={() => activeScope === 'GPs' && setShowLocationDropdown(!showLocationDropdown)}
+              disabled={activeScope !== 'GPs'}
               style={{
                 width: '100%',
                 padding: '5px 12px',
                 border: '1px solid #d1d5db',
                 borderRadius: '10px',
-                backgroundColor: activeScope === 'State' ? '#f9fafb' : 'white',
+                backgroundColor: activeScope !== 'GPs' ? '#f3f4f6' : 'white',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                cursor: activeScope === 'State' ? 'not-allowed' : 'pointer',
+                cursor: activeScope !== 'GPs' ? 'not-allowed' : 'pointer',
                 fontSize: '14px',
-                color: activeScope === 'State' ? '#9ca3af' : '#6b7280',
-                opacity: activeScope === 'State' ? 0.6 : 1
+                color: activeScope !== 'GPs' ? '#9ca3af' : '#6b7280',
+                opacity: activeScope !== 'GPs' ? 0.7 : 1
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <MapPin style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
                 <span>{selectedLocation}</span>
               </div>
-              <ChevronDown style={{ 
-                width: '16px', 
-                height: '16px', 
-                color: activeScope === 'State' ? '#d1d5db' : '#9ca3af' 
+              <ChevronDown style={{
+                width: '16px',
+                height: '16px',
+                color: activeScope === 'State' ? '#d1d5db' : '#9ca3af'
               }} />
             </button>
-            
+
             {/* Location Dropdown Menu - BDO: GPs ONLY (no districts or blocks) */}
             {showLocationDropdown && (
               <div
@@ -2125,13 +2105,14 @@ const BDODashboardContent = () => {
                   top: '100%',
                   right: 0,
                   left: 'auto',
-                  backgroundColor: 'white',
                   border: '1px solid #d1d5db',
                   borderRadius: '10px',
                   boxShadow: '0 12px 24px rgba(15, 23, 42, 0.12)',
                   zIndex: 1000,
                   marginTop: '6px',
-                  minWidth: '280px'
+                  minWidth: '280px',
+                  backgroundColor: activeScope === 'Blocks' ? '#f3f4f6' : 'white',
+                  cursor: activeScope === 'Blocks' ? 'not-allowed' : 'pointer',
                 }}
               >
                 {/* BDO: Simple GP list from assigned block */}
@@ -2202,14 +2183,14 @@ const BDODashboardContent = () => {
         </span>
       </div>
 
-     
+
       {/* Overview Section */}
       <div style={{
         backgroundColor: 'white',
         padding: '24px',
         marginLeft: '16px',
-        marginRight : '16px', 
-        marginTop : '6px',
+        marginRight: '16px',
+        marginTop: '6px',
         borderRadius: '12px',
         border: '1px solid lightgray'
       }}>
@@ -2241,7 +2222,7 @@ const BDODashboardContent = () => {
               • {getDateDisplayText()}
             </span>
           </div>
-          <div 
+          <div
             onClick={handleCalendarClick}
             data-date-dropdown
             style={{
@@ -2262,10 +2243,10 @@ const BDODashboardContent = () => {
             <Calendar style={{ width: '16px', height: '16px' }} />
             <span>{getDateDisplayText()}</span>
             <ChevronDown style={{ width: '16px', height: '16px' }} />
-            
+
             {/* Modern Date Range Picker */}
             {showDateDropdown && (
-              <div 
+              <div
                 onClick={(e) => e.stopPropagation()}
                 style={{
                   position: 'absolute',
@@ -2291,15 +2272,15 @@ const BDODashboardContent = () => {
                   padding: '16px 0'
                 }}>
                   <div style={{ padding: '0 16px 12px', borderBottom: '1px solid #e2e8f0' }}>
-                    <h3 style={{ 
-                      margin: 0, 
-                      fontSize: '14px', 
-                      fontWeight: '600', 
-                      color: '#1e293b' 
+                    <h3 style={{
+                      margin: 0,
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      color: '#1e293b'
                     }}>
                       Quick Select
                     </h3>
-                </div>
+                  </div>
 
                   {dateRanges.map((range, index) => (
                     <div
@@ -2318,7 +2299,7 @@ const BDODashboardContent = () => {
                       {range.label}
                     </div>
                   ))}
-                  </div>
+                </div>
 
                 {/* Right Side - Calendar View */}
                 <div style={{
@@ -2327,24 +2308,24 @@ const BDODashboardContent = () => {
                   minHeight: '300px'
                 }}>
                   {isCustomRange ? (
-                  <div>
-                      <h3 style={{ 
-                        margin: '0 0 16px 0', 
-                        fontSize: '14px', 
-                        fontWeight: '600', 
-                        color: '#1e293b' 
+                    <div>
+                      <h3 style={{
+                        margin: '0 0 16px 0',
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        color: '#1e293b'
                       }}>
                         Select Date Range
                       </h3>
-                      
+
                       {/* Custom Date Inputs */}
                       <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
                         <div>
-                          <label style={{ 
-                            display: 'block', 
-                            fontSize: '12px', 
-                            color: '#64748b', 
-                            marginBottom: '4px' 
+                          <label style={{
+                            display: 'block',
+                            fontSize: '12px',
+                            color: '#64748b',
+                            marginBottom: '4px'
                           }}>
                             Start Date
                           </label>
@@ -2353,21 +2334,21 @@ const BDODashboardContent = () => {
                             value={startDate || ''}
                             onKeyDown={handleDateKeyDown}
                             onChange={(e) => setStartDate(e.target.value)}
-                          style={{
+                            style={{
                               padding: '8px 12px',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '6px',
-                        fontSize: '14px',
+                              border: '1px solid #d1d5db',
+                              borderRadius: '6px',
+                              fontSize: '14px',
                               width: '140px'
-                      }}
+                            }}
                           />
-                  </div>
-                  <div>
-                          <label style={{ 
-                            display: 'block', 
+                        </div>
+                        <div>
+                          <label style={{
+                            display: 'block',
                             fontSize: '12px',
-                            color: '#64748b', 
-                            marginBottom: '4px' 
+                            color: '#64748b',
+                            marginBottom: '4px'
                           }}>
                             End Date
                           </label>
@@ -2376,24 +2357,24 @@ const BDODashboardContent = () => {
                             value={endDate || ''}
                             onKeyDown={handleDateKeyDown}
                             onChange={(e) => setEndDate(e.target.value)}
-                      style={{
+                            style={{
                               padding: '8px 12px',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '6px',
-                        fontSize: '14px',
+                              border: '1px solid #d1d5db',
+                              borderRadius: '6px',
+                              fontSize: '14px',
                               width: '140px'
-                      }}
+                            }}
                           />
-                  </div>
+                        </div>
                       </div>
 
-                {/* Action Buttons */}
-                <div style={{ 
-                  display: 'flex', 
-                  gap: '8px', 
+                      {/* Action Buttons */}
+                      <div style={{
+                        display: 'flex',
+                        gap: '8px',
                         justifyContent: 'flex-end'
-                }}>
-                  <button
+                      }}>
+                        <button
                           onClick={() => {
                             const today = new Date();
                             const todayStr = today.toISOString().split('T')[0];
@@ -2402,20 +2383,20 @@ const BDODashboardContent = () => {
                             setIsCustomRange(false);
                             setSelectedDateRange('Today');
                           }}
-                    style={{
-                      padding: '8px 16px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '6px',
-                      backgroundColor: '#f9fafb',
-                      color: '#6b7280',
-                      fontSize: '14px',
-                      cursor: 'pointer'
-                    }}
-                  >
+                          style={{
+                            padding: '8px 16px',
+                            border: '1px solid #d1d5db',
+                            borderRadius: '6px',
+                            backgroundColor: '#f9fafb',
+                            color: '#6b7280',
+                            fontSize: '14px',
+                            cursor: 'pointer'
+                          }}
+                        >
                           Cancel
-                  </button>
-                  
-                  <button
+                        </button>
+
+                        <button
                           onClick={() => setShowDateDropdown(false)}
                           disabled={!startDate || !endDate}
                           style={{
@@ -2434,15 +2415,15 @@ const BDODashboardContent = () => {
                     </div>
                   ) : (
                     <div>
-                      <h3 style={{ 
-                        margin: '0 0 16px 0', 
-                        fontSize: '14px', 
-                        fontWeight: '600', 
-                        color: '#1e293b' 
+                      <h3 style={{
+                        margin: '0 0 16px 0',
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        color: '#1e293b'
                       }}>
                         Selected Range
                       </h3>
-                      
+
                       <div style={{
                         padding: '12px',
                         backgroundColor: '#f0fdf4',
@@ -2459,21 +2440,21 @@ const BDODashboardContent = () => {
                           </div>
                         )}
                       </div>
-                      
+
                       <button
                         onClick={() => setShowDateDropdown(false)}
-                    style={{
-                      padding: '8px 16px',
-                      backgroundColor: '#10b981',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '6px',
-                      fontSize: '14px',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    Done
-                  </button>
+                        style={{
+                          padding: '8px 16px',
+                          backgroundColor: '#10b981',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '6px',
+                          fontSize: '14px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Done
+                      </button>
                     </div>
                   )}
                 </div>
@@ -2709,10 +2690,10 @@ const BDODashboardContent = () => {
               height: '250px',
               width: '100%',
             }}>
-              <SegmentedGauge 
-                complaintData={loadingAnalytics || analyticsError ? {open: 0, verified: 0, resolved: 0, disposed: 0} : calculateComplaintCounts()}
-                percentage={loadingAnalytics || analyticsError ? null : closedPercentage} 
-                label="Complaints closed" 
+              <SegmentedGauge
+                complaintData={loadingAnalytics || analyticsError ? { open: 0, verified: 0, resolved: 0, disposed: 0 } : calculateComplaintCounts()}
+                percentage={loadingAnalytics || analyticsError ? null : closedPercentage}
+                label="Complaints closed"
               />
             </div>
           </div>
@@ -2744,7 +2725,7 @@ const BDODashboardContent = () => {
           }}>
             Complaints
           </h2>
-          
+
           {/* Filter Controls */}
           <div style={{
             display: 'flex',
@@ -2759,7 +2740,7 @@ const BDODashboardContent = () => {
               padding: '4px',
               gap: '2px'
             }}>
-              <button 
+              <button
                 onClick={() => setActiveComplaintsFilter('Time')}
                 style={{
                   padding: '6px 12px',
@@ -2774,7 +2755,7 @@ const BDODashboardContent = () => {
                 }}>
                 Time
               </button>
-              <button 
+              <button
                 onClick={() => setActiveComplaintsFilter('Location')}
                 style={{
                   padding: '6px 12px',
@@ -2792,34 +2773,34 @@ const BDODashboardContent = () => {
             </div>
 
             {/* Year dropdown - always visible */}
-            <div 
+            <div
               data-complaints-year-dropdown
               style={{
                 position: 'relative',
                 minWidth: '120px'
               }}>
-              <button 
+              <button
                 onClick={() => setShowComplaintsYearDropdown(!showComplaintsYearDropdown)}
                 style={{
-                width: '100%',
-                padding: '6px 12px',
-                border: '1px solid #d1d5db',
-                borderRadius: '12px',
-                backgroundColor: 'white',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                cursor: 'pointer',
-                fontSize: '14px',
-                color: '#6b7280'
-              }}>
+                  width: '100%',
+                  padding: '6px 12px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '12px',
+                  backgroundColor: 'white',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  color: '#6b7280'
+                }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <Calendar style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
                   <span>{selectedComplaintsYear}</span>
                 </div>
                 <ChevronDown style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
               </button>
-              
+
               {/* Year Dropdown Menu */}
               {showComplaintsYearDropdown && (
                 <div style={{
@@ -2862,8 +2843,8 @@ const BDODashboardContent = () => {
           </div>
         </div>
 
-  {/* Divider */}
-  <div style={{
+        {/* Divider */}
+        <div style={{
           width: '100%',
           height: '1px',
           backgroundColor: '#e5e7eb',
@@ -2922,7 +2903,7 @@ const BDODashboardContent = () => {
         </div>
 
         {/* Bar Chart */}
-        <div style={{ 
+        <div style={{
           height: '300px',
           opacity: loadingComplaintsChart ? 0.6 : 1,
           transition: 'opacity 0.3s'
@@ -3186,304 +3167,23 @@ const BDODashboardContent = () => {
           marginRight: '16px',
           marginTop: '16px'
         }}>
-        {/* Performance Section */}
-        <div style={{
-          flex: 1,
-          backgroundColor: 'white',
-          paddingLeft: '24px',
-          paddingRight: '24px',
-          paddingTop: '14px',
-          paddingBottom: '24px',
-          borderRadius: '12px',
-          border: '1px solid lightgray'
-        }}>
-          {/* Performance Header with Toggle Buttons */}
+          {/* Performance Section */}
           <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginBottom: '20px'
+            flex: 1,
+            backgroundColor: 'white',
+            paddingLeft: '24px',
+            paddingRight: '24px',
+            paddingTop: '14px',
+            paddingBottom: '24px',
+            borderRadius: '12px',
+            border: '1px solid lightgray'
           }}>
-            <h2 style={{
-              fontSize: '20px',
-              fontWeight: '600',
-              color: '#111827',
-              margin: 0
-            }}>
-              Performance
-            </h2>
-            
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              {/* Toggle Buttons */}
-              <div style={{
-                display: 'flex',
-                backgroundColor: '#f3f4f6',
-                borderRadius: '12px',
-                padding: '4px',
-                gap: '2px'
-              }}>
-              <button 
-                onClick={() => setActivePerformanceTab('starPerformers')}
-                style={{
-                padding: '5px 10px',
-                borderRadius: '8px',
-                border: 'none',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: '500',
-                  backgroundColor: activePerformanceTab === 'starPerformers' ? '#10b981' : 'transparent',
-                  color: activePerformanceTab === 'starPerformers' ? 'white' : '#6b7280'
-                }}>
-                <span className="desktop-text">Star Performers</span>
-                <span className="mobile-text">Star Perform...</span>
-              </button>
-              <button 
-                onClick={() => setActivePerformanceTab('underperformers')}
-                style={{
-                padding: '5px 10px',
-                borderRadius: '8px',
-                border: 'none',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: '500',
-                  backgroundColor: activePerformanceTab === 'underperformers' ? '#10b981' : 'transparent',
-                  color: activePerformanceTab === 'underperformers' ? 'white' : '#6b7280'
-                }}>
-                <span className="desktop-text">Underperformers</span>
-                <span className="mobile-text">Under perform...</span>
-              </button>
-              </div>
-
-              {/* Range Selector */}
-              <div ref={performanceRangeRef} style={{ position: 'relative' }}>
-                <button
-                  type="button"
-                  onClick={handlePerformanceRangeButtonClick}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    padding: '6px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '10px',
-                    backgroundColor: 'white',
-                    cursor: 'pointer',
-                    fontSize: '14px',
-                    color: '#374151',
-                    minWidth: '140px',
-                    justifyContent: 'space-between'
-                  }}
-                >
-                  <span>{getPerformanceRangeLabel()}</span>
-                  <ChevronDown style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
-                </button>
-
-                {showPerformanceRangePicker && (
-                  <div
-                    style={{
-                      position: 'absolute',
-                      top: 'calc(100% + 8px)',
-                      right: 0,
-                      width: '220px',
-                      backgroundColor: 'white',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '12px',
-                      boxShadow: '0 20px 45px -20px rgba(15, 23, 42, 0.35)',
-                      padding: '8px',
-                      zIndex: 1200
-                    }}
-                    onClick={(event) => event.stopPropagation()}
-                  >
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      {[
-                        'January', 'February', 'March', 'April', 'May', 'June',
-                        'July', 'August', 'September', 'October', 'November', 'December'
-                      ].map((monthName, index) => (
-                        <button
-                          key={monthName}
-                          type="button"
-                          onClick={() => {
-                            setPerformanceMonth(index);
-                            setShowPerformanceRangePicker(false);
-                          }}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            width: '100%',
-                            padding: '6px 8px',
-                            borderRadius: '8px',
-                            border: 'none',
-                            backgroundColor: performanceMonth === index ? '#f0fdf4' : 'transparent',
-                            color: performanceMonth === index ? '#059669' : '#111827',
-                            cursor: 'pointer',
-                            fontSize: '14px'
-                          }}
-                        >
-                          <span>{monthName}</span>
-                          {performanceMonth === index && (
-                            <span style={{ fontSize: '12px', color: '#059669' }}>Active</span>
-                          )}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Loading/Error State */}
-          {performanceError && (
-            <div style={{ marginBottom: '16px' }}>
-              <NoDataFound size="medium" />
-            </div>
-          )}
-
-          {/* Performance Table */}
-          <div style={{
-            overflowX: 'auto',
-            opacity: loadingPerformance ? 0.6 : 1,
-            transition: 'opacity 0.3s'
-          }}>
-            <table style={{
-              width: '100%',
-              borderCollapse: 'collapse',
-              tableLayout: 'fixed' // Ensures consistent column widths
-            }}>
-              <thead>
-                <tr style={{
-                  borderBottom: '1px solid #e5e7eb'
-                }}>
-                  <th style={{
-                    padding: '12px',
-                    textAlign: 'left',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    color: '#374151'
-                  }}>
-                    {performancePrimaryLabel}
-                  </th>
-                  <th style={{
-                    padding: '12px',
-                    textAlign: 'left',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    color: '#374151'
-                  }}>
-                    Avg Resolution Time
-                  </th>
-                  <th style={{
-                    padding: '12px',
-                    textAlign: 'left',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    color: '#374151'
-                  }}>
-                    Complaints closed
-                  </th>
-                  <th style={{
-                    padding: '12px',
-                    textAlign: 'left',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    color: '#374151'
-                  }}>
-                    Action
-                  </th>
-                </tr>
-              </thead>
-            </table>
-            <div style={{
-              maxHeight: '350px', // Approximately 5 rows * 60px per row
-              overflowY: 'auto',
-              borderTop: '1px solid #e5e7eb',
-              // Custom scrollbar styling
-              scrollbarWidth: 'thin',
-              scrollbarColor: '#d1d5db #f3f4f6'
-            }}>
-              <table style={{
-                width: '100%',
-                borderCollapse: 'collapse',
-                tableLayout: 'fixed' // Ensures consistent column widths
-              }}>
-              <tbody>
-                  {performanceData.length === 0 ? (
-                    <tr>
-                      <td colSpan="4" style={{ padding: 0 }}>
-                        <NoDataFound size="small" />
-                      </td>
-                    </tr>
-                  ) : (
-                    performanceData.map((item, index) => (
-                    <tr key={item.id || index} style={{
-                    borderBottom: '1px solid #f3f4f6'
-                  }}>
-                    <td style={{
-                      padding: '12px',
-                      fontSize: '14px',
-                        color: '#374151',
-                        fontWeight: '500'
-                    }}>
-                        {item.name}
-                    </td>
-                    <td style={{
-                      padding: '12px',
-                      fontSize: '14px',
-                      color: '#374151'
-                    }}>
-                        {item.avgResolutionTime > 0 ? `${item.avgResolutionTime} days` : '-'}
-                    </td>
-                    <td style={{
-                      padding: '12px',
-                      fontSize: '14px',
-                      color: '#374151'
-                    }}>
-                        {item.completion > 0 ? `${item.completion}%` : '-'}
-                    </td>
-                    <td style={{
-                      padding: '12px'
-                    }}>
-                      <button 
-                        onClick={() => handleOpenNoticeModal(item)}
-                        style={{
-                        padding: '6px 12px',
-                        backgroundColor: '#f3f4f6',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '8px',
-                        fontSize: '12px',
-                        color: '#374151',
-                        cursor: 'pointer'
-                      }}>
-                        Send notice
-                      </button>
-                    </td>
-                  </tr>
-                    ))
-                  )}
-              </tbody>
-            </table>
-            </div>
-          </div>
-        </div>
-
-        {/* Top 3 Section */}
-        <div className="w-full lg:flex-1 lg:min-w-0 px-4 sm:px-6 py-3.5 sm:py-6" style={{
-          flex: 1,
-          minWidth: 0,
-          backgroundColor: 'white',
-          borderRadius: '12px',
-          border: '1px solid lightgray',
-          overflow: 'hidden'
-        }}>
-          {/* Top 3 Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0" style={{
-            marginBottom: '20px'
-          }}>
+            {/* Performance Header with Toggle Buttons */}
             <div style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '8px'
+              justifyContent: 'space-between',
+              marginBottom: '20px'
             }}>
               <h2 style={{
                 fontSize: '20px',
@@ -3491,270 +3191,551 @@ const BDODashboardContent = () => {
                 color: '#111827',
                 margin: 0
               }}>
-                Top 3
+                Performance
               </h2>
-              <InfoTooltip
-                text="Highlights the top three performing districts, blocks, or GPs based on the selected metric."
-                size={16}
-                color="#9ca3af"
-              />
-            </div>
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-2 w-full sm:w-auto">
-              <div 
-                data-top3-dropdown
-                className="w-full sm:w-auto"
-                style={{
-                position: 'relative',
-                minWidth: '100px',
-                flex: '1 1 auto'
-              }}>
-                <button 
-                  onClick={() => setShowTop3Dropdown(!showTop3Dropdown)}
-                  style={{
-                  width: '100%',
-                  padding: '6px 12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  backgroundColor: 'white',
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                {/* Toggle Buttons */}
+                <div style={{
                   display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  color: '#6b7280'
+                  backgroundColor: '#f3f4f6',
+                  borderRadius: '12px',
+                  padding: '4px',
+                  gap: '2px'
                 }}>
-                  <span>{top3Scope}</span>
-                  <ChevronDown style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
-                </button>
-                
-                {showTop3Dropdown && (
-                  <div style={{
-                    position: 'absolute',
-                    top: '100%',
-                    left: 0,
-                    right: 0,
-                    backgroundColor: 'white',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
-                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                    zIndex: 10,
-                    marginTop: '4px'
-                  }}>
-                    {/* BDO: Only GP option (no District or Block) */}
-                    {['GP'].map((option) => (
-                      <button
-                        key={option}
-                        onClick={() => {
-                          setTop3Scope(option);
-                          setShowTop3Dropdown(false);
-                        }}
-                        style={{
-                          width: '100%',
-                          padding: '8px 12px',
-                          border: 'none',
-                          backgroundColor: top3Scope === option ? '#f3f4f6' : 'transparent',
-                          color: top3Scope === option ? '#111827' : '#6b7280',
-                          fontSize: '14px',
-                          textAlign: 'left',
-                          cursor: 'pointer',
-                          borderRadius: '4px',
-                          margin: '2px'
-                        }}>
-                        {option}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div ref={top3MonthRef} className="w-full sm:w-auto" style={{ 
-                position: 'relative',
-                flex: '1 1 auto'
-              }}>
-                <button
-                  type="button"
-                  onClick={handleTop3MonthButtonClick}
-                  className="w-full sm:w-auto"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    padding: '6px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '10px',
-                    backgroundColor: 'white',
-                    cursor: 'pointer',
-                    fontSize: '14px',
-                    color: '#374151',
-                    minWidth: '130px',
-                    justifyContent: 'space-between',
-                    width: '100%'
-                  }}
-                >
-                  <span>{getTop3RangeLabel()}</span>
-                  <ChevronDown style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
-                </button>
-
-                {showTop3MonthPicker && (
-                  <div
+                  <button
+                    onClick={() => setActivePerformanceTab('starPerformers')}
                     style={{
-                      position: 'absolute',
-                      top: 'calc(100% + 8px)',
-                      right: 0,
-                      width: '220px',
-                      backgroundColor: 'white',
+                      padding: '5px 10px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      fontWeight: '500',
+                      backgroundColor: activePerformanceTab === 'starPerformers' ? '#10b981' : 'transparent',
+                      color: activePerformanceTab === 'starPerformers' ? 'white' : '#6b7280'
+                    }}>
+                    <span className="desktop-text">Star Performers</span>
+                    <span className="mobile-text">Star Perform...</span>
+                  </button>
+                  <button
+                    onClick={() => setActivePerformanceTab('underperformers')}
+                    style={{
+                      padding: '5px 10px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      fontWeight: '500',
+                      backgroundColor: activePerformanceTab === 'underperformers' ? '#10b981' : 'transparent',
+                      color: activePerformanceTab === 'underperformers' ? 'white' : '#6b7280'
+                    }}>
+                    <span className="desktop-text">Underperformers</span>
+                    <span className="mobile-text">Under perform...</span>
+                  </button>
+                </div>
+
+                {/* Range Selector */}
+                <div ref={performanceRangeRef} style={{ position: 'relative' }}>
+                  <button
+                    type="button"
+                    onClick={handlePerformanceRangeButtonClick}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '6px 12px',
                       border: '1px solid #d1d5db',
-                      borderRadius: '12px',
-                      boxShadow: '0 20px 45px -20px rgba(15, 23, 42, 0.35)',
-                      padding: '8px',
-                      zIndex: 1200
+                      borderRadius: '10px',
+                      backgroundColor: 'white',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      color: '#374151',
+                      minWidth: '140px',
+                      justifyContent: 'space-between'
                     }}
-                    onClick={(event) => event.stopPropagation()}
                   >
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      {MONTH_NAMES.map((monthName, index) => (
-                        <button
-                          key={monthName}
-                          type="button"
-                          onClick={() => {
-                            setTop3Month(index);
-                            setShowTop3MonthPicker(false);
-                          }}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            width: '100%',
-                            padding: '6px 8px',
-                            borderRadius: '8px',
-                            border: 'none',
-                            backgroundColor: top3Month === index ? '#f0fdf4' : 'transparent',
-                            color: top3Month === index ? '#059669' : '#111827',
-                            cursor: 'pointer',
-                            fontSize: '14px'
-                          }}
-                        >
-                          <span>{monthName}</span>
-                          {top3Month === index && (
-                            <span style={{ fontSize: '12px', color: '#059669' }}>Active</span>
-                          )}
-                        </button>
-                      ))}
+                    <span>{getPerformanceRangeLabel()}</span>
+                    <ChevronDown style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
+                  </button>
+
+                  {showPerformanceRangePicker && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: 'calc(100% + 8px)',
+                        right: 0,
+                        width: '220px',
+                        backgroundColor: 'white',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '12px',
+                        boxShadow: '0 20px 45px -20px rgba(15, 23, 42, 0.35)',
+                        padding: '8px',
+                        zIndex: 1200
+                      }}
+                      onClick={(event) => event.stopPropagation()}
+                    >
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        {[
+                          'January', 'February', 'March', 'April', 'May', 'June',
+                          'July', 'August', 'September', 'October', 'November', 'December'
+                        ].map((monthName, index) => (
+                          <button
+                            key={monthName}
+                            type="button"
+                            onClick={() => {
+                              setPerformanceMonth(index);
+                              setShowPerformanceRangePicker(false);
+                            }}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              width: '100%',
+                              padding: '6px 8px',
+                              borderRadius: '8px',
+                              border: 'none',
+                              backgroundColor: performanceMonth === index ? '#f0fdf4' : 'transparent',
+                              color: performanceMonth === index ? '#059669' : '#111827',
+                              cursor: 'pointer',
+                              fontSize: '14px'
+                            }}
+                          >
+                            <span>{monthName}</span>
+                            {performanceMonth === index && (
+                              <span style={{ fontSize: '12px', color: '#059669' }}>Active</span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Loading/Error State */}
+            {performanceError && (
+              <div style={{ marginBottom: '16px' }}>
+                <NoDataFound size="medium" />
+              </div>
+            )}
+
+            {/* Performance Table */}
+            <div style={{
+              overflowX: 'auto',
+              opacity: loadingPerformance ? 0.6 : 1,
+              transition: 'opacity 0.3s'
+            }}>
+              <table style={{
+                width: '100%',
+                borderCollapse: 'collapse',
+                tableLayout: 'fixed' // Ensures consistent column widths
+              }}>
+                <thead>
+                  <tr style={{
+                    borderBottom: '1px solid #e5e7eb'
+                  }}>
+                    <th style={{
+                      padding: '12px',
+                      textAlign: 'left',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      color: '#374151'
+                    }}>
+                      {performancePrimaryLabel}
+                    </th>
+                    <th style={{
+                      padding: '12px',
+                      textAlign: 'left',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      color: '#374151'
+                    }}>
+                      Avg Resolution Time
+                    </th>
+                    <th style={{
+                      padding: '12px',
+                      textAlign: 'left',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      color: '#374151'
+                    }}>
+                      Complaints closed
+                    </th>
+                    <th style={{
+                      padding: '12px',
+                      textAlign: 'left',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      color: '#374151'
+                    }}>
+                      Action
+                    </th>
+                  </tr>
+                </thead>
+              </table>
+              <div style={{
+                maxHeight: '350px', // Approximately 5 rows * 60px per row
+                overflowY: 'auto',
+                borderTop: '1px solid #e5e7eb',
+                // Custom scrollbar styling
+                scrollbarWidth: 'thin',
+                scrollbarColor: '#d1d5db #f3f4f6'
+              }}>
+                <table style={{
+                  width: '100%',
+                  borderCollapse: 'collapse',
+                  tableLayout: 'fixed' // Ensures consistent column widths
+                }}>
+                  <tbody>
+                    {performanceData.length === 0 ? (
+                      <tr>
+                        <td colSpan="4" style={{ padding: 0 }}>
+                          <NoDataFound size="small" />
+                        </td>
+                      </tr>
+                    ) : (
+                      performanceData.map((item, index) => (
+                        <tr key={item.id || index} style={{
+                          borderBottom: '1px solid #f3f4f6'
+                        }}>
+                          <td style={{
+                            padding: '12px',
+                            fontSize: '14px',
+                            color: '#374151',
+                            fontWeight: '500'
+                          }}>
+                            {item.name}
+                          </td>
+                          <td style={{
+                            padding: '12px',
+                            fontSize: '14px',
+                            color: '#374151'
+                          }}>
+                            {item.avgResolutionTime > 0 ? `${item.avgResolutionTime} days` : '-'}
+                          </td>
+                          <td style={{
+                            padding: '12px',
+                            fontSize: '14px',
+                            color: '#374151'
+                          }}>
+                            {item.completion > 0 ? `${item.completion}%` : '-'}
+                          </td>
+                          <td style={{
+                            padding: '12px'
+                          }}>
+                            <button
+                              onClick={() => handleOpenNoticeModal(item)}
+                              style={{
+                                padding: '6px 12px',
+                                backgroundColor: '#f3f4f6',
+                                border: '1px solid #d1d5db',
+                                borderRadius: '8px',
+                                fontSize: '12px',
+                                color: '#374151',
+                                cursor: 'pointer'
+                              }}>
+                              Send notice
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
 
-
-          {/* Loading/Error State */}
-          {top3Error && (
-            <div style={{ marginBottom: '16px' }}>
-              <NoDataFound size="medium" />
-            </div>
-          )}
-
-          {/* Top 3 Table */}
-          <div style={{
-            overflowX: 'auto',
-            opacity: loadingTop3 ? 0.6 : 1,
-            transition: 'opacity 0.3s',
-            width: '100%',
-            maxWidth: '100%'
+          {/* Top 3 Section */}
+          <div className="w-full lg:flex-1 lg:min-w-0 px-4 sm:px-6 py-3.5 sm:py-6" style={{
+            flex: 1,
+            minWidth: 0,
+            backgroundColor: 'white',
+            borderRadius: '12px',
+            border: '1px solid lightgray',
+            overflow: 'hidden'
           }}>
-            <table style={{
-              width: '100%',
-              borderCollapse: 'collapse'
+            {/* Top 3 Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0" style={{
+              marginBottom: '20px'
             }}>
-              <thead>
-                <tr style={{
-                  borderBottom: '1px solid #e5e7eb'
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <h2 style={{
+                  fontSize: '20px',
+                  fontWeight: '600',
+                  color: '#111827',
+                  margin: 0
                 }}>
-                  <th style={{
-                    padding: '12px',
-                    textAlign: 'left',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    color: '#374151'
+                  Top 3
+                </h2>
+                <InfoTooltip
+                  text="Highlights the top three performing districts, blocks, or GPs based on the selected metric."
+                  size={16}
+                  color="#9ca3af"
+                />
+              </div>
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-2 w-full sm:w-auto">
+                <div
+                  data-top3-dropdown
+                  className="w-full sm:w-auto"
+                  style={{
+                    position: 'relative',
+                    minWidth: '100px',
+                    flex: '1 1 auto'
                   }}>
-                    Rank
-                  </th>
-                  <th style={{
-                    padding: '12px',
-                    textAlign: 'left',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    color: '#374151'
-                  }}>
-                    {top3Scope}
-                  </th>
-                  <th style={{
-                    padding: '12px',
-                    textAlign: 'left',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    color: '#374151'
-                  }}>
-                    Rating
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {top3Data.length === 0 ? (
-                  <tr>
-                    <td colSpan="3" style={{ padding: 0 }}>
-                      {loadingTop3 ? (
-                        <div style={{ padding: '20px', textAlign: 'center', fontSize: '14px', color: '#6b7280' }}>
-                          Loading...
-                        </div>
-                      ) : (
-                        <NoDataFound size="small" />
-                      )}
-                    </td>
-                  </tr>
-                ) : (
-                  top3Data.map((item, index) => (
-                  <tr key={index} style={{
-                    borderBottom: '1px solid #f3f4f6'
-                  }}>
-                    <td style={{
-                      padding: '12px',
-                      fontSize: '14px',
-                      color: '#374151'
-                    }}>
-                      <img 
-                        src={index === 0 ? number1 : index === 1 ? number2 : number3} 
-                        alt={`Rank ${index + 1}`}
-                        style={{
-                          width: '100px',
-                          height: '100px',
-                          objectFit: 'contain'
-                        }}
-                      />
-                    </td>
-                    <td style={{
-                      padding: '12px',
-                      fontSize: '14px',
-                      color: '#374151'
-                    }}>
-                      {item.name}
-                    </td>
-                    <td style={{
-                      padding: '12px',
+                  <button
+                    onClick={() => setShowTop3Dropdown(!showTop3Dropdown)}
+                    style={{
+                      width: '100%',
+                      padding: '6px 12px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '8px',
+                      backgroundColor: 'white',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      cursor: 'pointer',
                       fontSize: '14px',
                       color: '#6b7280'
                     }}>
-                      {item.rating || '-'}
-                    </td>
+                    <span>{top3Scope}</span>
+                    <ChevronDown style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
+                  </button>
+
+                  {showTop3Dropdown && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '100%',
+                      left: 0,
+                      right: 0,
+                      backgroundColor: 'white',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '8px',
+                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                      zIndex: 10,
+                      marginTop: '4px'
+                    }}>
+                      {/* BDO: Only GP option (no District or Block) */}
+                      {['GP'].map((option) => (
+                        <button
+                          key={option}
+                          onClick={() => {
+                            setTop3Scope(option);
+                            setShowTop3Dropdown(false);
+                          }}
+                          style={{
+                            width: '100%',
+                            padding: '8px 12px',
+                            border: 'none',
+                            backgroundColor: top3Scope === option ? '#f3f4f6' : 'transparent',
+                            color: top3Scope === option ? '#111827' : '#6b7280',
+                            fontSize: '14px',
+                            textAlign: 'left',
+                            cursor: 'pointer',
+                            borderRadius: '4px',
+                            margin: '2px'
+                          }}>
+                          {option}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div ref={top3MonthRef} className="w-full sm:w-auto" style={{
+                  position: 'relative',
+                  flex: '1 1 auto'
+                }}>
+                  <button
+                    type="button"
+                    onClick={handleTop3MonthButtonClick}
+                    className="w-full sm:w-auto"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '6px 12px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '10px',
+                      backgroundColor: 'white',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      color: '#374151',
+                      minWidth: '130px',
+                      justifyContent: 'space-between',
+                      width: '100%'
+                    }}
+                  >
+                    <span>{getTop3RangeLabel()}</span>
+                    <ChevronDown style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
+                  </button>
+
+                  {showTop3MonthPicker && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: 'calc(100% + 8px)',
+                        right: 0,
+                        width: '220px',
+                        backgroundColor: 'white',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '12px',
+                        boxShadow: '0 20px 45px -20px rgba(15, 23, 42, 0.35)',
+                        padding: '8px',
+                        zIndex: 1200
+                      }}
+                      onClick={(event) => event.stopPropagation()}
+                    >
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        {MONTH_NAMES.map((monthName, index) => (
+                          <button
+                            key={monthName}
+                            type="button"
+                            onClick={() => {
+                              setTop3Month(index);
+                              setShowTop3MonthPicker(false);
+                            }}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              width: '100%',
+                              padding: '6px 8px',
+                              borderRadius: '8px',
+                              border: 'none',
+                              backgroundColor: top3Month === index ? '#f0fdf4' : 'transparent',
+                              color: top3Month === index ? '#059669' : '#111827',
+                              cursor: 'pointer',
+                              fontSize: '14px'
+                            }}
+                          >
+                            <span>{monthName}</span>
+                            {top3Month === index && (
+                              <span style={{ fontSize: '12px', color: '#059669' }}>Active</span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+
+            {/* Loading/Error State */}
+            {top3Error && (
+              <div style={{ marginBottom: '16px' }}>
+                <NoDataFound size="medium" />
+              </div>
+            )}
+
+            {/* Top 3 Table */}
+            <div style={{
+              overflowX: 'auto',
+              opacity: loadingTop3 ? 0.6 : 1,
+              transition: 'opacity 0.3s',
+              width: '100%',
+              maxWidth: '100%'
+            }}>
+              <table style={{
+                width: '100%',
+                borderCollapse: 'collapse'
+              }}>
+                <thead>
+                  <tr style={{
+                    borderBottom: '1px solid #e5e7eb'
+                  }}>
+                    <th style={{
+                      padding: '12px',
+                      textAlign: 'left',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      color: '#374151'
+                    }}>
+                      Rank
+                    </th>
+                    <th style={{
+                      padding: '12px',
+                      textAlign: 'left',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      color: '#374151'
+                    }}>
+                      {top3Scope}
+                    </th>
+                    <th style={{
+                      padding: '12px',
+                      textAlign: 'left',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      color: '#374151'
+                    }}>
+                      Rating
+                    </th>
                   </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {top3Data.length === 0 ? (
+                    <tr>
+                      <td colSpan="3" style={{ padding: 0 }}>
+                        {loadingTop3 ? (
+                          <div style={{ padding: '20px', textAlign: 'center', fontSize: '14px', color: '#6b7280' }}>
+                            Loading...
+                          </div>
+                        ) : (
+                          <NoDataFound size="small" />
+                        )}
+                      </td>
+                    </tr>
+                  ) : (
+                    top3Data.map((item, index) => (
+                      <tr key={index} style={{
+                        borderBottom: '1px solid #f3f4f6'
+                      }}>
+                        <td style={{
+                          padding: '12px',
+                          fontSize: '14px',
+                          color: '#374151'
+                        }}>
+                          <img
+                            src={index === 0 ? number1 : index === 1 ? number2 : number3}
+                            alt={`Rank ${index + 1}`}
+                            style={{
+                              width: '100px',
+                              height: '100px',
+                              objectFit: 'contain'
+                            }}
+                          />
+                        </td>
+                        <td style={{
+                          padding: '12px',
+                          fontSize: '14px',
+                          color: '#374151'
+                        }}>
+                          {item.name}
+                        </td>
+                        <td style={{
+                          padding: '12px',
+                          fontSize: '14px',
+                          color: '#6b7280'
+                        }}>
+                          {item.rating || '-'}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
-      </div>
       )}
 
       <SendNoticeModal

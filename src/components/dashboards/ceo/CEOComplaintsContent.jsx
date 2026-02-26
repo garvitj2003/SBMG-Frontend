@@ -445,7 +445,7 @@ const CEOComplaintsContent = () => {
         setSelectedBlockForHierarchy(location);
         setDropdownLevel('gps');
         setSelectedLocation('Select GP');
-        fetchGramPanchayats(selectedDistrictForHierarchy?.id || selectedDistrictId, location.id);
+        fetchGramPanchayats(ceoDistrictId, block.id);
       } else if (dropdownLevel === 'gps') {
         // GP selected
         trackDropdownChange(location.name, location.id, selectedBlockForHierarchy.id);
@@ -1451,8 +1451,8 @@ const CEOComplaintsContent = () => {
   const activeHierarchyDistrict = selectedDistrictForHierarchy ||
     (selectedDistrictId ? districts.find(d => d.id === selectedDistrictId) : null);
 
-  const blocksForActiveDistrict = activeHierarchyDistrict
-    ? blocks.filter(block => block.district_id === activeHierarchyDistrict.id)
+  const blocksForActiveDistrict = activeScope === 'Blocks' || activeScope === 'GPs'
+    ? blocks   // CEO: directly show all blocks (already filtered by ceoDistrictId)
     : [];
 
   const activeHierarchyBlock = selectedBlockForHierarchy ||
@@ -1475,44 +1475,13 @@ const CEOComplaintsContent = () => {
     transition: 'background-color 0.15s ease, color 0.15s ease'
   });
 
-  const handleDistrictHover = (district) => {
-    if (activeScope === 'Blocks' || activeScope === 'GPs') {
-      if (!selectedDistrictForHierarchy || selectedDistrictForHierarchy.id !== district.id) {
-        setSelectedDistrictForHierarchy(district);
-        setSelectedBlockForHierarchy(null);
-        setDropdownLevel('blocks');
-        fetchBlocks(district.id);
-      }
-    }
-  };
-
-  const handleDistrictClick = (district) => {
-    if (activeScope === 'Districts') {
-      trackDropdownChange(district.name, district.id, district.id);
-      updateLocationSelection('Districts', district.name, district.id, district.id, null, null, 'dropdown_change');
-      fetchBlocks(district.id);
-      setShowLocationDropdown(false);
-    } else if (activeScope === 'Blocks') {
-      setSelectedDistrictForHierarchy(district);
-      setSelectedBlockForHierarchy(null);
-      setSelectedLocation('Select Block');
-      setDropdownLevel('blocks');
-      fetchBlocks(district.id);
-    } else if (activeScope === 'GPs') {
-      setSelectedDistrictForHierarchy(district);
-      setSelectedBlockForHierarchy(null);
-      setSelectedLocation('Select Block');
-      setDropdownLevel('blocks');
-      fetchBlocks(district.id);
-    }
-  };
 
   const handleBlockHover = (block) => {
     if (activeScope === 'GPs') {
       if (!selectedBlockForHierarchy || selectedBlockForHierarchy.id !== block.id) {
         setSelectedBlockForHierarchy(block);
         setDropdownLevel('gps');
-        fetchGramPanchayats(selectedDistrictForHierarchy?.id || selectedDistrictId, block.id);
+        fetchGramPanchayats(ceoDistrictId, block.id);
       }
     }
   };
@@ -1533,7 +1502,7 @@ const CEOComplaintsContent = () => {
       setSelectedBlockForHierarchy(block);
       setSelectedLocation('Select GP');
       setDropdownLevel('gps');
-      fetchGramPanchayats(selectedDistrictForHierarchy?.id || selectedDistrictId, block.id);
+      fetchGramPanchayats(ceoDistrictId, block.id);
     }
   };
 

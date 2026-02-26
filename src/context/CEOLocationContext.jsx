@@ -16,22 +16,22 @@ export const useCEOLocation = () => {
 export const CEOLocationProvider = ({ children }) => {
   const { user } = useAuth();
 
-  
+
   // CEO's district ID from /me API (constant for CEO)
   const [ceoDistrictId, setCeoDistrictId] = useState(null);
   const [ceoDistrictName, setCeoDistrictName] = useState(null);
   const [loadingCEOData, setLoadingCEOData] = useState(true);
-  
+
   // Global state for location selection (CEO can only select Blocks and GPs within their district)
   const [activeScope, setActiveScope] = useState('Blocks'); // Default to Blocks for CEO
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [selectedLocationId, setSelectedLocationId] = useState(null);
-  
+
   // Hierarchical selection state
   const [selectedDistrictId, setSelectedDistrictId] = useState(null); // Will be set from CEO data
   const [selectedBlockId, setSelectedBlockId] = useState(null);
   const [selectedGPId, setSelectedGPId] = useState(null);
-  
+
   // Hierarchical dropdown state
   const [dropdownLevel, setDropdownLevel] = useState('blocks'); // Start with blocks for CEO
   const [selectedBlockForHierarchy, setSelectedBlockForHierarchy] = useState(null);
@@ -42,26 +42,40 @@ export const CEOLocationProvider = ({ children }) => {
 
   // Get CEO district data directly from user object (from /me API)
   useEffect(() => {
-    if (user && user.district_id) {
-      // Get district info directly from /me API response
-      const districtId = user.district_id;
-      const districtName = user.district_name || user.district?.name || 'District';
-      
-      // Only set if not already set (prevent multiple updates)
-      if (!ceoDistrictId) {
-        setCeoDistrictId(districtId);
-        setSelectedDistrictId(districtId);
-        setCeoDistrictName(districtName);
-        // For CEO, default location text should be "Select Block" (Blocks is default scope)
-        setSelectedLocation('Select Block');
-        console.log('✅ CEO District loaded from /me API:', { districtId, districtName });
+    const fetchDistrictName = async () => {
+      if (user && user.district_id) {
+        try {
+          const districtId = user.district_id;
+
+          const response = await apiClient.get(
+            `/geography/districts?skip=0&limit=100`
+          );
+
+          const districts = response.data?.items || response.data || [];
+
+          const matchedDistrict = districts.find(
+            (d) => d.id === districtId
+          );
+
+          const districtName = matchedDistrict?.name;
+
+          setCeoDistrictId(districtId);
+          setSelectedDistrictId(districtId);
+          setCeoDistrictName(districtName);
+          setSelectedLocation(districtName);
+
+          console.log("✅ District mapped correctly:", districtName);
+
+        } catch (error) {
+          console.error("❌ District mapping failed:", error);
+        } finally {
+          setLoadingCEOData(false);
+        }
       }
-      setLoadingCEOData(false);
-    } else if (user) {
-      console.warn('⚠️ CEO user data does not contain district_id');
-      setLoadingCEOData(false);
-    }
-  }, [user, ceoDistrictId]);
+    };
+
+    fetchDistrictName();
+  }, [user]);
 
   // Update location selection with change tracking
   const updateLocationSelection = useCallback((scope, location, locationId, districtId = null, blockId = null, gpId = null, changeType = 'selection') => {
@@ -247,7 +261,7 @@ export const CEOLocationProvider = ({ children }) => {
     ceoDistrictId, // CEO-specific
     ceoDistrictName, // CEO-specific
     loadingCEOData, // CEO-specific
-    
+
     // Setters
     setActiveScope,
     setSelectedLocation,
@@ -256,12 +270,12 @@ export const CEOLocationProvider = ({ children }) => {
     setSelectedGPId,
     setDropdownLevel,
     setSelectedBlockForHierarchy,
-    
+
     // Actions
     updateLocationSelection,
     resetLocationSelection,
     getCurrentLocationInfo,
-    
+
     // Change tracking
     trackTabChange,
     trackDropdownChange,
@@ -291,6 +305,7 @@ export const CEOLocationProvider = ({ children }) => {
     clearChangeHistory
   ]);
 
+  
   return (
     <CEOLocationContext.Provider value={value}>
       {children}

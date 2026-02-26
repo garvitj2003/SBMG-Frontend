@@ -15,24 +15,24 @@ export const useBDOLocation = () => {
 
 export const BDOLocationProvider = ({ children }) => {
   const { user } = useAuth();
-  
+
   // BDO's district ID and block ID from /me API (constant for BDO)
   const [bdoDistrictId, setBdoDistrictId] = useState(null);
   const [bdoDistrictName, setBdoDistrictName] = useState(null);
   const [bdoBlockId, setBdoBlockId] = useState(null);
   const [bdoBlockName, setBdoBlockName] = useState(null);
   const [loadingBDOData, setLoadingBDOData] = useState(true);
-  
+
   // Global state for location selection (BDO can only select GPs within their block)
   const [activeScope, setActiveScope] = useState('GPs'); // Default to GPs for BDO
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [selectedLocationId, setSelectedLocationId] = useState(null);
-  
+
   // Hierarchical selection state
   const [selectedDistrictId, setSelectedDistrictId] = useState(null); // Will be set from BDO data
   const [selectedBlockId, setSelectedBlockId] = useState(null); // Will be set from BDO data
   const [selectedGPId, setSelectedGPId] = useState(null);
-  
+
   // Hierarchical dropdown state (BDO only sees GP level)
   const [dropdownLevel, setDropdownLevel] = useState('gps'); // Start with gps for BDO
   const [selectedGPForHierarchy, setSelectedGPForHierarchy] = useState(null);
@@ -41,33 +41,56 @@ export const BDOLocationProvider = ({ children }) => {
   const [changeHistory, setChangeHistory] = useState([]);
   const [lastChange, setLastChange] = useState(null);
 
+
   // Get BDO district and block data directly from user object (from /me API)
+
   useEffect(() => {
-    if (user && user.district_id && user.block_id) {
-      // Get district and block info directly from /me API response
-      const districtId = user.district_id;
-      const districtName = user.district_name || user.district?.name || 'District';
-      const blockId = user.block_id;
-      const blockName = user.block_name || user.block?.name || 'Block';
-      
-      // Only set if not already set (prevent multiple updates)
-      if (!bdoDistrictId || !bdoBlockId) {
-        setBdoDistrictId(districtId);
-        setSelectedDistrictId(districtId);
-        setBdoDistrictName(districtName);
-        setBdoBlockId(blockId);
-        setSelectedBlockId(blockId);
-        setBdoBlockName(blockName);
-        // For BDO, default location text should be "Select GP" (GPs is default scope)
-        setSelectedLocation('Select GP');
-        console.log('✅ BDO District and Block loaded from /me API:', { districtId, districtName, blockId, blockName });
+    const fetchDistrictAndBlockName = async () => {
+      if (user?.district_id && user?.block_id) {
+        try {
+          const districtId = user.district_id;
+          const blockId = user.block_id;
+
+          // ✅ Fetch districts
+          const districtRes = await apiClient.get(`/geography/districts?skip=0&limit=100`);
+          const districts = districtRes.data?.items || districtRes.data || [];
+          const matchedDistrict = districts.find(d => d.id === districtId);
+          const districtName = matchedDistrict?.name || null;
+
+          // ✅ Fetch blocks
+          const blockRes = await apiClient.get(`/geography/blocks?skip=0&limit=100`);
+          const blocks = blockRes.data?.items || blockRes.data || [];
+          const matchedBlock = blocks.find(b => b.id === blockId);
+          const blockName = matchedBlock?.name || null;
+
+          // ✅ Set everything
+          setBdoDistrictId(districtId);
+          setBdoDistrictName(districtName);
+          setSelectedDistrictId(districtId);
+
+          setBdoBlockId(blockId);
+          setBdoBlockName(blockName);
+          setSelectedBlockId(blockId);
+
+          // Default location for BDO
+          setSelectedLocation('Select GP');
+
+          console.log("✅ BDO District & Block mapped:", {
+            districtName,
+            blockName
+          });
+
+        } catch (error) {
+          console.error("❌ District/Block mapping failed:", error);
+        } finally {
+          setLoadingBDOData(false);
+        }
       }
-      setLoadingBDOData(false);
-    } else if (user) {
-      console.warn('⚠️ BDO user data does not contain district_id or block_id');
-      setLoadingBDOData(false);
-    }
-  }, [user, bdoDistrictId, bdoBlockId]);
+    };
+
+    fetchDistrictAndBlockName();
+  }, [user]);
+
 
   // Update location selection with change tracking
   const updateLocationSelection = useCallback((scope, location, locationId, districtId = null, blockId = null, gpId = null, changeType = 'selection') => {
@@ -137,6 +160,9 @@ export const BDOLocationProvider = ({ children }) => {
     setChangeHistory(prev => [...prev, changeData]);
     console.log(`📋 BDO Tab Change:`, changeData);
   }, [activeScope, selectedLocation, selectedLocationId, selectedDistrictId, selectedBlockId, selectedGPId, bdoDistrictId, bdoBlockId]);
+
+
+  
 
   // Track dropdown changes specifically
   const trackDropdownChange = useCallback((location, locationId, districtId = null, blockId = null, gpId = null) => {
@@ -258,7 +284,7 @@ export const BDOLocationProvider = ({ children }) => {
     bdoBlockId, // BDO-specific
     bdoBlockName, // BDO-specific
     loadingBDOData, // BDO-specific
-    
+
     // Setters
     setActiveScope,
     setSelectedLocation,
@@ -266,12 +292,12 @@ export const BDOLocationProvider = ({ children }) => {
     setSelectedGPId,
     setDropdownLevel,
     setSelectedGPForHierarchy,
-    
+
     // Actions
     updateLocationSelection,
     resetLocationSelection,
     getCurrentLocationInfo,
-    
+
     // Change tracking
     trackTabChange,
     trackDropdownChange,

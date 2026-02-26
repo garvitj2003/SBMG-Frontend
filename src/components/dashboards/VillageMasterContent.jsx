@@ -1,4 +1,4 @@
-import { ArrowUpDown, Calendar, ChevronDown, ChevronRight, Database, Download, Edit, MapPin, TrendingUp } from 'lucide-react';
+import { ArrowUpDown, Calendar, ChevronDown, ChevronRight, Database, Download, Edit, Filter, MapPin, TrendingUp } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Chart from 'react-apexcharts';
 import { useLocation } from '../../context/LocationContext';
@@ -73,6 +73,55 @@ const VillageMasterContent = () => {
 
   const scopeButtons = ['State', 'Districts', 'Blocks', 'GPs'];
   const performanceButtons = ['Time', 'Location'];
+
+  // Sorting 
+  const [historySortOrder, setHistorySortOrder] = useState('asc'); // 'asc' or 'desc'
+  const [sortConfig, setSortConfig] = useState({
+    key: 'geography_name',
+    direction: 'asc' // 'asc' | 'desc'
+  });
+
+  const handleSort = (key) => {
+    setSortConfig((prev) => {
+      if (prev.key === key) {
+        return {
+          key,
+          direction: prev.direction === 'asc' ? 'desc' : 'asc'
+        };
+      } else {
+        return {
+          key,
+          direction: 'asc'
+        };
+      }
+    });
+  };
+
+
+  // const sortedCoverageData = [...coverageData].sort((a, b) => {
+  //   const { key, direction } = sortConfig;
+
+  //   let valueA = a[key];
+  //   let valueB = b[key];
+
+  //   // Handle undefined/null
+  //   if (valueA === null || valueA === undefined) valueA = '';
+  //   if (valueB === null || valueB === undefined) valueB = '';
+
+  //   // String sorting
+  //   if (typeof valueA === 'string') {
+  //     const result = valueA.localeCompare(valueB);
+  //     return direction === 'asc' ? result : -result;
+  //   }
+
+  //   // Number sorting
+  //   const result = Number(valueA) - Number(valueB);
+  //   return direction === 'asc' ? result : -result;
+  // });
+
+  const toggleHistorySortOrder = () => {
+    setHistorySortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+  };
 
   // Helper functions for location management
   const trackTabChange = useCallback((scope) => {
@@ -1867,6 +1916,7 @@ const VillageMasterContent = () => {
           </h3>
 
 
+
           {/* Table */}
           {(() => {
             const coverageData = activeScope === 'State'
@@ -1874,6 +1924,28 @@ const VillageMasterContent = () => {
               : activeScope === 'Districts'
                 ? analyticsData?.block_wise_coverage || []
                 : analyticsData?.gp_wise_coverage || [];
+
+
+            // 🔥 Dynamic Column Sorting
+            const sortedCoverageData = [...coverageData].sort((a, b) => {
+              const { key, direction } = sortConfig;
+
+              let valueA = a[key];
+              let valueB = b[key];
+
+              if (valueA == null) valueA = '';
+              if (valueB == null) valueB = '';
+
+              // String sorting
+              if (typeof valueA === 'string') {
+                const result = valueA.localeCompare(valueB);
+                return direction === 'asc' ? result : -result;
+              }
+
+              // Number sorting
+              const result = Number(valueA) - Number(valueB);
+              return direction === 'asc' ? result : -result;
+            });
 
             if (coverageData.length === 0) {
 
@@ -1915,67 +1987,82 @@ const VillageMasterContent = () => {
                     top: 0,
                     zIndex: 10
                   }}>
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      fontSize: '14px',
-                      fontWeight: '600',
-                      color: '#374151'
-                    }}>
+                    <div
+                      onClick={() => handleSort('geography_name')}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        color: '#374151',
+                        cursor: 'pointer'
+                      }}>
                       {activeScope === 'State' ? 'District' : activeScope === 'Districts' ? 'Block' : 'GP'} Name
                       <ArrowUpDown style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
                     </div>
                     {activeScope !== 'Blocks' && (
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        fontSize: '14px',
-                        fontWeight: '600',
-                        color: '#374151'
-                      }}>
-                        Total {activeScope === 'State' || activeScope === 'Districts' ? 'GPs' : 'Villages'}
+                      <div
+                        onClick={() => handleSort('total_gps')}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          fontSize: '14px',
+                          fontWeight: '600',
+                          color: '#374151',
+                          cursor: 'pointer'
+                        }}>
+                        Total {activeScope === 'State' || activeScope === 'Districts' ? 'GPs' : 'Gps'}
                         <InfoTooltip tooltipKey="TOTAL_GPS" size={14} color="#9ca3af" />
                         <ArrowUpDown style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
                       </div>)}
                     {activeScope !== 'Blocks' && (
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        fontSize: '14px',
-                        fontWeight: '600',
-                        color: '#374151'
-                      }}>
+                      <div
+                        onClick={() => handleSort('gps_with_data')}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          fontSize: '14px',
+                          fontWeight: '600',
+                          color: '#374151',
+                          cursor: 'pointer'
+                        }}>
                         {activeScope === 'State' || activeScope === 'Districts' ? 'GPs' : 'Villages'} with Data
                         <InfoTooltip tooltipKey="GPS_WITH_DATA" size={14} color="#9ca3af" />
                         <ArrowUpDown style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
                       </div>)}
 
                     {activeScope !== 'Blocks' && (
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        fontSize: '14px',
-                        fontWeight: '600',
-                        color: '#374151'
-                      }}>
+                      <div
+                        onClick={() => handleSort('coverage_percentage')}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          fontSize: '14px',
+                          fontWeight: '600',
+                          color: '#374151',
+                          cursor: 'pointer'
+                        }}>
                         Coverage %
                         <InfoTooltip tooltipKey="COVERAGE_PERCENTAGE" size={14} color="#9ca3af" />
                         <ArrowUpDown style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
                       </div>
                     )}
 
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      fontSize: '14px',
-                      fontWeight: '600',
-                      color: '#374151'
-                    }}>
+                    <div
+                      onClick={() => handleSort('master_data_status')}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        color: '#374151',
+                        cursor: 'pointer'
+                      }}>
                       Status
                       <ArrowUpDown style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
                     </div>
@@ -1991,12 +2078,12 @@ const VillageMasterContent = () => {
                   </div>
 
                   {/* Table Rows */}
-                  {coverageData.map((item, index) => (
+                  {sortedCoverageData.map((item, index) => (
                     <div key={item.geography_id || index} style={{
                       display: 'grid',
                       gridTemplateColumns: gridColumns,
                       padding: '12px 16px',
-                      borderBottom: index < coverageData.length - 1 ? '1px solid #e5e7eb' : 'none',
+                      borderBottom: index < sortedCoverageData.length - 1 ? '1px solid #e5e7eb' : 'none',
                       backgroundColor: 'white',
                       transition: 'background-color 0.2s'
                     }}

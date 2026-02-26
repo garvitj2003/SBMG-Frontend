@@ -1,8 +1,10 @@
 import axios from 'axios';
 
-// Use relative path so requests go through Nginx proxy (no direct port 8000 = no CORS issues).
-// Set VITE_API_URL in .env if you need to override (e.g. for a different proxy path).
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1';
+// Configure your API base URL
+// In production (Vercel), use the proxied endpoint
+// In development, use the direct backend URL
+const API_BASE_URL = import.meta.env.VITE_API_URL ||
+  (import.meta.env.PROD ? '/api/v1' : 'http://139.59.34.99:8000/api/v1');
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
