@@ -47,7 +47,7 @@ const NotoficationContent = () => {
           const hasMore = response.data.length === pageSize;
           setSentHasMore(hasMore);
           // For array responses without total count, we don't know the total
-          setSentTotal(null);
+          setSentTotal(response.data.length);
         } else if (response.data.items && Array.isArray(response.data.items)) {
           setSentNotices(response.data.items);
           const total = response.data.total || response.data.items.length;
@@ -94,7 +94,7 @@ const NotoficationContent = () => {
           const hasMore = response.data.length === pageSize;
           setReceivedHasMore(hasMore);
           // For array responses without total count, we don't know the total
-          setReceivedTotal(null);
+          setReceivedTotal(response.data.length);
         } else if (response.data.items && Array.isArray(response.data.items)) {
           setReceivedNotices(response.data.items);
           const total = response.data.total || response.data.items.length;

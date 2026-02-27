@@ -401,6 +401,11 @@ const BDOVillageMasterContent = () => {
         ["CSC:", data.sbmg_targets.csc],
         ["Soak Pit:", data.sbmg_targets.soak_pit],
         ["Magic Pit:", data.sbmg_targets.magic_pit],
+        ["RRC:", data.sbmg_targets.rrc],
+        ["PWMU:", data.sbmg_targets.pwmu],
+        ["Leach Pit:", data.sbmg_targets.leach_pit],
+        ["WSP:", data.sbmg_targets.wsp],
+        ["DEWATS:", data.sbmg_targets.dewats],
       ]);
     }
 
@@ -1595,6 +1600,7 @@ const BDOVillageMasterContent = () => {
         </div>
 
         {/* SBMG Target vs Achievement and Annual Overview Section */}
+        {/* SBMG Target vs Achievement and Annual Overview Section */}
         <div style={{
           display: 'flex',
           gap: '10px',
@@ -1629,43 +1635,31 @@ const BDOVillageMasterContent = () => {
                   alignItems: 'center',
                   gap: '16px'
                 }}>
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px'
-                  }}>
-                    <div style={{
-                      width: '12px',
-                      height: '12px',
-                      backgroundColor: '#9ca3af',
-                      borderRadius: '2px'
-                    }}></div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <div style={{ width: '12px', height: '12px', backgroundColor: '#9ca3af', borderRadius: '2px' }}></div>
                     <span style={{ fontSize: '12px', color: '#6b7280' }}>Target</span>
                   </div>
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px'
-                  }}>
-                    <div style={{
-                      width: '12px',
-                      height: '12px',
-                      backgroundColor: '#10b981',
-                      borderRadius: '2px'
-                    }}></div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <div style={{ width: '12px', height: '12px', backgroundColor: '#10b981', borderRadius: '2px' }}></div>
                     <span style={{ fontSize: '12px', color: '#6b7280' }}>Achievement</span>
                   </div>
                 </div>
               </div>
-              <divider />
-              <div style={{
-                height: '1px',
-                backgroundColor: '#e5e7eb',
-                margin: '12px 0'
-              }}></div>
+
+              <div style={{ height: '1px', backgroundColor: '#e5e7eb', margin: '12px 0' }}></div>
+
               <div style={{ height: '400px' }}>
                 <Chart
-                  options={chartOptions}
+                  // Yahan hum ensure kar rahe hain ki shared aur intersect properties apply ho rahi hain
+                  options={{
+                    ...chartOptions,
+                    tooltip: {
+                      ...chartOptions.tooltip,
+                      shared: true,
+                      intersect: false,
+                      followCursor: true
+                    }
+                  }}
                   series={chartSeries}
                   type="bar"
                   height="100%"
@@ -1673,7 +1667,6 @@ const BDOVillageMasterContent = () => {
               </div>
             </div>
           )}
-          <divider />
 
           {/* Annual Overview */}
           <div style={{
@@ -1693,101 +1686,67 @@ const BDOVillageMasterContent = () => {
             }}>
               Annual Overview
             </h3>
-            <divider />
-            <div style={{
-              height: '1px',
-              backgroundColor: '#e5e7eb',
-              margin: '12px 0'
-            }}></div>
-            <divider />
+            <div style={{ height: '1px', backgroundColor: '#e5e7eb', margin: '12px 0' }}></div>
 
             {/* Metrics List */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               {/* Fund Utilization rate */}
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                paddingBottom: '16px',
-                borderBottom: '1px solid #e5e7eb'
-              }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '16px', borderBottom: '1px solid #e5e7eb' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span style={{ fontSize: '16px', color: '#6b7280' }}>Fund Utilization rate</span>
                   <InfoTooltip tooltipKey="FUND_UTILIZATION_RATE" size={14} color="#6b7280" />
                 </div>
                 <span style={{ fontSize: '18px', fontWeight: '700', color: '#111827' }}>
-                  {loadingAnalytics ? '...' : (analyticsData?.annual_overview?.fund_utilization_rate !== undefined && analyticsData?.annual_overview?.fund_utilization_rate !== null ? `${analyticsData.annual_overview.fund_utilization_rate}%` : analyticsData?.fund_utilization_rate !== undefined && analyticsData?.fund_utilization_rate !== null ? `${analyticsData.fund_utilization_rate}%` : '0%')}
+                  {loadingAnalytics ? '...' : (analyticsData?.annual_overview?.fund_utilization_rate ?? analyticsData?.fund_utilization_rate ?? '0')}%
                 </span>
               </div>
 
               {/* Average Cost Per Household */}
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                paddingBottom: '16px',
-                borderBottom: '1px solid #e5e7eb'
-              }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '16px', borderBottom: '1px solid #e5e7eb' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span style={{ fontSize: '16px', color: '#6b7280' }}>Average Cost Per Household(D2D)</span>
                   <InfoTooltip tooltipKey="AVERAGE_COST_PER_HOUSEHOLD_D2D" size={14} color="#6b7280" />
                 </div>
                 <span style={{ fontSize: '18px', fontWeight: '700', color: '#111827' }}>
-                  {loadingAnalytics ? '...' : (analyticsData?.annual_overview?.average_cost_per_household_d2d !== undefined && analyticsData?.annual_overview?.average_cost_per_household_d2d !== null ? `₹${formatNumber(analyticsData.annual_overview.average_cost_per_household_d2d)}` : '₹0')}
+                  {loadingAnalytics ? '...' : `₹${formatNumber(analyticsData?.annual_overview?.average_cost_per_household_d2d || 0)}`}
                 </span>
               </div>
 
               {/* Household covered - Hidden in GP view */}
               {activeScope !== 'GPs' && (
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  paddingBottom: '16px',
-                  borderBottom: '1px solid #e5e7eb'
-                }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '16px', borderBottom: '1px solid #e5e7eb' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span style={{ fontSize: '16px', color: '#6b7280' }}>Household covered (D2D)</span>
                     <InfoTooltip tooltipKey="HOUSEHOLDS_COVERED_D2D" size={14} color="#6b7280" />
                   </div>
                   <span style={{ fontSize: '18px', fontWeight: '700', color: '#111827' }}>
-                    {loadingAnalytics ? '...' : (analyticsData?.annual_overview?.households_covered_d2d !== undefined && analyticsData?.annual_overview?.households_covered_d2d !== null ? formatNumber(analyticsData.annual_overview.households_covered_d2d) : analyticsData?.households_covered_d2d !== undefined && analyticsData?.households_covered_d2d !== null ? formatNumber(analyticsData.households_covered_d2d) : '0')}
+                    {loadingAnalytics ? '...' : formatNumber(analyticsData?.annual_overview?.households_covered_d2d ?? analyticsData?.households_covered_d2d ?? 0)}
                   </span>
                 </div>
               )}
 
-              {/* GPs with Identified Asset Gaps - Hidden in GP view */}
+              {/* GPs with Identified Asset Gaps */}
               {activeScope !== 'GPs' && (
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  paddingBottom: '16px',
-                  borderBottom: '1px solid #e5e7eb'
-                }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '16px', borderBottom: '1px solid #e5e7eb' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span style={{ fontSize: '16px', color: '#6b7280' }}>GPs with Identified Asset Gaps</span>
                     <InfoTooltip tooltipKey="GPS_WITH_ASSET_GAPS" size={14} color="#6b7280" />
                   </div>
                   <span style={{ fontSize: '18px', fontWeight: '700', color: '#111827' }}>
-                    {loadingAnalytics ? '...' : (analyticsData?.annual_overview?.gps_with_asset_gaps !== undefined && analyticsData?.annual_overview?.gps_with_asset_gaps !== null ? formatNumber(analyticsData.annual_overview.gps_with_asset_gaps) : '0')}
+                    {loadingAnalytics ? '...' : formatNumber(analyticsData?.annual_overview?.gps_with_asset_gaps || 0)}
                   </span>
                 </div>
               )}
 
-              {/* Active Sanitation Bidders - Hidden in GP view */}
+              {/* Active Sanitation Bidders */}
               {activeScope !== 'GPs' && (
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center'
-                }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span style={{ fontSize: '16px', color: '#6b7280' }}>Active Sanitation Bidders</span>
                     <InfoTooltip tooltipKey="ACTIVE_SANITATION_BIDDERS" size={14} color="#6b7280" />
                   </div>
                   <span style={{ fontSize: '18px', fontWeight: '700', color: '#111827' }}>
-                    {loadingAnalytics ? '...' : (analyticsData?.annual_overview?.active_sanitation_bidders !== undefined && analyticsData?.annual_overview?.active_sanitation_bidders !== null ? formatNumber(analyticsData.annual_overview.active_sanitation_bidders) : '0')}
+                    {loadingAnalytics ? '...' : formatNumber(analyticsData?.annual_overview?.active_sanitation_bidders || 0)}
                   </span>
                 </div>
               )}
@@ -2026,6 +1985,12 @@ const BDOVillageMasterContent = () => {
               return direction === 'asc' ? result : -result;
             });
 
+            // 1. Total Geography Count (Districts/Blocks/GPs ki total ginti)
+            const totalGeographyCount = coverageData.length;
+
+            // 2. Total GPs ka Sum (Saare districts ke total_gps ka jod)
+            const totalGpsSum = coverageData.reduce((acc, item) => acc + (Number(item.total_gps) || 0), 0);
+
             if (coverageData.length === 0) {
               return (
                 <div style={{
@@ -2043,11 +2008,10 @@ const BDOVillageMasterContent = () => {
               <div style={{
                 borderRadius: '8px',
                 border: '1px solid #e5e7eb',
-                overflow: 'hidden'
+                overflowX: 'auto'
               }}>
                 <div style={{
                   minWidth: '600px',
-                  maxHeight: '500px',
                   overflowY: 'auto',
                   overflowX: 'auto'
                 }}>
@@ -2074,6 +2038,8 @@ const BDOVillageMasterContent = () => {
                         cursor: 'pointer'
                       }}>
                       {activeScope === 'State' ? 'District' : activeScope === 'Districts' ? 'Block' : 'GP'} Name
+
+                      ({totalGeographyCount})
                       <ArrowUpDown style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
                     </div>
 

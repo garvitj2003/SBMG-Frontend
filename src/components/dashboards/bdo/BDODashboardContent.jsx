@@ -226,7 +226,7 @@ const BDODashboardContent = () => {
 
   // BDO always uses their district ID and block ID from /me API
   const selectedDistrictId = bdoDistrictId || null;
-  const selectedBlockId = bdoBlockId || null;
+  const selectedBlockId = bdoBlockId ?? null;
   const selectedDistrictForHierarchy = bdoDistrictId ? { id: bdoDistrictId, name: bdoDistrictName } : null;
   const selectedBlockForHierarchy = bdoBlockId ? { id: bdoBlockId, name: bdoBlockName } : null;
   const setSelectedDistrictForHierarchy = () => { }; // No-op for BDO
@@ -492,11 +492,7 @@ const BDODashboardContent = () => {
     { label: 'Custom', value: 'custom', days: null }
   ];
 
-  // BDO: Districts are not fetched - district is fixed from /me API
-  const fetchDistricts = () => {
-    // No-op for BDO - district ID comes from /me API (bdoDistrictId)
-    console.log('BDO: Skipping fetchDistricts - using bdoDistrictId:', bdoDistrictId);
-  };
+
 
   // BDO: Blocks are not fetched - block is fixed from /me API
   const fetchBlocks = useCallback(async (districtId) => {
@@ -784,23 +780,7 @@ const BDODashboardContent = () => {
     // Close dropdown immediately to prevent showing stale options
     setShowLocationDropdown(false);
 
-    if (scope === 'State') {
-      // For State scope, set Rajasthan as default and disable dropdown
-      updateLocationSelection('State', 'Rajasthan', null, null, null, null, 'tab_change');
-      setDropdownLevel('districts');
-      setSelectedDistrictForHierarchy(null);
-      setSelectedBlockForHierarchy(null);
-    } else if (scope === 'Districts') {
-      // Set first district as selected (districts are already loaded)
-      if (districts.length > 0) {
-        const firstDistrict = districts[0];
-        updateLocationSelection('Districts', firstDistrict.name, firstDistrict.id, firstDistrict.id, null, null, 'tab_change');
-        fetchBlocks(firstDistrict.id);
-      }
-      setDropdownLevel('districts');
-      setSelectedDistrictForHierarchy(null);
-      setSelectedBlockForHierarchy(null);
-    } else if (scope === 'Blocks') {
+    if (scope === 'Blocks') {
       // CEO: Reset to show block selection
       updateLocationSelection('Blocks', 'Select Block', null, bdoDistrictId, null, null, 'tab_change');
       setGramPanchayats([]);
@@ -808,14 +788,22 @@ const BDODashboardContent = () => {
       setSelectedBlockForHierarchy(null);
       // Blocks are already loaded from bdoDistrictId
     } else if (scope === 'GPs') {
-      // CEO: Reset to show GP selection (blocks should already be loaded)
-      updateLocationSelection('GPs', 'Select GP', null, bdoDistrictId, null, null, 'tab_change');
-      setGramPanchayats([]);
+
+      updateLocationSelection(
+        'GPs',
+        'Select GP',
+        null,
+        bdoDistrictId,
+        selectedBlockId,   // 👈 BLOCK PASS KARO
+        null,
+        'tab_change'
+      );
+
       setDropdownLevel('blocks');
-      setSelectedBlockForHierarchy(null);
-      // Ensure blocks are loaded for GPs tab
-      if (bdoDistrictId && blocks.length === 0) {
-        fetchBlocks(bdoDistrictId);
+
+      // 👇 FETCH GPs when entering GPs tab
+      if (selectedBlockId) {
+        fetchGramPanchayats(selectedBlockId);
       }
     } else {
       // For other scopes, reset to first option
@@ -828,6 +816,9 @@ const BDODashboardContent = () => {
       setSelectedBlockForHierarchy(null);
     }
   };
+
+
+
 
   const activeHierarchyDistrict = selectedDistrictForHierarchy ||
     (selectedDistrictId ? districts.find(district => district.id === selectedDistrictId) : null);
@@ -856,48 +847,7 @@ const BDODashboardContent = () => {
     transition: 'background-color 0.15s ease, color 0.15s ease'
   });
 
-  const handleDistrictHover = (district) => {
-    if (activeScope === 'Blocks' || activeScope === 'GPs') {
-      if (!selectedDistrictForHierarchy || selectedDistrictForHierarchy.id !== district.id) {
-        setSelectedDistrictForHierarchy(district);
-        setSelectedBlockForHierarchy(null);
-        setDropdownLevel('blocks');
-        fetchBlocks(district.id);
-      }
-    }
-  };
 
-
-
-  const handleBlockHover = (block) => {
-    if (activeScope === 'GPs') {
-      if (!selectedBlockForHierarchy || selectedBlockForHierarchy.id !== block.id) {
-        setSelectedBlockForHierarchy(block);
-        setDropdownLevel('gps');
-        fetchGramPanchayats(selectedDistrictForHierarchy?.id || selectedDistrictId, block.id);
-      }
-    }
-  };
-
-  const handleBlockClick = (block) => {
-    if (activeScope === 'Blocks') {
-      const district = districts.find(d => d.id === (block.district_id || selectedDistrictForHierarchy?.id)) || selectedDistrictForHierarchy;
-      const districtId = district?.id || null;
-      trackDropdownChange(block.name, block.id, districtId);
-      updateLocationSelection('Blocks', block.name, block.id, districtId, block.id, null, 'dropdown_change');
-      if (district) {
-        setSelectedDistrictForHierarchy(district);
-      }
-      setSelectedBlockForHierarchy(block);
-      fetchGramPanchayats(districtId, block.id);
-      setShowLocationDropdown(false);
-    } else if (activeScope === 'GPs') {
-      setSelectedBlockForHierarchy(block);
-      setSelectedLocation('Select GP');
-      setDropdownLevel('gps');
-      fetchGramPanchayats(selectedDistrictForHierarchy?.id || selectedDistrictId, block.id);
-    }
-  };
 
   const handleGPClick = (gp) => {
     // BDO: Use fixed district and block from /me API
@@ -1225,18 +1175,39 @@ const BDODashboardContent = () => {
       const params = new URLSearchParams();
       params.append('start_date', startDate);
       params.append('end_date', endDate);
-      params.append('n', '5'); // Get top 5 but we'll only use top 3
+      params.append('n', '5');
       params.append('level', level);
 
-      // BDO: Pass only gp_id if GP is selected, otherwise no geography filter
-      if (selectedGPId) {
-        params.append('gp_id', selectedGPId);
-        console.log('🏡 GP ID:', selectedGPId);
+      // ============================
+      // Geography Handling
+      // ============================
+
+      // Priority: GP > Block > District
+      // Ensure only ONE geography param is sent
+      // BDO default
+      if (activeScope === "Blocks") {
+        if (!selectedBlockId) {
+          console.warn("⚠️ Block not available");
+          return;
+        }
+        params.set("block_id", selectedBlockId);
+
+      } else if (activeScope === "GPs") {
+        if (!selectedGPId) {
+          console.warn("⚠️ GP scope but no GP selected");
+          return;
+        }
+        params.set("gp_id", selectedGPId);
+
+      } else {
+        console.warn("⚠️ Invalid scope");
+        return;
       }
 
-      const url = `/complaints/analytics/top-n?${params.toString()}`;
-      console.log('🌐 Top 3 API URL:', url);
+      // Debug check
+      console.log("📦 Final Query Params:", params.toString());
 
+      const url = `/complaints/analytics/top-n?${params.toString()}`;
       const response = await apiClient.get(url);
 
       console.log('✅ Top 3 API Response:', {
@@ -1275,7 +1246,6 @@ const BDODashboardContent = () => {
     console.log('🔄 BDO Analytics useEffect triggered:', {
       activeScope,
       bdoDistrictId,
-      selectedBlockId,
       selectedGPId,
       startDate,
       endDate
@@ -1296,7 +1266,7 @@ const BDODashboardContent = () => {
 
     console.log('📡 BDO: Calling analytics API');
     fetchAnalyticsData();
-  }, [activeScope, selectedBlockId, selectedGPId, startDate, endDate, isCustomRange, bdoDistrictId, fetchAnalyticsData]);
+  }, [activeScope, selectedGPId, startDate, endDate, isCustomRange, bdoDistrictId, fetchAnalyticsData]);
 
   // CEO: Fetch complaints chart data when filters change (independent of overview date range)
   useEffect(() => {
@@ -1331,35 +1301,63 @@ const BDODashboardContent = () => {
 
   // Fetch Top 3 data when scope or month changes
   useEffect(() => {
+    // Wait until BDO district & block are loaded
+    if (!selectedDistrictId || !selectedBlockId) {
+      console.log("⏳ Waiting for BDO geography to initialize...");
+      return;
+    }
+
+    // If GPs scope but GP not selected yet → wait
+    if (activeScope === "GPs" && !selectedGPId) {
+      console.log("⏳ Waiting for GP selection...");
+      return;
+    }
+
     console.log('🔄 Top 3 useEffect triggered:', {
       top3Scope,
       top3Month
     });
 
     fetchTop3Data();
-  }, [top3Scope, top3Month, fetchTop3Data]);
+
+  }, [
+    top3Scope,
+    top3Month,
+    selectedDistrictId,
+    selectedGPId,
+    activeScope
+  ]);
 
   // Fetch Vendor data when GP is selected
   useEffect(() => {
-    const fetchVendorData = async () => {
-      // Only fetch vendor data when GP is selected
-      if (activeScope !== 'GPs' || !selectedGPId) {
-        setVendorData(null);
-        return;
-      }
 
+    if (activeScope !== 'GPs' || !selectedGPId) {
+      setVendorData(null);
+      return;
+    }
+
+    const fetchVendorData = async () => {
       try {
         setLoadingVendor(true);
         setVendorError(null);
 
-        console.log('🔄 Fetching vendor data for GP ID:', selectedGPId);
-        const response = await apiClient.get(`/geography/grampanchayats/${selectedGPId}/contractor`);
-        console.log('✅ Vendor API Response:', response.data);
+        const response = await apiClient.get(
+          `/geography/grampanchayats/${selectedGPId}/contractor`
+        );
 
-        setVendorData(response.data);
+        setVendorData(response.data ?? []);
+
       } catch (error) {
-        console.error('❌ Error fetching vendor data:', error);
-        setVendorError(error.response?.data?.message || error.message || 'Failed to fetch vendor details');
+
+        if (error.response?.status === 404) {
+          setVendorData([]); // No contractor case
+          return;
+        }
+
+        setVendorError(
+          error.response?.data?.message ||
+          "Failed to fetch vendor details"
+        );
         setVendorData(null);
       } finally {
         setLoadingVendor(false);
@@ -1367,31 +1365,9 @@ const BDODashboardContent = () => {
     };
 
     fetchVendorData();
+
   }, [activeScope, selectedGPId]);
 
-  // Update selected location when districts are loaded
-  useEffect(() => {
-    if (activeScope === 'Districts' && districts.length > 0 && selectedLocation === 'Rajasthan') {
-      setSelectedLocation(districts[0].name);
-      setSelectedDistrictId(districts[0].id);
-    }
-  }, [districts, activeScope, selectedLocation]);
-
-  // Update selected location when blocks are loaded
-  useEffect(() => {
-    if (activeScope === 'Blocks' && blocks.length > 0 && selectedLocation === 'Rajasthan') {
-      setSelectedLocation(blocks[0].name);
-      setSelectedBlockId(blocks[0].id);
-    }
-  }, [blocks, activeScope, selectedLocation]);
-
-  // Update selected location when Gram Panchayats are loaded
-  useEffect(() => {
-    if (activeScope === 'GPs' && gramPanchayats.length > 0 && selectedLocation === 'Rajasthan') {
-      setSelectedLocation(gramPanchayats[0].name);
-      setSelectedGPId(gramPanchayats[0].id);
-    }
-  }, [gramPanchayats, activeScope, selectedLocation]);
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -1935,6 +1911,24 @@ const BDODashboardContent = () => {
     return getFilteredPerformanceData(performanceData);
   };
 
+  useEffect(() => {
+    if (!loadingBDOData && bdoBlockId && bdoBlockName) {
+
+      setActiveScope("Blocks");
+
+      updateLocationSelection(
+        "Blocks",
+        bdoBlockName,   // 👈 Button me ye show hoga
+        bdoBlockId,
+        bdoDistrictId,
+        bdoBlockId,
+        null,
+        "initial_load"
+      );
+
+    }
+  }, [loadingBDOData, bdoBlockId, bdoBlockName]);
+
   const performanceData = getPerformanceData();
 
   // Get Top 3 data from API response
@@ -2087,7 +2081,11 @@ const BDODashboardContent = () => {
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <MapPin style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
-                <span>{selectedLocation}</span>
+                <span>
+                  {activeScope === "Blocks"
+                    ? bdoBlockName
+                    : selectedLocation}
+                </span>
               </div>
               <ChevronDown style={{
                 width: '16px',
@@ -2164,8 +2162,10 @@ const BDODashboardContent = () => {
           {(() => {
             const rawDistrict = (bdoDistrictName || '').trim();
             const districtLabel = (rawDistrict && rawDistrict.toLowerCase() !== 'district') ? `${bdoDistrictName} DISTRICT` : '';
-            const rawBlock = (selectedBlockForHierarchy?.name || bdoBlockName || selectedLocation || '').trim();
-            const blockName = (rawBlock && rawBlock.toLowerCase() !== 'block') ? rawBlock : '';
+            const rawBlock =
+              activeScope === "Blocks"
+                ? bdoBlockName
+                : (selectedBlockForHierarchy?.name || bdoBlockName || '').trim(); const blockName = (rawBlock && rawBlock.toLowerCase() !== 'block') ? rawBlock : '';
             if (activeScope === 'State') {
               return selectedLocation;
             } else if (activeScope === 'Districts') {

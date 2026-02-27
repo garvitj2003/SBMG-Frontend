@@ -22,7 +22,7 @@ const BDONoticeContent = () => {
   const [submittingReply, setSubmittingReply] = useState(false);
   
   // Pagination state
-  const pageSize = 1000; // Number of items per page
+  const pageSize = 100; // Number of items per page
   const [sentPage, setSentPage] = useState(1);
   const [receivedPage, setReceivedPage] = useState(1);
   const [sentTotal, setSentTotal] = useState(0);

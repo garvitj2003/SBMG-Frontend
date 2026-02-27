@@ -310,6 +310,11 @@ const VDOVillageMasterContent = () => {
         ["CSC:", data.sbmg_targets.csc],
         ["Soak Pit:", data.sbmg_targets.soak_pit],
         ["Magic Pit:", data.sbmg_targets.magic_pit],
+        ["RRC:", data.sbmg_targets.rrc],
+        ["PWMU:", data.sbmg_targets.pwmu],
+        ["Leach Pit:", data.sbmg_targets.leach_pit],
+        ["WSP:", data.sbmg_targets.wsp],
+        ["DEWATS:", data.sbmg_targets.dewats],
       ]);
     }
 
